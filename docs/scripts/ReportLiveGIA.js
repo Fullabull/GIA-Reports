@@ -1,133 +1,21 @@
-﻿// START: BELOW IS CODE COPIED FROM ReportFlex.js
-// Get elements
-//const images = document.querySelectorAll('.image-list img'); !! See below: 'const images' querySelectorAll now uses '.toggle-image' class
-const dialog = document.getElementById("imageDialog");
-const dialogImage = document.getElementById("dialogImage");
-const closeDialogButton = document.getElementById("closeDialogButton");
-const content = document.getElementById('content');
-const increaseBtn = document.getElementById('increaseFont');
-const decreaseBtn = document.getElementById('decreaseFont');
-const resetBtn = document.getElementById('resetFont');
-let currentFontSize = 16; // Default font size
+// START: Functions that can live outside DOMContentLoaded
 
-// END: ABOVE IS CODE COPIED FROM ReportFlex.js
+const imageSizes = ["tiny-image", "mini-image", "small-image", "medium-image", "large-image", "huge-image"];
 
-const images = document.querySelectorAll(".toggle-image");
-const toggleAllButton = document.getElementById("toggleButton");
-
-// Print exactly what is on the page, as is
-document.getElementById('printButton').addEventListener('click', function () {
-    window.print();
-});
-
-// Toggle all images
-toggleAllButton.addEventListener("click", () => {
-    let isHidden = images[0].classList.contains("hidden"); // Check first image
-    images.forEach(img => img.classList.toggle("hidden", !isHidden)); // Toggle all
-});
-
-// Toggle individual images
-document.querySelectorAll('.toggle-btn').forEach(button => {
-    button.addEventListener('click', function () {
-        let img = this.nextElementSibling; // Get the image below the button
-        let isHidden = img.classList.contains('hidden');
-
-        img.classList.toggle('hidden', !isHidden);
-        this.textContent = isHidden ? 'Hide' : 'Show';
-
-        // Check if all images are hidden
-        let allHidden = [...document.querySelectorAll('.toggle-image')].every(img => img.classList.contains('hidden'));
-        document.getElementById('toggleButton').textContent = allHidden ? 'Show Images' : 'Hide Images';
-    });
-});
-
-document.getElementById('toggleButton').addEventListener('click', function () {
-    let images = document.querySelectorAll('.toggle-image');
-    let shouldHide = this.textContent === 'Hide Images';
-
-    images.forEach(img => {
-        img.classList.toggle('hidden', shouldHide);
-    });
-
-    // Update all individual image buttons
-    document.querySelectorAll('.toggle-btn').forEach(button => {
-        button.textContent = shouldHide ? 'Show' : 'Hide';
-    });
-
-    // Update the global button text
-    this.textContent = shouldHide ? 'Show Images' : 'Hide Images';
-});
-
-// Reset All Button - Restores ALL images to visible state
-document.getElementById("resetButton").addEventListener("click", function () {
-    let globalButton = document.getElementById("toggleButton");
-    let shouldHide = globalButton.textContent === 'Show Images'; // If global says "Show Images", images are hidden by default
-
+function adjustImageSize(direction) {
     document.querySelectorAll('.toggle-image').forEach(img => {
-        img.classList.toggle('hidden', shouldHide);
+        let currentSize = imageSizes.find(size => img.classList.contains(size));
+        let currentIndex = imageSizes.indexOf(currentSize);
+
+        if (direction === "increase" && currentIndex < imageSizes.length - 1) {
+            img.classList.remove(currentSize);
+            img.classList.add(imageSizes[currentIndex + 1]);
+        } else if (direction === "decrease" && currentIndex > 0) {
+            img.classList.remove(currentSize);
+            img.classList.add(imageSizes[currentIndex - 1]);
+        }
     });
-
-    document.querySelectorAll('.toggle-btn').forEach(button => {
-        button.textContent = shouldHide ? 'Show' : 'Hide';
-    });
-});
-
-function adjustContentSpacing() {
-    let header = document.querySelector('header');
-    let content = document.querySelector('#content'); // Target your existing content div
-
-    if (header && content) {
-        let headerHeight = header.offsetHeight;
-        content.style.marginTop = headerHeight + 'px'; // Push content down dynamically
-    }
 }
-
-// Run on page load AFTER the DOM is ready
-document.addEventListener("DOMContentLoaded", adjustContentSpacing);
-window.addEventListener("resize", adjustContentSpacing);
-
-
-// START: BELOW IS CODE COPIED FROM ReportFlex.js
-
-increaseBtn.addEventListener('click', () => {
-    currentFontSize += 1;
-    content.style.fontSize = `${currentFontSize}px`;
-});
-
-// Decrease font size
-decreaseBtn.addEventListener('click', () => {
-    if (currentFontSize > 8) { // Set a minimum font size limit
-        currentFontSize -= 1;
-        content.style.fontSize = `${currentFontSize}px`;
-    }
-});
-
-// Reset font size
-resetBtn.addEventListener('click', () => {
-    currentFontSize = 16; // Reset to default
-    content.style.fontSize = `${currentFontSize}px`;
-});
-
-// END: ABOVE IS CODE COPIED FROM ReportFlex.js
-
-increaseBtn.addEventListener('click', () => {
-    currentFontSize += 1;
-    content.style.fontSize = `${currentFontSize}px`;
-});
-
-// Decrease font size
-decreaseBtn.addEventListener('click', () => {
-    if (currentFontSize > 8) { // Set a minimum font size limit
-        currentFontSize -= 1;
-        content.style.fontSize = `${currentFontSize}px`;
-    }
-});
-
-// Reset font size
-resetBtn.addEventListener('click', () => {
-    currentFontSize = 16; // Reset to default
-    content.style.fontSize = `${currentFontSize}px`;
-});
 
 // Array of color combinations (background, text)
 const colorCombinations = [
@@ -157,26 +45,19 @@ function toggleColors() {
     currentIndex = (currentIndex + 1) % colorCombinations.length;
 }
 
-const imageSizes = ["tiny-image", "mini-image", "small-image", "medium-image", "large-image", "huge-image"];
-
-function adjustImageSize(direction) {
-    document.querySelectorAll('.toggle-image').forEach(img => {
-        let currentSize = imageSizes.find(size => img.classList.contains(size));
-        let currentIndex = imageSizes.indexOf(currentSize);
-
-        if (direction === "increase" && currentIndex < imageSizes.length - 1) {
-            img.classList.remove(currentSize);
-            img.classList.add(imageSizes[currentIndex + 1]);
-        } else if (direction === "decrease" && currentIndex > 0) {
-            img.classList.remove(currentSize);
-            img.classList.add(imageSizes[currentIndex - 1]);
-        }
-    });
+function adjustContentSpacing() {
+    let header = document.querySelector('header');
+    let content = document.querySelector('#content');
+    if (header && content) {
+        let headerHeight = header.offsetHeight;
+        content.style.marginTop = headerHeight + 'px';
+    }
 }
+
 function setInitialButtonState() {
     let images = document.querySelectorAll('.toggle-image');
     let globalButton = document.getElementById('toggleButton');
-    let shouldHide = globalButton.textContent === 'Show Images'; // If global says "Show Images," images are currently hidden
+    let shouldHide = globalButton.textContent === 'Show Images';
 
     images.forEach(img => {
         img.classList.toggle('hidden', shouldHide);
@@ -187,7 +68,106 @@ function setInitialButtonState() {
     });
 }
 
-// Run this function on page load
-document.addEventListener("DOMContentLoaded", setInitialButtonState);
-document.getElementById("increaseImage").addEventListener("click", () => adjustImageSize("increase"));
-document.getElementById("decreaseImage").addEventListener("click", () => adjustImageSize("decrease"));
+// Attach spacing adjustment on load/resize
+document.addEventListener("DOMContentLoaded", adjustContentSpacing);
+window.addEventListener("resize", adjustContentSpacing);
+
+// END: Functions that can live outside DOMContentLoaded
+
+// START: Main DOM logic
+document.addEventListener("DOMContentLoaded", function () {
+    const dialog = document.getElementById("imageDialog");
+    const dialogImage = document.getElementById("dialogImage");
+    const closeDialogButton = document.getElementById("closeDialogButton");
+    const content = document.getElementById('content');
+    const increaseBtn = document.getElementById('increaseFont');
+    const decreaseBtn = document.getElementById('decreaseFont');
+    const resetBtn = document.getElementById('resetFont');
+    let currentFontSize = 16;
+
+    const images = document.querySelectorAll(".toggle-image");
+    const toggleAllButton = document.getElementById("toggleButton");
+
+    const printButton = document.getElementById('printButton');
+    if (printButton) {
+        printButton.addEventListener('click', function () {
+            window.print();
+        });
+    }
+
+    if (toggleAllButton) {
+        toggleAllButton.addEventListener("click", () => {
+            let isHidden = images.length > 0 && images[0].classList.contains("hidden");
+            images.forEach(img => img.classList.toggle("hidden", !isHidden));
+        });
+    }
+
+    document.querySelectorAll('.toggle-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            let img = this.nextElementSibling;
+            if (!img) return;
+            let isHidden = img.classList.contains('hidden');
+
+            img.classList.toggle('hidden', !isHidden);
+            this.textContent = isHidden ? 'Hide' : 'Show';
+
+            let allHidden = [...document.querySelectorAll('.toggle-image')].every(img => img.classList.contains('hidden'));
+            let globalToggle = document.getElementById('toggleButton');
+            if (globalToggle) {
+                globalToggle.textContent = allHidden ? 'Show Images' : 'Hide Images';
+            }
+        });
+    });
+
+    const resetButton = document.getElementById("resetButton");
+    if (resetButton) {
+        resetButton.addEventListener("click", function () {
+            let globalButton = document.getElementById("toggleButton");
+            let shouldHide = globalButton && globalButton.textContent === 'Show Images';
+
+            document.querySelectorAll('.toggle-image').forEach(img => {
+                img.classList.toggle('hidden', shouldHide);
+            });
+
+            document.querySelectorAll('.toggle-btn').forEach(button => {
+                button.textContent = shouldHide ? 'Show' : 'Hide';
+            });
+        });
+    }
+
+    if (increaseBtn) {
+        increaseBtn.addEventListener('click', () => {
+            currentFontSize += 1;
+            content.style.fontSize = `${currentFontSize}px`;
+        });
+    }
+
+    if (decreaseBtn) {
+        decreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 8) {
+                currentFontSize -= 1;
+                content.style.fontSize = `${currentFontSize}px`;
+            }
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            currentFontSize = 16;
+            content.style.fontSize = `${currentFontSize}px`;
+        });
+    }
+
+    setInitialButtonState();
+
+    const increaseImageBtn = document.getElementById("increaseImage");
+    const decreaseImageBtn = document.getElementById("decreaseImage");
+
+    if (increaseImageBtn) {
+        increaseImageBtn.addEventListener("click", () => adjustImageSize("increase"));
+    }
+
+    if (decreaseImageBtn) {
+        decreaseImageBtn.addEventListener("click", () => adjustImageSize("decrease"));
+    }
+});
