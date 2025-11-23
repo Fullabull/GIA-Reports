@@ -1,18 +1,18 @@
-﻿// START: Functions that can live outside DOMContentLoaded
+// START: Functions that can live outside DOMContentLoaded
 //
 const headerHeightSlider = document.getElementById('headerHeightSlider');
 if (headerHeightSlider) {
     const root = document.documentElement;
-    const defaultPadding = 6; // match your CSS default
 
-    // Make sure slider starts at the CSS default
-    headerHeightSlider.value = defaultPadding;
-    
     headerHeightSlider.addEventListener('input', () => {
-    const pad = Number(headerHeightSlider.value) || defaultPadding;
-    root.style.setProperty('--header-padding-y', pad + 'px');
-    adjustContentSpacing(); });
-    }
+        const pad = Number(headerHeightSlider.value);
+        if (!Number.isFinite(pad)) return;
+
+        root.style.setProperty('--header-padding-y', pad + 'px');
+        adjustContentSpacing();
+    });
+}
+const headerHeightSlider = document.getElementById('headerHeightSlider');
 
 const imageSizes = ["tiny-image", "mini-image", "small-image", "medium-image", "large-image", "huge-image"];
 
