@@ -173,10 +173,15 @@ function adjustImageSize(direction) {
         }
     });
 }
+
 function setInitialButtonState() {
-    let images = document.querySelectorAll('.toggle-image');
-    let globalButton = document.getElementById('toggleButton');
-    let shouldHide = globalButton.textContent === 'Show Images'; // If global says "Show Images," images are currently hidden
+    const globalButton = document.getElementById('toggleButton');
+    if (!globalButton) return; // no-images pages don't have this button
+
+    const images = document.querySelectorAll('.toggle-image');
+    if (!images.length) return;
+
+    const shouldHide = globalButton.textContent === 'Show Images'; // If global says "Show Images," images are currently hidden
 
     images.forEach(img => {
         img.classList.toggle('hidden', shouldHide);
@@ -190,4 +195,5 @@ function setInitialButtonState() {
 // Run this function on page load
 document.addEventListener("DOMContentLoaded", setInitialButtonState);
 document.getElementById("increaseImage").addEventListener("click", () => adjustImageSize("increase"));
+
 document.getElementById("decreaseImage").addEventListener("click", () => adjustImageSize("decrease"));
