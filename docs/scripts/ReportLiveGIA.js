@@ -134,26 +134,27 @@ document.addEventListener("DOMContentLoaded", adjustContentSpacing);
 window.addEventListener("resize", adjustContentSpacing);
 
 // -----------------------------
-// Font size controls (optional)
+// Font size controls (optional, independent)
 // -----------------------------
-if (content && increaseBtn && decreaseBtn && resetBtn) {
-    increaseBtn.addEventListener("click", () => {
-        currentFontSize += 1;
-        content.style.fontSize = `${currentFontSize}px`;
-    });
+on("increaseFont", "click", () => {
+    if (!content) return;
+    currentFontSize += 1;
+    content.style.fontSize = `${currentFontSize}px`;
+});
 
-    decreaseBtn.addEventListener("click", () => {
-        if (currentFontSize > 8) {
-            currentFontSize -= 1;
-            content.style.fontSize = `${currentFontSize}px`;
-        }
-    });
-
-    resetBtn.addEventListener("click", () => {
-        currentFontSize = 16;
+on("decreaseFont", "click", () => {
+    if (!content) return;
+    if (currentFontSize > 8) {
+        currentFontSize -= 1;
         content.style.fontSize = `${currentFontSize}px`;
-    });
-}
+    }
+});
+
+on("resetFont", "click", () => {
+    if (!content) return;
+    currentFontSize = 16;
+    content.style.fontSize = `${currentFontSize}px`;
+});
 
 // -----------------------------
 // Color toggle (used by header onclick)
@@ -185,18 +186,18 @@ function toggleColors() {
 const imageSizes = ["tiny-image", "mini-image", "small-image", "medium-image", "large-image", "huge-image"];
 
 function adjustImageSize(direction) {
-    document.querySelectorAll(".toggle-image").forEach(img => {
-        const currentSize = imageSizes.find(size => img.classList.contains(size));
+    document.querySelectorAll(".toggle-image, .yt-wrap").forEach(el => {
+        const currentSize = imageSizes.find(size => el.classList.contains(size));
         if (!currentSize) return;
 
         const idx = imageSizes.indexOf(currentSize);
 
         if (direction === "increase" && idx < imageSizes.length - 1) {
-            img.classList.remove(currentSize);
-            img.classList.add(imageSizes[idx + 1]);
+            el.classList.remove(currentSize);
+            el.classList.add(imageSizes[idx + 1]);
         } else if (direction === "decrease" && idx > 0) {
-            img.classList.remove(currentSize);
-            img.classList.add(imageSizes[idx - 1]);
+            el.classList.remove(currentSize);
+            el.classList.add(imageSizes[idx - 1]);
         }
     });
 }
