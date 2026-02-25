@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Jan-15</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Jan-15 GIA Report</h3>
+            <h4>2025-Jan-15 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Jan-15
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=sLjyEytLGhY" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=sLjyEytLGhY" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=sLjyEytLGhY" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=sLjyEytLGhY" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         The **January 15, 2025** GIA Report sheds light on the internal struggles of **Trump operatives**, including failed financial plans and continuing geopolitical tensions. The report highlights efforts to escalate conflicts, particularly with **China**, and discusses the **financial challenges** of the U.S. government. Despite promises of major payouts, **Trump operatives** are revealed to be failing in securing the funds necessary to implement their plans. Other key events include the declaration of a **ceasefire** between **Israel** and **Palestine**, as well as a shift in focus towards **Cosmic Sovereign Law** and the **Golden Age AI** upgrade, a significant move that signals positive change in the multiverse.
@@ -55,9 +271,9 @@
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         <li>Ongoing internal struggles within **Trump operatives** and their failed financial plans.</li>
 <li>Discussions of a **war with China**, where the Trump operatives promise to pay for the conflict.</li>
 <li>A **ceasefire** between **Israel** and **Palestine**, breaking the cycle of conflict due to lack of funding.</li>
@@ -71,7 +287,7 @@
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <div class="line">2025-JAN-13 GIA Report</div>
 <div class="blank">&nbsp;</div>
@@ -321,7 +537,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So, the system is a little bit more complex behind the scenes, but let&#x27;s just say I didn&#x27;t do anything. Let&#x27;s just say we still had our debt instrument we call the dollar. Now, why are there dollars in circulation all over the world? We have all commodities purchases... And this goes for digital dollars too; this isn&#x27;t just cash on pallets. We also have government trading. We have global banks. We have global banking for those that have cross-border banking. We also have a lot of other things like bonds, stocks, and FX trading, or currency trading, where people trade between currencies. We also have the IMF sticking out here in certain ways and the World Trade Organization. And by the IMF, obviously the dollar is part of the major basket of currencies in the world. It&#x27;s the dollar, Australian, Canadian, Japanese, British pound, and the euro. As far as I know, I think I might have missed one. [RMB]</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-01.PNG&quot; alt=&quot;US Dollar 01&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-01.PNG" alt="US Dollar 01" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003446">00:34:46</div>
@@ -335,7 +551,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">But one of the big ones that is important to note here, that really gives the dollar its power - I guess you would say, &quot;global stature&quot; - is, in part, the commodities. Now the reason why it does, and this is why you call it a petrodollar - but that&#x27;s not entirely true because there&#x27;s a lot of supply and demand that takes place here. So, demand. Demand for new money, or more dollars to come into the system, is dictated by... the need for new dollars to come into the system is dictated by its demand. (Little bit tired; it&#x27;s been a long day and a long night today.) Okay, now the supply of dollars used to always come from the Federal Reserve.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-02.PNG&quot; alt=&quot;US Dollar 02&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-02.PNG" alt="US Dollar 02" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003637">00:36:37</div>
@@ -343,7 +559,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">You know, eventually it would come from the Alpha system. That&#x27;s where it was always generated. It would be passed through - only a pass-through: governments, the Federal Reserve, the Treasuries, and so on and so forth. Okay, so the demand is created by, in this case, when you call it a petrol contract, it would be all of the oil trading that happens worldwide that is done in dollars. That&#x27;s on-market trading, mmh, [but] for the most part, off-market trading as well: you have a lot of oil trade that comes out of Iran and other sanctioned countries; there&#x27;s a lot of gold that flies around; and other things to stay below the radar and avoid U.S. sanctions. But for the most part, oil is pretty much bought and sold in dollars. So there&#x27;s a huge demand there.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-03.PNG&quot; alt=&quot;US Dollar 03&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-03.PNG" alt="US Dollar 03" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003731">00:37:31</div>
@@ -351,7 +567,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, when they talk about the GDP of the United States, I think it&#x27;s registering somewhere, you know, it went up and down with COVID, but probably somewhere around $25 trillion annually. That is actually not based on United States-produced exports or goods traded, things produced in the United States. It&#x27;s not based on that number alone; it&#x27;s based on what we see going &quot;on market,&quot; as it relates to commodities. Also, all gold and silver, cotton, wheat - all kinds of different things float around on the commodities market that are backing the demand for U.S. dollars. Now if this wasn&#x27;t a requirement, you would not have the demand; therefore, the supply of dollars would need to go down. So if you&#x27;re clawing back all the dollars from countries all over the world, you&#x27;re not just going to hit the little guys, that global bank, or the bond market, or the currency exchange market, or IMF policies and procedures, or World Trade Organization policies and procedures. I mean, you&#x27;ve got an uphill battle there.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-04.PNG&quot; alt=&quot;US Dollar 04&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-04.PNG" alt="US Dollar 04" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003900">00:39:00</div>
@@ -359,7 +575,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">That&#x27;s a wonderful thought process. But because they think they walk into a place like cowboys, you know, like a pigeon in a chess tournament, you know, flies in, craps all over the board, kicks all the pieces off, declares it wins, and leaves - because that&#x27;s what they think you can do financially as well - doesn&#x27;t quite work that way, folks, when it comes to actually balancing a financial system and keeping your currency and your country afloat. So clawing back all the dollars isn&#x27;t really going to do anything to help you at all. Because what you would eventually do without any demand from all of these commodities folks, you have now effectively got too many dollars in circulation - in the U.S. or otherwise; it doesn&#x27;t matter where the dollars are - the fact of the matter is, they are in the system. So all of this lovely yield that you think you&#x27;re going to get when you claw back a dollar, all the dollars, is not going to work too well for you because you have just effectively crashed the dollar. Okay?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-05.PNG&quot; alt=&quot;US Dollar 05&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-05.PNG" alt="US Dollar 05" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004013">00:40:13</div>
@@ -385,7 +601,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Okay, so they will lose dominance. There goes the world power center of planet Earth, because the other thing is, too, is that countries will start using their own currencies, kind of like Zimbabwe did. What I mean is the United States, due to sanctions and all these other things, stopped issuing Zimbabwe U.S. dollars a few years back. And when they stopped issuing them dollars - dollars became the currency of Zimbabwe, if you don&#x27;t know that, for quite a long time. And they ditched their old currency. This is usually the cookie-cutter process that happens. I mean, Iraq has been stuck with this for years now. Anyway, so they start to use their own currency. That doesn&#x27;t mean they&#x27;re using the old, old Zimbabwean currency, but most of the transactions done in Zimbabwe are done with paper money. Nobody trusts the banks, of course. There&#x27;s a big crash of currency. So they developed their own papers there, and they are now using those papers on a one-to-one basis with the dollar, kind of like the Bahamas did for the longest time. It was one-to-one to the dollar.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-06.PNG&quot; alt=&quot;US Dollar 06&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-06.PNG" alt="US Dollar 06" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004331">00:43:31</div>
@@ -399,7 +615,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, this really isn&#x27;t going to work either because we are still going to end up in another cycle here because, okay, still got a lot of supply in dollars, even though they&#x27;re all in America now, allegedly. The demand has been cut off, the dollar crashes, and because every currency in the world is pegged to the dollar, as far as its value, you have crashed everybody else&#x27;s currency too. So every currency in the world will crash. [giggling] And if you went to a gold standard, is that going to help you?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-07.PNG&quot; alt=&quot;US Dollar 07&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-07.PNG" alt="US Dollar 07" class="medium-image">
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004454">00:44:54</div>
@@ -451,7 +667,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So the Amero, the crypto, the rainbow dollar, the whatever dollar - it doesn&#x27;t really make a difference. You have lost all your demand the second you try to segregate yourself to the continent. I mean, bottom line.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;img src=&quot;https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-08.PNG&quot; alt=&quot;US Dollar 08&quot; class=&quot;medium-image&quot;&gt;</div>
+<img src="https://worldsituationreport.earth/reports/image/Whiteboard-20250115-GIA-08.PNG" alt="US Dollar 08" class="medium-image">
 <div class="blank">&nbsp;</div>
 <div class="line">[end of whiteboarding]</div>
 <div class="blank">&nbsp;</div>
@@ -554,6 +770,430 @@
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=sLjyEytLGhY" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=sLjyEytLGhY" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>

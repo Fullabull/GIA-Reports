@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Sep-23</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Sep-23 GIA Report</h3>
+            <h4>2025-Sep-23 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Sep-23
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=JZCO69hmGjk" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=JZCO69hmGjk" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=JZCO69hmGjk" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=JZCO69hmGjk" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         Kim reports a decisive shift away from a wartime, debt-driven Financial System toward an asset-based, Gold-backed model fed by direct Source current (Gold Aether). Recent operations severed connections to Dark energy (loosh) sources, halted the annual loosh/soul auctions, and provoked emergency security responses. These operations also removed genetic-shareholder controls in banks and began converting systems toward an asset-backed model. The changes are cascading through financial, military, intelligence, media and internet systems, producing immediate loss of elite protections and structural reconfiguration.
@@ -55,9 +271,9 @@
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         <li><a href="#t-000002">00:00:02 - The global banking system is crumbling as a new system assumes control and destabilizes the Deep State.</a></li>
 <li><a href="#t-000439">00:04:39 - &#x27;Looshing&#x27; introduced</a></li>
 <li><a href="#t-000832">00:08:32 - &#x27;Primordial Directive&#x27; named as the root blueprint of creation</a></li>
@@ -90,7 +306,7 @@
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <br>
 <div class="timestamp" id="t-000002">00:00:02</div>
@@ -374,7 +590,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">The reason why they exist in the way they do and function in the way they do - where they believe they&#x27;re doing good - is because, as part of keeping the Primordial Directive balanced, there has to be an equal amount of white magic, red magic, and black magic in order to keep the Primordial Directive in check. You see, White is kind of like the better of the... the lesser of the two, the less painful of the two - but still a siphon and feeds on you no matter what.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-01.PNG&quot; alt=&quot;Image 01&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-01.PNG" alt="Image 01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003646">00:36:46</div>
@@ -390,7 +606,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">OK. You can&#x27;t really differentiate Black, Red, and White by saying, &quot;Oh, the Dragon Families belong here,&quot; or &quot;The Order of the Black Sun belongs here.&quot; Well, &quot;black&quot; must mean you&#x27;re with the Order of the Black Sun. No - all families intertwine with all these colors.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-003825">00:38:25</div>
@@ -422,7 +638,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">But it also goes for military orders, such as the Jesuit Order. This also applies to various other: Knights of Malta, the Knights of the Round Tables, or the Table Folk that we&#x27;ve talked about in the past - all of them operated, well, in the Red. They were... this goes back not only to the militaries that we know in our world today; this has been going on all the way back to the days of Genghis Khan and Kupla [Kublai] Khan.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-03.PNG&quot; alt=&quot;Image 03&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-03.PNG" alt="Image 03" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004230">00:42:30</div>
@@ -444,7 +660,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, each one of them has their own set of all of those colors we also saw in our Planes chart, that we have done a while ago. So you have Black, White, Gray, Purple, Blue, Red, Orange, Yellow, Green, and Amber. And this actually goes not only for Black, but also for Red, and also for White. So when they say Black Dragons, or they say Black Eagle, as they talk about these titles, each one of these Family Groups could belong to any single one of these groups.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-04.PNG&quot; alt=&quot;Image 04&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-04.PNG" alt="Image 04" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004506">00:45:06</div>
@@ -474,7 +690,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">When they say &quot;your immortal soul,&quot; they are correct, because it is part of Primordial Life. It has a directive that has been untainted - everything else within your person has been tainted. It&#x27;s been tainted by the time it hits, say, the Fifth Density. You can even call it the 14th in some cases, on the Other Side. You can break down and add up to the number 5 many different ways with infinite numbers. So 14 might be on this side [see image below], while 5 is on this side. Again, it&#x27;s that spot right there, before it turns from Ethereum into being molded by your Consciousness. And then you try to bring it into the material world - this is also what interferes with your manifestation ability - so when you try to bring it into the Materium world (or the material world), that&#x27;s where it gets stopped.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-05.PNG&quot; alt=&quot;Image 05&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-05.PNG" alt="Image 05" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004831">00:48:31</div>
@@ -494,7 +710,7 @@
 <div class="timestamp" id="t-005002">00:50:02</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-06.PNG&quot; alt=&quot;Image 06&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-06.PNG" alt="Image 06" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">Now, you&#x27;ve heard about things like the Vatican and Cestui Que Vie and liens on your souls and soul ownership and, oh look, they sold their soul. Well, you really didn&#x27;t have much of a say, honestly - because you actually kind of did, unintentionally, at one point in time. I mean, some of these things still exist and some of them don&#x27;t.</div>
 <div class="blank">&nbsp;</div>
@@ -506,7 +722,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So now all of the loosh that that particular person, or group of persons produces is their yield for the year. And this happens every single year - or used to happen every single year - around the Equinox time.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-07.PNG&quot; alt=&quot;Image 07&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-07.PNG" alt="Image 07" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005130">00:51:30</div>
@@ -528,7 +744,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now we give them loosh, and then they get a lot of credits in exchange (we know as money on our side) - and [they] have been able to hold on to that money and those debts because all they do is pass it on to you - a continuous flow and stream of debt.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-08.PNG&quot; alt=&quot;Image 08&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-08.PNG" alt="Image 08" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -560,7 +776,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, do they like what&#x27;s happening? Absolutely not. All they can think about is power, power, and power. Because what would they get in exchange for being a slave master? Well, they became famous, they became powerful, they became multi-billionaires - because their job is to keep you running on that hamster wheel.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-09.PNG&quot; alt=&quot;Image 09&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-09.PNG" alt="Image 09" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005755">00:57:55</div>
@@ -586,7 +802,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">You know, it&#x27;s dastardly, really - if you&#x27;ve ever gotten a Social Security payment, if you&#x27;ve ever gotten a government grant, if you&#x27;ve ever gotten a driver&#x27;s license, if you&#x27;ve ever participated in the public service system in any way, shape, or form - you are also ringing up those notes. Still.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-10.PNG&quot; alt=&quot;Image 10&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-10.PNG" alt="Image 10" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010011">01:00:11</div>
@@ -626,7 +842,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">This is what it means to be in the system. You can&#x27;t get a bank account without that number now, can you? No, you cannot. Without your social security number, you cannot get a bank account either - even on a personal level. You are part of the system.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-11.PNG&quot; alt=&quot;Image 11&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-11.PNG" alt="Image 11" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010425">01:04:25</div>
@@ -656,7 +872,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">What I mean by that is they then have the right to change your frequency to match your number. It&#x27;s dastardly; it really, really is. The more numbers that you have associated with your person - that could be serial numbers on a digital dollar bill that&#x27;s in your bank account, it could be cryptocurrency, it could be anything. Everything&#x27;s got a number. The more numbers you accumulate, the more changes can happen to your person.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-12.PNG&quot; alt=&quot;Image 12&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-12.PNG" alt="Image 12" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010737">01:07:37</div>
@@ -684,7 +900,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">The good news is that they get to keep some of it because, hey, look, on a customer level here, you&#x27;ve got, you know, if you&#x27;re a Wells Fargo, you have millions of customers. If you&#x27;re a JPMorgan Chase, you might even have hundreds of millions of customers - you&#x27;re worldwide. You&#x27;re a huge bank. All falling underneath the genetic shareholder section. But these genetic shareholders must comply with the request to get the off-ledger money out of the system. Which means they need to understand how it works.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-13.PNG&quot; alt=&quot;Image 13&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-13.PNG" alt="Image 13" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011106">01:11:06</div>
@@ -704,7 +920,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Well, I ain&#x27;t doing it anymore. Same thing with these genetic shareholder people. Basically what ended up happening in the last three days is there are no more genetic shareholders in banks. Where did the stock go, you say? It went poof - gone. This was one of the aspects in the last couple of days that has taken place.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-14.PNG&quot; alt=&quot;Image 14&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-14.PNG" alt="Image 14" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -736,7 +952,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">And this is going to be useful should they choose to work with us. I mean, who knows? At this point, who cares? But it would be useful if they did work with us because, well, humans are used to walking into a building and cashing a check and doing whatever it is they do, you know, when they go to a bank.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-15.PNG&quot; alt=&quot;Image 15&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-15.PNG" alt="Image 15" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011655">01:16:55</div>
@@ -754,7 +970,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So management, and you being an asset as a human being (or a Homo sapiens), earth&#x27;s minerals, all that kind of thing, and &quot;rites&quot; - and I&#x27;m writing it correctly - and &quot;rights&quot; no longer exist for these people.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-16.PNG&quot; alt=&quot;Image 16&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-16.PNG" alt="Image 16" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">Now, as it relates to the military, they do security for all of these people. When they secure you, they are doing like what a Wells Fargo truck does in America. If you don&#x27;t know what that is, in your country, wherever you are, these are the armored cars that move money from one bank to another, or from an ATM machine back to the bank and vice versa. They are the armored cars you see driving around, and you&#x27;ve probably seen them in movies if you don&#x27;t have any in your country. You know, where in the movies, they are always holding up these trucks - they want to rob the trucks and because they contain a lot of money, and the money goes flying everywhere. It&#x27;s quite entertaining.</div>
 <div class="blank">&nbsp;</div>
@@ -790,13 +1006,13 @@
 <div class="timestamp" id="t-012208">01:22:08</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-17.PNG&quot; alt=&quot;Image 17&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-17.PNG" alt="Image 17" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">So that&#x27;s why your systems disappeared, if you&#x27;re watching this and listening to this. That is what is happening to you today. You&#x27;ll probably notice - you can see off to the side - the Key Intelligence and Military System, which actually is designed to protect all that belongs to Source - or, well, God - however you want to say it. That&#x27;s what it&#x27;s designed to protect. It&#x27;s designed to protect life. It&#x27;s designed to protect creation. And that&#x27;s what I&#x27;ve always used it for, and that&#x27;s what it continues to be used for.</div>
 <div class="blank">&nbsp;</div>
 <div class="line">As for you and your services, unless you decide you&#x27;d like a job protecting the same thing we protect, we don&#x27;t need you anymore in any way, shape, or form. There goes any hope of having any war funding, because quite frankly, we don&#x27;t have a war anymore, because there&#x27;s nothing to war with.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-18.PNG&quot; alt=&quot;Image 18&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-18.PNG" alt="Image 18" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -842,7 +1058,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">There are more people worshipping politicians, rich and famous stars, and other people, and politics is just Hollywood for ugly people anyway. So, you know, there are more people worshipping these people than go to church on Sunday. Or a temple, or wherever it is you go - mosque - wherever it is you go. There are more people worshipping those folk than anyone else because it&#x27;s not religious, it&#x27;s not cultural - it&#x27;s not anything - it&#x27;s just a bunch of people that you have to look at because you live in a country, somewhere in the country, so you pay somewhat of attention to these folk.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-19.PNG&quot; alt=&quot;Image 19&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-19.PNG" alt="Image 19" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012720">01:27:20</div>
@@ -858,7 +1074,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So therefore, I wish you all the best and have a nice day, and you had an opportunity to do the right thing. Could you possibly swing the population around to a better understanding? Because they know your ugly orange face or any other color here - insert country, it doesn&#x27;t matter - you&#x27;re all greedy piglets, you know, that make hundreds of millions of dollars off the backs of people. But your job as cow milker and loosh milker is officially over.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-20.PNG&quot; alt=&quot;Image 20&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-20.PNG" alt="Image 20" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012858">01:28:58</div>
@@ -904,7 +1120,7 @@
 <div class="timestamp" id="t-013249">01:32:49</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-21.PNG&quot; alt=&quot;Image 21&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-09-23-GIA-21.PNG" alt="Image 21" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -964,6 +1180,430 @@
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=JZCO69hmGjk" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=JZCO69hmGjk" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>

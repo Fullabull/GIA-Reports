@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Jul-07</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Jul-07 GIA Report</h3>
+            <h4>2025-Jul-07 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Jul-07
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=JW-BsnX0qKc" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=JW-BsnX0qKc" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=JW-BsnX0qKc" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=JW-BsnX0qKc" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         It&#x27;s the 7th of July, 2025. Coming up on today&#x27;s Global Intelligence Agency Operations Report:<br>
@@ -65,9 +281,9 @@ And people often discuss more densities than the nine we speak of. So what is th
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         
     </ul>
     </div>
@@ -76,7 +292,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <br>
 <div class="timestamp" id="t-000001">00:00:01</div>
@@ -612,7 +828,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="timestamp" id="t-010122">01:01:22</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-01.PNG&quot; alt=&quot;Image 01&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-01.PNG" alt="Image 01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010123">01:01:23</div>
@@ -626,7 +842,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="timestamp" id="t-010218">01:02:18</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010219">01:02:19</div>
@@ -652,7 +868,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="timestamp" id="t-010430">01:04:30</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-03.PNG&quot; alt=&quot;Image 03&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-03.PNG" alt="Image 03" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010431">01:04:31</div>
@@ -670,7 +886,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">This began the birth of people like the Time-Varying Authority, Kronos, you know, all of those things that were created in reality. The creation of reality had very little influence on what happens not only here on Earth, but also elsewhere for a very, very long time.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-04.PNG&quot; alt=&quot;Image 04&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-04.PNG" alt="Image 04" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">And here&#x27;s how it&#x27;s done.</div>
 <div class="blank">&nbsp;</div>
@@ -686,7 +902,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="timestamp" id="t-010715">01:07:15</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-05.PNG&quot; alt=&quot;Image 05&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-05.PNG" alt="Image 05" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">And then one would go in the other direction [draws vertically inverse tetrahedron], you know, to the Point of All Creation. So that they were bound by their agreements, so to speak, if it was an agreement between Source and Dark Source.</div>
 <div class="blank">&nbsp;</div>
@@ -700,7 +916,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">Now, when Lucifer went a little nutty; let&#x27;s just call him &quot;nutter&quot; - and Lucerne went nutter, and all the Fallen Ones happened, and all that kind of stuff - they realized they couldn&#x27;t alter the base root language of Alpha-Omega. They could not alter any covenant that was made with Source to create reality in this way. They could not alter anything that was a base root.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-06.PNG&quot; alt=&quot;Image 06&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-06.PNG" alt="Image 06" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010852">01:08:52</div>
@@ -708,7 +924,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So the only thing they could merely do was create artificially. So if something comes and is born of darkness, it must overlay completely this structure. So if it&#x27;s born of darkness and it&#x27;s born of Lucifer, Lucifer decides to create a kingdom that overlays the whole thing. Hence the next density, or the 10th, is born.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-07.PNG&quot; alt=&quot;Image 07&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image/WSR_2025-07-07-GIA-07.PNG" alt="Image 07" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010925">01:09:25</div>
@@ -718,7 +934,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">The same thing would repeat itself, go even a little higher, way up here... there we go... and then you&#x27;d have this come down here, like this. And then you&#x27;d have another one come up here, go down even further. So this is what allowed them to create things without Source&#x27;s agreement. Remember, he wanted life in the Lower Astral, wanted his own kingdoms, wanted his own things, and couldn&#x27;t get the agreement from Source or even Dark Source to do it, so he bypassed them by doing this.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-08.PNG&quot; alt=&quot;Image 08&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-08.PNG" alt="Image 08" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011017">01:10:17</div>
@@ -730,11 +946,11 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">and they are written in numbers [see image below] - no particular sequence - (so on and so forth, you might have a...) and there&#x27;s infinite numbers on all of these tetrahedrons. Why?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-09.PNG&quot; alt=&quot;Image 09&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-09.PNG" alt="Image 09" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">Because you can connect the dots in any which way you want to connect them, and you come up with a frequency [see image below]. So the frequency that is emanating from the original Light Language - which is what weaves the fabric of reality in reality - is now being distorted by alternative frequencies coming from other bindings.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-10.PNG&quot; alt=&quot;Image 10&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-10.PNG" alt="Image 10" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011112">01:11:12</div>
@@ -756,7 +972,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">Now, if you take a look at how this was done... So, the first density we know that was created was probably a kingdom of Lucifer and Lucerne [see image below]. (So 10, 11, 12, 13, 14, 15, 16, 17, and 18 gives us 1, 2, 3, 4, 5, 6, 7, 8, and 9.) Now, you go from 18 to 19 on this side - and I&#x27;m going to go down for a reason - which brings us to 1 again. And then 20, which brings us to 2. 21, 3; 20, 2; 22, 4; 23, 5; 24, 6... 7, 8, 9. OK.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-11.PNG&quot; alt=&quot;Image 11&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-11.PNG" alt="Image 11" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011402">01:14:02</div>
@@ -764,7 +980,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">And then it starts to go back up again. 28 brings us to one again, and so on and so forth. So the pattern of a simulation goes in this way. Touches there at the top, comes back down, and goes again, and so on and so forth. So it&#x27;s basically a giant never-ending loop - it almost looks like ribbon candy.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-12.PNG&quot; alt=&quot;Image 12&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-12.PNG" alt="Image 12" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011428">01:14:28</div>
@@ -774,7 +990,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So simulations all exist in these various tetrahedrons that were created. And when I say the numbers are important, it doesn&#x27;t matter how big or small the number is. You have an infinite ribbon that exists here, and that is the current in a simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-13.PNG&quot; alt=&quot;Image 13&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-13.PNG" alt="Image 13" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011456">01:14:56</div>
@@ -782,7 +998,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">You know, and this goes all throughout - infinitely - and so on and so forth. So if it&#x27;s an agreement between like, Marduk and Baal, you know, they have joint ones. Remember, Marduk can play both sides. So Marduk could play the false light background, while Baal might insert the frequency numbers on here in black. And vice versa, Marduk can actually have a conversation with himself and create his own simulations - and onward and onward and onward we go.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-14.PNG&quot; alt=&quot;Image 14&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-14.PNG" alt="Image 14" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011535">01:15:35</div>
@@ -794,7 +1010,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So, Sixth Density. So we have simulations that came from the Kali Chakra, say [draws horizontal arrow, see image below]. And we also have simulations that came from down here [draws arrow to bottom], and distorted and overlaid - up to the Fifth Density of Earth, so 6.1. Couldn&#x27;t go any higher than that, but that&#x27;s about as far as they could go.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-15.PNG&quot; alt=&quot;Image 15&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-15.PNG" alt="Image 15" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011645">01:16:45</div>
@@ -802,7 +1018,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">But that still gave them infinite numbers of tetrahedrons, one on top of the other, on top of the other, on top of the other, some on the same level, some lower, some higher, you know, that kind of thing - all coming from down there. Now, if it&#x27;s coming from the Kali Chakra, or the artificial center of the Universe when Earth was knocked out, you can have infinite overlays that go like this [draws horizontal infinite symbol], and you can, once it comes out to here, they could be mirrored to Earth in infinite ways. You know, there&#x27;s pentagram structures that work in cooperation. I mean simulation after simulation after simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-16.PNG&quot; alt=&quot;Image 16&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-16.PNG" alt="Image 16" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011726">01:17:26</div>
@@ -842,7 +1058,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So in order to control all of creation and all densities, you must have Earth. And in turn, because we&#x27;re here, you must have humans. So as we&#x27;ve been talking for the last couple of weeks, it&#x27;s extremely important that they get you in one way or another. You know, they want to own your soul; they want to own you.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-17.PNG&quot; alt=&quot;Image 17&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-17.PNG" alt="Image 17" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012128">01:21:28</div>
@@ -866,7 +1082,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">You hear about soul ownership, you hear about physical ownership - we die at the age of eight, you know, all this stuff on the internet. Well, in fact, you&#x27;re a citizen - in every kingdom, as a human, on Earth. Not all beings and all planets are - but Earth is - every kingdom that is created, Earth was a member of, and so were you. Unfortunately. Which then allows that kingdom owner to then put these bindings over you and can control you by frequency.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-18.PNG&quot; alt=&quot;Image 18&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-18.PNG" alt="Image 18" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012405">01:24:05</div>
@@ -876,7 +1092,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So overlaying your original Light Language or the original DNA blueprint of humans is a bunch of numbers. That&#x27;s really all it is - a bunch of numbers. Over that bunch of numbers, you have a bunch of ones and zeros. And then that would only be for limited access given to the Deep State. The Deep State was never given full access to the actual base root of a simulation, although they feel they had it. They feel that they could make changes to weather, and to Earth, and continents, and people. To some degree, yes. But remember, the ultimate owner of the kingdom can override them at any given moment in time.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-20.PNG&quot; alt=&quot;Image 20&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-20.PNG" alt="Image 20" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012504">01:25:04</div>
@@ -896,7 +1112,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So if planes of existence are technically all together [begins drawing - see image below] - in reality there&#x27;s mind, body, and soul - and then all the other ones that we see, the nine, you know. And we see nine densities in the Omniverse. I know I&#x27;m gonna go here because I have a tetrahedron here that might go all the way up, and it might go all the way to this point, but I&#x27;m gonna find it start working its magic somewhere around here. The flow of energy is disturbed. It doesn&#x27;t actually go to you - it goes to the simulation. It gets disrupted, and there is no flow from Source, say, to all of the inhabitants inside a simulation. The simulation grabs it all.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-21.PNG&quot; alt=&quot;Image 21&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-21.PNG" alt="Image 21" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012722">01:27:22</div>
@@ -910,7 +1126,7 @@ And people often discuss more densities than the nine we speak of. So what is th
 <div class="blank">&nbsp;</div>
 <div class="line">So the natural flow of life has to be restored. In order to do that, we gotta find the simulations. So we&#x27;ve been hunting and pecking in density 10,254,368. And now we&#x27;re gonna cut that down to... okay, we&#x27;re gonna add all these numbers together until we get to a number that we recognize, which is probably a derivative of 1-2-3-4-5-6-7-8-9 - because zeros don&#x27;t count - so now I can figure out what density I&#x27;m hunting to find the base root celestial sphere that powers the entire thing, whether it&#x27;s around Earth or otherwise - then it&#x27;s easy to locate.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-19.PNG&quot; alt=&quot;Image 19&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/image//WSR_2025-07-07-GIA-19.PNG" alt="Image 19" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012841">01:28:41</div>
@@ -984,6 +1200,430 @@ And people often discuss more densities than the nine we speak of. So what is th
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=JW-BsnX0qKc" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=JW-BsnX0qKc" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>

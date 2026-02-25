@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Jun-06</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Jun-06 GIA Report</h3>
+            <h4>2025-Jun-06 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Jun-06
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=3_RzRBFOBYk" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=3_RzRBFOBYk" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=3_RzRBFOBYk" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=3_RzRBFOBYk" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         Kim Goguen delivers a GIA Report focused on the collapse of multiple dark-world operations and the ongoing planetary transition. She explains recent failed power plays, discusses the replacement of &#x27;space&#x27; with the &#x27;Breath of Source,&#x27; and reiterates that Earth is now on a timeline of life-based creation. The report outlines how attempts to resurrect legacy systems are being dismantled in real-time.
@@ -55,9 +271,9 @@
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         <li>Failed dark-world operations included a staged alien invasion and attempts to restart energy-debt systems.</li>
 <li>Remaining Old World Order covenants and contracts were cleared out this week.</li>
 <li>Space, as an elemental force of separation, was replaced by the Breath of Source throughout the Multiverse.</li>
@@ -75,7 +291,7 @@
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <br>
 <div class="timestamp" id="t-000000">00:00:00</div>
@@ -261,7 +477,7 @@
 <div class="timestamp" id="t-002017">00:20:17</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-01.PNG&quot; alt=&quot;Image 01&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><img loading="lazy" src="https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-01.PNG" alt="Image 01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">You heard it here first, folks. I&#x27;m the one that told you that they used Elon Musk&#x27;s money to get him into the White House. They used the money to run all of those campaigns and ridiculous rallies and staged, alleged shootings, and everything else that went on - and here it is in writing. Now, you can go to Elon Musk&#x27;s Twitter account and it will say all the same things.</div>
 <div class="blank">&nbsp;</div>
@@ -283,7 +499,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">And now, oh boy! [laughing] The &quot;shh&quot; feces is now flying in the Trump direction, left and right. So there are all of these tweets, including from the Q-Crew - which has completely turned against Trump - saying, and I think we&#x27;ve got a little clip there [laughing]... completely turned against him. Releasing all these files saying that &quot;He went to Epstein Island, here&#x27;s pictures of Trump on planes with Epstein.&quot;</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><img loading="lazy" src="https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-002311">00:23:11</div>
@@ -365,7 +581,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So. Meetings started taking place fairly early in the morning, aside from all of the questioning that was going on in very weird ways. There was even a little clip there we posted where Q said, &quot;We&#x27;re being sequestered in the Capitol building.&quot;</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><img loading="lazy" src="https://worldsituationreport.earth/reports/image/WSR_2025-JUN-06-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">That actually happened. That is true.</div>
 <div class="blank">&nbsp;</div>
@@ -902,6 +1118,430 @@
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=3_RzRBFOBYk" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=3_RzRBFOBYk" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>

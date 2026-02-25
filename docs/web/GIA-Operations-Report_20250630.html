@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Jun-30</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Jun-30 GIA Report</h3>
+            <h4>2025-Jun-30 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Jun-30
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=DS6XrVYpAVM" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=DS6XrVYpAVM" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=DS6XrVYpAVM" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=DS6XrVYpAVM" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         In this deeply revealing GIA Operations Report, Kim Goguen delivers a powerful breakdown of how simulations, time overlays, and quantum constructs have been used to manipulate Earth and humanity. She explains the role of simulation creators like Marduk, Enki, and Lucifer; exposes the infrastructure behind deep underground military bases (DUMBs); and describes the architecture of &#x27;reactors&#x27; and &#x27;Rods of G.O.D.&#x27; that sustain artificial timelines. A new simulation called &#x27;Battleground Earth&#x27; is revealed as a last-ditch Deep State operation now being dismantled. Kim affirms that simulations are collapsing, humans are reclaiming creative power, and Source is finally able to act directly through her system. This report is one of the most complete deconstructions of simulated reality and the battle for consciousness yet delivered.
@@ -55,9 +271,9 @@
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         <li>The Big Beautiful Bill is designed to fund WWIII, microchipping, and global subjugation under Agenda 2030</li>
 <li>July 4th is historically tied to simulation resets and false promises of Deep State paydays</li>
 <li>Kim reveals how she unknowingly assigned global budgets under Marduk’s manipulation in 2012</li>
@@ -80,7 +296,7 @@
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <br>
 <div class="timestamp" id="t-000000">00:00:00</div>
@@ -444,7 +660,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So, okay. So to you... say this is you... you know, terrible writing. Okay, so this is you, and you&#x27;re looking at a tree. And the tree - if it&#x27;s spring where you&#x27;re at or the beginning of summer, as it is in the Northern Hemisphere - the tree to you looks whole, it looks lush, it&#x27;s probably got the beginnings of fruit on the tree, you know, if it&#x27;s a fruit tree. The leaves are green, and you think, okay, well, it&#x27;s summer, you know. So automatically we begin to do all of the summer things. The weather changes. All of these types of things happen in the beginning of summer. It starts to get warmer. If you&#x27;re in the Southern Hemisphere, it&#x27;s starting to get colder.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-01.PNG&quot; alt=&quot;Image 01&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-01.PNG" alt="Image 01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004242">00:42:42</div>
@@ -462,7 +678,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">And other things also get implemented during these daily and yearly and seasonal and varying alignments, and all of this - these are all simulations on your simulation. So the older you get, the more simulations you are present in. What feels like the present or the progression of quote-unquote &quot;time&quot; to you is merely a simulation. That includes things that happen to your vessel. One day you&#x27;re healthy, and the next day you&#x27;ve got a cold, because in the next day simulation, you have a virus.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004441">00:44:41</div>
@@ -476,7 +692,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So in other words, you can go to the gym, you can work out, you can do all these anti-aging treatments and all of these things, but they don&#x27;t last long. You know, they might last for, you know, six months or seven months or whatever it is, and then you have to - or a year or two - and then you have to do the things again, or whatever it is, to change your person. Now, if you get, for example, an arm in one simulation, say your arm was cut off in the war and we have... time goes by, so to speak, and you receive a new arm because we have new technology that creates that arm for you. You will continue in the multiple simulations that you are in to have that new arm, but other things might happen to you as you move along in the simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-03.PNG&quot; alt=&quot;Image 03&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-03.PNG" alt="Image 03" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004611">00:46:11</div>
@@ -494,7 +710,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So you have what we call minor and major simulations that create the world that you live in. And by &quot;the world,&quot; we have Earth, sure, but your feet literally are not permitted to touch the ground. Believe it or not, you are levitating. You&#x27;re not levitating - you&#x27;re actually walking in a simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-04.PNG&quot; alt=&quot;Image 04&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-04.PNG" alt="Image 04" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004804">00:48:04</div>
@@ -502,7 +718,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Simulations. When we all think of a simulation, we think of things like the virtual-reality-playing tennis game. But it&#x27;s not. When it&#x27;s an actual simulation of creation, in part by your own consciousness -- because they say you create who you are - if you think you&#x27;re sick and tired, then you&#x27;re sick and tired - and that&#x27;s in part true -- because your consciousness exists in the next minute, in the next day, in the next month, in the next year here on Earth.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-05.PNG&quot; alt=&quot;Image 05&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-05.PNG" alt="Image 05" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004842">00:48:42</div>
@@ -512,7 +728,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">But each simulation that exists, each overlay that exists from the virtual 1980s-looking projector thing that I told you about - it looks like a box, and then you have this little piece that comes out, and this is where that projector would be. And then you would come in, and you would put these pieces of cellophane on there and then you would put another one on there and another one, you know. And part of the reason why we age is because we have too many time simulations that we&#x27;re living in. It&#x27;s exhausting to power all of these with your own consciousness and your own energy. Unfortunately, it&#x27;s what we have had to deal with for a long period of time. So those days where you&#x27;re kind of dragging, it probably means that there&#x27;s another simulation being created.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-06.PNG&quot; alt=&quot;Image 06&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-06.PNG" alt="Image 06" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004940">00:49:40</div>
@@ -534,7 +750,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So if we look like a giant layer cake, which we kind of do, because humans - we are existing in all these different places at the same time - mainly because of how the Universe was constructed. So we have what we call doppelgangers. And doppelgangers of the Galaxy, doppelgangers of Earth, doppelgangers of you - many, many, many doppelgangers of you - existing not only in these, you know, as I described them, overlays. You know, and here you are again, you&#x27;re in this one. And here you are again, you&#x27;re in this one. It&#x27;s almost like when we were kids, and you would create the stick figure that moves on many, many sheets of paper, and you would just take your thumb and go flip, flip, flip, flip, flip, flip, flip, flip, and then they would look like they were running. Yeah, that&#x27;s you. Every second of every day, every zepto-second of every day.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-07.PNG&quot; alt=&quot;Image 07&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-07.PNG" alt="Image 07" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005256">00:52:56</div>
@@ -574,7 +790,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So, timelines. Okay, so now we understand, at least a little bit better, how simulations actually work. How you can still connect to Source regardless of which simulation you&#x27;re in: it happens from the inside out - it&#x27;s much easier than the outside... you know, to reach out to Source like He&#x27;s far away, and we always look up, like It&#x27;s in heaven - and yes, Source would be considered up from here. Quite frankly, most everything has been up from here for a long time.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-08.PNG&quot; alt=&quot;Image 08&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-08.PNG" alt="Image 08" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005829">00:58:29</div>
@@ -602,7 +818,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Timelines, you know, we&#x27;re taught on the internet that timelines per se - I prefer to call them &quot;time simulations&quot; rather than lines, because the way we saw (at least I saw) timelines before now was that, okay, so there&#x27;s a simulation that appears on Earth. I mean, I saw it as an overlay. An overlay appears on Earth, and we are going to live in this way because we were born at this time or reincarnated here on Earth at this time, so we are going to live in this linear fashion, which creates a timeline.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-09.PNG&quot; alt=&quot;Image 09&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-09.PNG" alt="Image 09" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010144">01:01:44</div>
@@ -612,7 +828,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, let me kind of draw this out for you. Okay, so if this were Earth, and it is Earth. (You are here - just kidding.) So timelines, you know, days might look to you like, let&#x27;s say the day is being dictated from this particular location. So, believe it or not, this is a very skinny cone, which is kind of representing a day sort of thing.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-10.PNG&quot; alt=&quot;Image 10&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-10.PNG" alt="Image 10" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010218">01:02:18</div>
@@ -620,7 +836,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, you&#x27;ll have many of these, of course, because time marches on, and you&#x27;re being overlaid and overlaid and overlaid over and over and over again. Now, a timeline might look like this: It consists of multiple days, just as years consist of multiple days, and that timeline will continue. Now, at any given moment in time, the timeline quote-unquote &quot;creator&quot; can change the timeline. So you might have a longer projection of a timeline, so to speak, than you would have of a day. Now, this is the creation of time on Earth.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-11.PNG&quot; alt=&quot;Image 11&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-11.PNG" alt="Image 11" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010316">01:03:16</div>
@@ -640,7 +856,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So there are even simulations that ran for daytime (&quot;day,&quot; &quot;time&quot;) and nighttime (&quot;night,&quot; &quot;time).&quot;  Now nighttime was especially beneficial because we have been programmed and altered to need quote-unquote &quot;nighttime,&quot; which we sleep. So your daytime consciousness thought could be full of prayers, manifestations, hopes and dreams, and all kinds of things being fed into maybe 6 or 7 - I mean, there could be thousands, thousands of timelines simultaneously.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-12.PNG&quot; alt=&quot;Image 12&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-12.PNG" alt="Image 12" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010514">01:05:14</div>
@@ -684,7 +900,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">You know, and simulation after simulation after simulation would fight against each other, and this is a war. So this is a war of simulations.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-13.PNG&quot; alt=&quot;Image 13&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-13.PNG" alt="Image 13" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011021">01:10:21</div>
@@ -706,7 +922,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Well, technically that&#x27;s my job. So Marduk, being Marduk, even created a simulation full of Kims, that he could manipulate like a bunch of little voodoo dolls. And so he created specific Kims, to exist in many places on the planet. He had done that in the Deep State - not the Deep State, because the Deep State can&#x27;t create a simulation - they have no capacity to do this in any way, shape, or form. You think they&#x27;re doing things to you, and they&#x27;re not. Matter of fact, who knows how many of them are actually (or even) organic anymore - they could just be simulation overlays. They might exist within a simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-14.PNG&quot; alt=&quot;Image 14&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-14.PNG" alt="Image 14" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011304">01:13:04</div>
@@ -762,7 +978,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">You know, they&#x27;re still somewhat connected to the vessel that&#x27;s here. Something ugly would come back in its place, play the part for all the simulations, and then they&#x27;d be able to switch out. And that&#x27;s why... You ever wonder why we live to a certain age, and the Deep State - congratulations, here&#x27;s your 110th birthday - and we don&#x27;t get that. Well, part of the reason for that is because there&#x27;s things like stasis, or you go into a nil, or your soul comes out. You can do repairs. You can do all kinds of things in these various places. It&#x27;s why certain people look like they don&#x27;t age, or whatever, you know? It&#x27;s all part of the simulation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-15.PNG&quot; alt=&quot;Image 15&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-15.PNG" alt="Image 15" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011938">01:19:38</div>
@@ -784,7 +1000,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So, yeah, all of us get sick, all of us have all these things, and it&#x27;s being created more and more every day, you know. But this is where simulations glitch, because remember, this is how I played and learned how to play the simulation. So Marduk... I knew and we knew, because it&#x27;s written in books, in &quot;1984,&quot; that this was going to happen.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-16.PNG&quot; alt=&quot;Image 16&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-16.PNG" alt="Image 16" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-012217">01:22:17</div>
@@ -848,7 +1064,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, one thing that some of the Deep State - that would have limited access to simulations to create - they also learned what Kim does. Kim does this: Kim gets up; Kim gets some coffee; Kim sits down at the computer and looks at various things on the internet and that kind of thing. Until everything&#x27;s firing - and then I&#x27;ll get up and I&#x27;ll work. They also know that Source communicates with me in a certain way. So they have their own little things that Marduk and some of the Deep State people and other people learned about me, as an example, and how to fight me as a quote-unquote &quot;enemy.&quot;</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-17.PNG&quot; alt=&quot;Image 17&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-17.PNG" alt="Image 17" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-013023">01:30:23</div>
@@ -884,7 +1100,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So we have some Deep State members that look to us to be 60 years old, but in actuality, they&#x27;re 160, 200 years old, or 500 years old, 600 years old. And they&#x27;re all proud of it, like, oh, we&#x27;re so excited - we&#x27;ve now entered into the simulation, and here we go.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-18.PNG&quot; alt=&quot;Image 18&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-18.PNG" alt="Image 18" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-013522">01:35:22</div>
@@ -908,7 +1124,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Now, deep underground military bases enter and exit simulations in a very specific way - this is what we have learned - simulation alterations happen in a very specific way.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-19.PNG&quot; alt=&quot;Image 19&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-19.PNG" alt="Image 19" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-013754">01:37:54</div>
@@ -924,7 +1140,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So we have something, and there are many of these, we like to call a reactor. This is what I call it. And I call it a reactor because it works in a similar fashion to a much more advanced version of, like, a nuclear reactor would work. They look like these giant portals, for lack of a better term. They almost look like tubes, wormholes, quantum tunnels, whatever you&#x27;d like to call them. But deep inside each one of these is the core. You know, you hear about that in nuclear - it&#x27;s a core. So what exists in a core?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-20.PNG&quot; alt=&quot;Image 20&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-20.PNG" alt="Image 20" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-013907">01:39:07</div>
@@ -932,7 +1148,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So you have a very specific type of energy. So this very specific type of energy runs on both love and condemnation. By love and condemnation, I mean there is a positive artificial love and a negative artificial condemnation. And that is the type of energy. Now, in a simulation, you would have love essence, love emotions. So what we feel is a positive emotion, a positive time. A positive emotion might not really be even our emotion or a mental thought - it could all be created by the simulation when it was working. You also have consciousness simulations, energy simulations - you have all kinds of things in each one of these little balls - of which there are, you know, beyond millions and trillions and quadrillions inside each reactor.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-21.PNG&quot; alt=&quot;Image 21&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-21.PNG" alt="Image 21" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014024">01:40:24</div>
@@ -946,7 +1162,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">In order for someone like Marduk to create one of these reactors, so to speak, Marduk is going to need, in this particular case, to have made a deal or a covenant with, let&#x27;s say, Dark Side of Source, or another higher-ranking Celestial in order to create these rods in this reactor. You know, you can compile all of these things because they are AI-generated, but the one thing that&#x27;s not is the rods.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-22.PNG&quot; alt=&quot;Image 22&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-22.PNG" alt="Image 22" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014202">01:42:02</div>
@@ -956,11 +1172,11 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So now if I were to take a look down one of these tubes, I would see the reactors in the middle, I would see infinite rods going in all directions, and then I would see a layer around this [reactor] of portals, wormholes, quantum tunnels, and the like.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-23.PNG&quot; alt=&quot;Image 23&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-23.PNG" alt="Image 23" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">And then around here, you know, I might see another layer of them, and there would be more portals, or wormholes, or quantum tunnels, and then I would see another layer of quantum tunnels. Now, this could exist, for example, over an entire third of the United States.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-24.PNG&quot; alt=&quot;Image 24&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-24.PNG" alt="Image 24" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014239">01:42:39</div>
@@ -968,7 +1184,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">Let&#x27;s just give you an example. Or the entire continent of Australia. Or the entire continent of Europe. Because remember, we have multiple simulations happening all at the same time. So in order to feed a simulation, you need to have reactors in place. So every time a new timeline comes up, or a simulator comes up - a new reactor pops up. Your deep underground military bases, your DUMBs, appear through one of these quantum tunnels. So you could have hundreds of thousands of DUMBs on one day - you get rid of them all - the next day 50 are back. It takes time for it to regenerate. Now that worked really well when we didn&#x27;t know about reactors. The more reactors we took out, the less we would see DUMBs, the less we would see additional systems show up, etc., etc. These DUMBs, or these reactors, so to speak, also existed within computer systems. So now we&#x27;ve got the gist - these are time reactors.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-25.PNG&quot; alt=&quot;Image 25&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-25.PNG" alt="Image 25" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014356">01:43:56</div>
@@ -976,7 +1192,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So time reactors could actually span the entire Earth. And they could go all the way - these tubes could go all the way from Earth, to say, the Moon. Then they could go from the Moon to, say, the Sun. (Not to scale here, obviously.) You know, they might go from the Sun to Pluto. They might go from Pluto to the Fifth Density of the Lower Astral.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-26.PNG&quot; alt=&quot;Image 26&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-26.PNG" alt="Image 26" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014444">01:44:44</div>
@@ -1012,7 +1228,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">You are supposed to focus on their heroes, and focus on hating those that they tell you to hate. A food they tell you to like, a food they tell you to hate. It doesn&#x27;t matter what it is; you have the power to change it. Now, you have organic consciousness - a simulation does not. A simulation, and a person under the influence of a simulation, does not have the ability to change - if they are fully under the influence. This is why the Deep State will continue to do this to the end of freaking days.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-27.PNG&quot; alt=&quot;Image 27&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-27.PNG" alt="Image 27" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-014826">01:48:26</div>
@@ -1030,7 +1246,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So now that you&#x27;re aware of it, you will understand: That is not my thought. That is not my sad. That is not my emotion. I do not hate my spouse. I do not hate my kids. Just remember the thoughts you&#x27;re having. You need to take a moment, sit in the Now, and realize, is this my thought? And don&#x27;t be afraid to say, &quot;I&#x27;m sorry, I don&#x27;t know what came over me,&quot; because I&#x27;m sure you&#x27;ve got plenty of normies in your life that don&#x27;t understand this. Okay?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-28.PNG&quot; alt=&quot;Image 28&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-28.PNG" alt="Image 28" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-015021">01:50:21</div>
@@ -1058,7 +1274,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So if you know the key to the simulation, and you now have the keys to the simulations - most of them, not all of them - you now understand: look, there&#x27;s a Battleground Earth. Okay, let&#x27;s take over that simulation. Which we&#x27;ve done in the last few hours. So we have been in control of the other side of the Deep State humans&#x27; existence, more than they know. More than they know. Can their consciousness override the human consciousness? Not so much anymore - it&#x27;s fading. Why is it fading? Because remember: every simulation we find that appears out of time, is connected immediately to Source.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-29.PNG&quot; alt=&quot;Image 29&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-29.PNG" alt="Image 29" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-015308">01:53:08</div>
@@ -1072,7 +1288,7 @@
 <div class="blank">&nbsp;</div>
 <div class="line">So will the Galactic Federation be appearing again? Doubt it. Those that left, left. Those that came, came. And that&#x27;s it. You know, you find the rest of the battleground where they hide out, you know, where the base root of the simulation is, and then you start to alter the simulation so they don&#x27;t exist anymore. How cool is that?</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-30.PNG&quot; alt=&quot;Image 30&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-06-30-GIA-30.PNG" alt="Image 30" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-015410">01:54:10</div>
@@ -1114,6 +1330,430 @@
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=DS6XrVYpAVM" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=DS6XrVYpAVM" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>

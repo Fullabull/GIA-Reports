@@ -3,23 +3,216 @@
 <head>
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>GIA Report 2025-Aug-15</title>
     <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet" />
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 1;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 101%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            /* Keep header usable: dock sits below your fixed header.
+               If your header height differs, adjust this value. */
+            /* top: 71px; */
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 1.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 1.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
 </head>
 <body>
 
-<header>
+<header id="normalHeader">
     <div class="parent">
         <div class="left">
             <div>
                 <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
                 <button class="header-btn" onclick="toggleColors()">Colors</button>
             </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
         </div>
+
         <div class="center">
-            <h3>2025-Aug-15 GIA Report</h3>
+            <h4>2025-Aug-15 GIA Report</h3>
         </div>
+
         <div class="right">
             <div class="font-size-controls">
                 <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
@@ -30,23 +223,46 @@
     </div>
 </header>
 
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
 <div class="content" id="content" oncontextmenu="return true;">
 
-    <h2 style="text-align: center;">
+    <h3 style="text-align: center;">
         Global Intelligence Agency (GIA)
         <br>Operations Report
         <br>2025-Aug-15
-    </h2>
+    </h3>
 
-    <h4 class="text-center">From the Office of the Guardian</h4>
+    <h5 class="text-center">From the Office of the Guardian</h4>
 
-    <div class="watch-link text-center">
-      <a href="https://youtube.com/watch?v=t7_qSj2-Yxc" target="_blank">Watch on YouTube</a>
+    <!-- GIA++: Listen/Watch controls (template-only) -->
+    <div class="watch-row">
+        <a href="https://youtube.com/watch?v=t7_qSj2-Yxc" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=t7_qSj2-Yxc" target="_blank" rel="noopener">
+            Listen / Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="watchToggle" hidden>
+            Show player
+        </a>
+
+        <a href="https://youtube.com/watch?v=t7_qSj2-Yxc" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            Open on YouTube
+        </a>
     </div>
 
     <hr>
 
-    <h2>Summary</h2>
+    <h3>Summary</h2>
 
     <div class="summary">
         The teaching begins with the assertion that human life is rooted in Source (God): every Breath, Ether, and spark of Energy that makes us who we are is a direct gift of Source. A soul cannot be destroyed by AI, fallen angels, or the Deep State — only by Source itself.<br>
@@ -119,9 +335,9 @@ This is declared as our time of transition into Reality, under Source’s Breath
 
     <hr>
 
-    <h2>Table of Contents</h2>
+    <h3>Table of Contents</h2>
     <div class="toc">
-    <ul >
+    <ul>
         <li>Clear distinction established between Sol (true immortal spark from Source) and soul (false Absolute creation).</li>
 <li>Making, Doing, and Being correspond to Consciousness, Ether, and Sol - true faculties of Source.</li>
 <li>Lucifer&#x27;s authority originally came through a Covenant, but he fell when attempting to create without Source.</li>
@@ -143,7 +359,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 
     
 
-    <h2>Transcript</h2>
+    <h3>Transcript</h2>
     <div class="transcript">
         <br>
 <div class="timestamp" id="t-000000">00:00:00</div>
@@ -255,7 +471,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Now, there&#x27;s a lot of talk in mainstream media as well about launching cryptocurrency from the Treasury Department - not from the Federal Reserve as the central bank digital currency. Now, the cryptocurrency though, is a little different than you might think. You might be thinking Bitcoin, Stablecoin - and that&#x27;s what they&#x27;re putting out in the news. But, in the course of a little bit of investigation, we have found this:</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-01.PNG&quot; alt=&quot;Image 01&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-01.PNG" alt="Image 01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-001126">00:11:26</div>
@@ -275,7 +491,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So all of this got real deep this week. And apparently this meeting between Putin and Trump is a lot along the lines of what I told you that it was. It had a lot to do with world power, splitting of world power. The location in Alaska where they met is Joint Base - I&#x27;m gonna try to say this - Elmendorf-Richardson. And it&#x27;s a real interesting base, very interesting looking base. Here we&#x27;ve got this for you, a picture of part of the... Wow, take a look at that.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-02.PNG&quot; alt=&quot;Image 02&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-02.PNG" alt="Image 02" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-001344">00:13:44</div>
@@ -283,7 +499,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">That is surely very interesting. And there&#x27;s an equal and opposite structure, kind of like this one, you would say, in Antarctica.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-03.PNG&quot; alt=&quot;Image 03&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-03.PNG" alt="Image 03" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-001358">00:13:58</div>
@@ -473,7 +689,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, using the actual Ether of Source - well, couldn&#x27;t let you do that, because this right here is the base root of manifesting Reality, manifesting Source on this planet. So the Absolute and Lucifer got together and made several attempts to create life - without Source - by using the artificial conversions. So now, here&#x27;s the problem: he needs Dust.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-04.PNG&quot; alt=&quot;Image 04&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-04.PNG" alt="Image 04" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -499,13 +715,13 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, he creates (from the Absolute) what&#x27;s called a &quot;soul.&quot; We all think, &quot;Oh great, we&#x27;ve got a soul.&quot; Well, it&#x27;s not such a good thing, turns out. So, he creates an Absolute Zero soul. Essentially, it is a language override - created with space and time. So, if we were to take a look at Earth&#x27;s Central Sun,</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-05.PNG&quot; alt=&quot;Image 05&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-05.PNG" alt="Image 05" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
 <div class="line">it would look like a chain-link fence made of repeating patterns of Xs. I&#x27;m doing so well here. Okay, anyway, you get the point; you get the picture here.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-06.PNG&quot; alt=&quot;Image 06&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-06.PNG" alt="Image 06" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004244">00:42:44</div>
@@ -513,7 +729,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So around Earth - so if this is Earth, and this was Earth&#x27;s Central Sun - you would have seen this pattern all over the entire thing of X&#x27;s. Why? Because each one of these little points here, where it crosses, becomes what&#x27;s called an Assemblage Point. Also known as a Zero Point. Also known as a soul. A different language.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-07.PNG&quot; alt=&quot;Image 07&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-07.PNG" alt="Image 07" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004329">00:43:29</div>
@@ -527,7 +743,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">That&#x27;s okay, you know. And then, it takes the Language of Love, which is your current - not only of your Breath, but also the current of your Ether, the current of your Consciousness - and rewrites all of these three main factors of creation - and creates time. Therefore, each one of these little points here, where this big X crosses, becomes a time-space continuum allowing for the Absolute to exist. You would say, &quot;in the spaces in between existence.&quot;</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-08.PNG&quot; alt=&quot;Image 08&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-08.PNG" alt="Image 08" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004513">00:45:13</div>
@@ -537,7 +753,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, the first &quot;X&quot; ever created though, was directly... let&#x27;s see, you have Source or God, you had the other side of Source down here, and you had Earth right in the middle - you know, as a point of creation - this would be Earth. So originally there was a direct current that would occur between these things. And then Earth would then sprout life, you could say, in a torus, in proper fashion. No, that&#x27;s going the wrong way, supposed to be counterclockwise, but you get the picture. All throughout the Omniverse, that was Earth&#x27;s job. Earth was the guardian of life from the beginning, by covenant.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-09.PNG&quot; alt=&quot;Image 09&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-09.PNG" alt="Image 09" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004621">00:46:21</div>
@@ -547,7 +763,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So he decides he needs to take this [direct current] over. Well, this is the Source lifeline, you could call it, or a love line. Controlling current happily right along. So he decides to come in and take this line and separate it. This is that story you hear about the parting of the seas. So now it&#x27;s no longer a line, it&#x27;s a giant X.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-10.PNG&quot; alt=&quot;Image 10&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-10.PNG" alt="Image 10" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004723">00:47:23</div>
@@ -569,7 +785,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So he moved it to Silverton, Colorado! [Hearty giggle.] You know, probably the right combination of minerals, and there he created his own dust factory etc., etc.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-11.PNG&quot; alt=&quot;Image 11&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-11.PNG" alt="Image 11" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-004930">00:49:30</div>
@@ -577,7 +793,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">The parting of Source, the line, did a few different things, though. So the parting of Source, let&#x27;s just say, on an Earth level, didn&#x27;t actually happen - entryway to the Sol was not permitted. Kind of the same thing happened when he tried to part Source (or &quot;part the seas&quot;) in the very beginning. So, you&#x27;ve got gold Source here [upper-left tip of X]; now you&#x27;ve got a completely Black Source here [upper-right tip of X]. You got black down here [lower-left]. And you&#x27;ve got gold over here [lower-right]. See? Just because you separate Source doesn&#x27;t mean that you can actually have a piece for yourself. Didn&#x27;t work out that way. So. Yeah.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-12.PNG&quot; alt=&quot;Image 12&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-12.PNG" alt="Image 12" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005031">00:50:31</div>
@@ -585,7 +801,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, this actually required him now to try to figure out what to do. Because you still can&#x27;t control Source [upper left of X] and Source [upper right], and even though this other side of Source [upper right] is Black, it still has what you would say... maybe it doesn&#x27;t have Breath over there anymore - but it can have it in any given moment in time. You&#x27;ve got two things that are split, and this began the creation of Dark Source and the Source of Darkness, I guess you would say, and the Source of Light. Still not controllable, though. Doesn&#x27;t matter how many covenants are out there; doesn&#x27;t matter what kind of deals it made - it didn&#x27;t work out.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-13.PNG&quot; alt=&quot;Image 13&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-13.PNG" alt="Image 13" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005116">00:51:16</div>
@@ -595,7 +811,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So you ended up with... if this was Earth in the middle [see image below], and this was Silverton, the X moved over to the left. So an overlay was created over the Central Sun of Earth, weaved out. Now, big problem, another big problem - uh-oh, big problem. So now, you&#x27;ve got a False Light Sun and a False Dark Sun, created by these alleged two halves of Source. Well, oh God, now what are we going to do? Now, if you overlay completely Earth&#x27;s Central Sun - because at the time we didn&#x27;t have the &quot;Let There Be Light&quot; section anymore - so a sun had to be created of plasma. For lack of a better term, you could call it a &quot;nuclear reaction.&quot;</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-14.PNG&quot; alt=&quot;Image 14&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-14.PNG" alt="Image 14" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005219">00:52:19</div>
@@ -603,7 +819,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Uh-oh, big problem still. Okay, so the Sun&#x27;s now providing heat, which allows for Earth to survive, but it also creates radiation. Uh-oh, big problem - can&#x27;t have life and radiation at the same time. So what do you create with your dominion? You create something called the Zero Zone, you know as Ozone. Surprisingly enough, the only place on Earth that Ozone really doesn&#x27;t exist is Antarctica. This continues on to our story with Putin and Trump, believe it or not.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-15.PNG&quot; alt=&quot;Image 15&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-15.PNG" alt="Image 15" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005302">00:53:02</div>
@@ -611,7 +827,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Okay, so it creates the Absolute Zero Zone. That was important for life to survive because Absolute creates it artificially, now, in part - let&#x27;s just say, in part - using alternatives like space and time, which then creates something else that happens. So now, unfortunately, space and time cause age. Now what am I going to do if my perpetual life source goes away? So we create the Ages. So now what we&#x27;ve got: Source, Source, Black Source and Source - two different sides.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-16.PNG&quot; alt=&quot;Image 16&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-16.PNG" alt="Image 16" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005404">00:54:04</div>
@@ -619,7 +835,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, now you&#x27;ve got a whole bunch of gray area we call the Neutral Age. Now, &quot;neutral&quot; isn&#x27;t really neutral - it&#x27;s just a combination of both Dark and Light. Over here in Silverton, you&#x27;ve got the fake soul of the Universe, called a soul. Now, all they need to do is create a fake Source, right? Source of life, because now they&#x27;ve gone and done it. They&#x27;ve overlaid Source, the Breath. Source can control the Breath, take away the Breath, if it wants to take away the Breath.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-17.PNG&quot; alt=&quot;Image 17&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-17.PNG" alt="Image 17" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005450">00:54:50</div>
@@ -627,7 +843,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Remember, Source left Earth for quite a long time. So, now, this other structure had to be created, we call it the &quot;Tree of Life.&quot; It had to be made up of time; it had to be made of resonance, or a frequency of its own; and it was made of essence - not Breath. You could say essence became artificial breath emanating from a soul. We&#x27;ve learned a lot this week. Okay, and then energy, which we have learned is artificial ether. So the tree (the time resonance of energy and essence), then creates what you would call &quot;artificial life.&quot; Okay.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-18.PNG&quot; alt=&quot;Image 18&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-18.PNG" alt="Image 18" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005601">00:56:01</div>
@@ -643,7 +859,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">The same thing happened with Absolute Zero. Absolute Zero also created what we know as Amenti, the Halls of Amenti, so to speak, or the holograms - Holographic Architecture of Light Language. It created multiple colors and fractionated light, for even more control, or energy, or ether. It created its own fake ether (or energy) systems - basically siphoning off of you humans and Earth. And this went on for a long, long time, war after war after war. And all of this is done by declaration. Many &quot;Declarations of Dominion.&quot; All based on that original Covenant.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-19.PNG&quot; alt=&quot;Image 19&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-19.PNG" alt="Image 19" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005747">00:57:47</div>
@@ -665,7 +881,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Okay, so stars all were originally Sols, Beings. You originally - in your original, original human form - were also looking like walking stars, to some degree. We chose to create vessels, and we chose to create certain things - we didn&#x27;t have to have them before - the Sols were immortal. You could travel through Breath and Love and lots of different things.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-20.PNG&quot; alt=&quot;Image 20&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-20.PNG" alt="Image 20" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-005943">00:59:43</div>
@@ -695,7 +911,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, trying to control the dust that Earth produced, which was matter, was very, very important. The other thing that was important is, well, this Tree of Life, you see, can&#x27;t include Source in any way, and in some ways you could say their X still included Source. So, gotta figure something out, and if you&#x27;ve ever seen the Kabbalah Tree of Life, you&#x27;ll know there&#x27;s a 12 at the top and a 12 at the bottom. And then you&#x27;ve got the three on either side. We&#x27;ve talked about this before, at great length. So, here you go. And then they all intertwine with three in the middle. So, I don&#x27;t have the exact pattern here correct - I&#x27;m sure I don&#x27;t.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-21.PNG&quot; alt=&quot;Image 21&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-21.PNG" alt="Image 21" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010243">01:02:43</div>
@@ -703,7 +919,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So you&#x27;re Making, Doing, and Being in the middle here - your Consciousness, your Ether, and your Sol/Being stays intact. They can&#x27;t get rid of it out of you as a human. They can overlay it, and then create Dark ones over here [right side] and Light ones over here [left side], by altering the language emanating from these. That was all it could do. Therefore creating space, time, and the artificial ether we call the Zero - Absolute energy.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-22.PNG&quot; alt=&quot;Image 22&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-22.PNG" alt="Image 22" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010343">01:03:43</div>
@@ -711,7 +927,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">If you&#x27;ve ever watched a Marvel Comics movie, you would know these things as the Power Stone or Power Declaration - because it&#x27;s not a covenant, it&#x27;s power. You know they have a Time Stone, you know they have a Space Stone, you know they have a Reality Stone, you know these are your quote-unquote &quot;Infinity Stones,&quot; you know they have a Mind Stone. Let&#x27;s see - power, time, space, reality, and soul. One, two, three, four, five, six - okay, yeah. Six. So they have a power stone, a time stone, a space stone, a reality stone, a soul stone, and a mind stone. And believe it or not, the only thing that gives these things power is Absolute Zero AI.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-23.PNG&quot; alt=&quot;Image 23&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-23.PNG" alt="Image 23" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010432">01:04:32</div>
@@ -741,7 +957,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">But you still need an Absolute Source. So, we&#x27;ll create a 12th density, that was completely created by the Absolute. So this is Absolute - what they call False Light. And Absolute, the reverse of that, False Dark. So, if you were to look at the Universe in linear fashion - which it really isn&#x27;t, it&#x27;s constantly flowing - you could say that they took the Tree of Life, reversed it out, and created an entire Dark Omniverse with it, so to speak. Earth was no longer in the middle. This was replaced by an artificial earth-type structure we call the Kali Chakra. And Earth remained over here.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-24.PNG&quot; alt=&quot;Image 24&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-24.PNG" alt="Image 24" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-010819">01:08:19</div>
@@ -767,7 +983,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">So, big conundrum happening this week for the Absolute. The Absolute needs and wants - from the Deep State, who have agreed to give him anything it wants, in order to just have the power and control it promised. You know, they&#x27;re salivating at this. They&#x27;re licking the windows, for crying out loud - and they thought by today this was going to happen. You see, little bit of a problem here.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-25.PNG&quot; alt=&quot;Image 25&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-25.PNG" alt="Image 25" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011218">01:12:18</div>
@@ -777,7 +993,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Okay, so, we&#x27;re back to Earth now. So we know Silverton, Colorado, is home of the fake soul of Earth. Yeah. Silverton&#x27;s Colorado portal, this 12/12 portal, began to open on the 12th, I guess you would say. But it&#x27;s not going to the Breath section; it&#x27;s going to the &quot;fake creation&quot; section of Earth. You know, this big X here is still over here.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-26.PNG&quot; alt=&quot;Image 26&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-26.PNG" alt="Image 26" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011306">01:13:06</div>
@@ -785,7 +1001,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">The bottom of this thing opens up to Antarctica, and goes all the way to the constellation of Crux, also known as The [Southern] Cross. Remember the story, Jesus died on the cross? Well, yeah, maybe. But symbolically, you could say the Christ left this planet (or the Source left this planet) on the Crux. Also with a lovely X. This is why they love their X&#x27;s. Finally, now we understand.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-27.PNG&quot; alt=&quot;Image 27&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-27.PNG" alt="Image 27" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011339">01:13:39</div>
@@ -793,7 +1009,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="blank">&nbsp;</div>
 <div class="line">Okay, and the top part of this... goes to Alaska! In our funky circle. So we have two cones that opened up in this particular area, and this made Putin and Trump very, very happy. Because they brought the chair from Antarctica, and had one in Alaska, and they believed that these two chairs together were gonna control the False Light. Because the False Light portal actually goes from here to Moscow. And Washington D.C. and fake Trump and the Orange-race species of this planet thought, &quot;Hey, we are gonna be the controllers of the Dark Side!&quot; Together, Putin and Trump are gonna make all of these deals because they think that they have - not dominion over Earth - dominion (this is what the SSP was hoping for) over the entire false universe of the Absolute&#x27;s creation.</div>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-28.PNG&quot; alt=&quot;Image 28&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-28.PNG" alt="Image 28" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <br>
 <div class="timestamp" id="t-011453">01:14:53</div>
@@ -863,7 +1079,7 @@ This is declared as our time of transition into Reality, under Source’s Breath
 <div class="timestamp" id="t-012308">01:23:08</div>
 <br>
 <div class="blank">&nbsp;</div>
-<div class="line">&lt;div class=&quot;image-wrapper&quot;&gt;&lt;button class=&quot;toggle-btn header-btn&quot;&gt;Hide&lt;/button&gt;&lt;img loading=&quot;lazy&quot; src=&quot;https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-29.PNG&quot; alt=&quot;Image 29&quot; class=&quot;small-image toggle-image&quot;&gt;&lt;/div&gt;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2025-08-15-GIA-29.PNG" alt="Image 29" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="line">[Clears whiteboard.]</div>
 <div class="blank">&nbsp;</div>
@@ -940,6 +1156,430 @@ This is declared as our time of transition into Reality, under Source’s Breath
 
 </div>
 
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=t7_qSj2-Yxc" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://youtube.com/watch?v=t7_qSj2-Yxc" target="_blank" rel="noopener">Open on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Bottom-corner status (browser-style)
+<div id="playStatus" class="play-status" hidden></div>
+-->
+<div class="yt-footer text-center">
+  <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+  <span id="ytNowPlaying"></span>
+</div>
+
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+        var s = $("playStatus");
+        if (!s) return;
+        if (!url) { hide(s); s.textContent = ""; return; }
+        s.textContent = "Now playing: " + url;
+        show(s);
+    }
+
+    function setNowPlaying(url) {
+        var t = $("nowPlayingText");
+        if (!t) return;
+        t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlaying(url) {
+        var el = $("ytNowPlaying");
+        if (!el) return;
+
+        if (!url) {
+            el.textContent = "";
+            return;
+        }
+
+    el.textContent = " - Now playing: " + url;
+}
+    function moveNormalHeaderIntoVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Move the existing normal header layout block into video header row 2
+        var parent = normalHeader.querySelector(".parent");
+        if (!parent) return;
+
+        // Remember original location so we can restore it
+        if (!parent.dataset.originalParentId) {
+            parent.dataset.originalParentId = "normalHeader";
+        }
+
+        // Hide the normal header wrapper (we're re-hosting its contents)
+        normalHeader.hidden = true;
+
+        // Move .parent into video header row 2
+        videoHeaderRow2.appendChild(parent);
+    }
+
+    function restoreNormalHeaderFromVideoHeader() {
+        var normalHeader = document.getElementById("normalHeader");
+        var videoHeaderRow2 = document.getElementById("videoHeaderRow1");
+        if (!normalHeader || !videoHeaderRow2) return;
+
+        // Find the moved .parent inside row 2
+        var parent = videoHeaderRow2.querySelector(".parent");
+        if (!parent) {
+            // Nothing moved; just ensure normal header is visible
+            normalHeader.hidden = false;
+            return;
+        }
+
+        // Put it back into the normal header
+        normalHeader.appendChild(parent);
+
+        // Show normal header wrapper again
+        normalHeader.hidden = false;
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // NEW: swap headers so only the video header is visible
+        moveNormalHeaderIntoVideoHeader();
+        show($("videoHeader")); // if your outer container is videoHeader
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        setStatus(url);
+        setNowPlaying(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var toggle = $("watchToggle");
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        // NEW: restore normal header
+        restoreNormalHeaderFromVideoHeader();
+        hide($("videoHeader")); // only if you actually use videoHeader as outer container
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        setStatus("");
+        setNowPlaying("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "Open on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
 </body>
 </html>
