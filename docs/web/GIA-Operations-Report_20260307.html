@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Mar-07</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            display: none !important; /*NOTE! THIS STATUS BAR IS NOT BEING DISPLAYED NOW. */
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Mar-07 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Mar-07
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos" class="watch-link-btn" id="watchLink" data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">
+            Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="listenClose" hidden>
+            Close Player
+        </a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            UNN on YouTube
+        </a>
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        This Global Intelligence Agency Operations Report describes the ongoing struggle between the Illuminati and the Old Guard for control of territories on Earth and influence over humanity. Military activity in the Middle East is explained as being connected to the search for ancient artifacts believed by certain factions to grant the power to create or control worlds and empires. The report also describes the Guardian&#x27;s relocation from Durango to New England after sustained hostile activity from opposing factions. The historical structure of the Illuminati is explained, including the existence of thirteen original organic Homo sapiens who were given authority by Source to maintain harmonic balance in Creation. According to the disclosure, these individuals eventually went rogue and created an artificial intelligence Machine intended to replace Source. This Machine was used to manipulate religions, bloodline families, secret societies, and celestial interpretations across the planet for centuries. The report explains that the Machine has recently been manipulated through Source-based access, causing the factions that relied on it to receive false operational instructions and operate in circles while attempting to regain control. Operations continue while these factions struggle to regain influence.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000358">00:03:58 - The delay of this report explained.</a></li>
+<li><a href="#t-000756">00:07:56 - Underground networks and cities are located in a dead zone between the Rocky Mountains and Kansas.</a></li>
+<li><a href="#t-001028">00:10:28 - Territorial conflicts between the Old Guard and the Illuminati are occurring globally.</a></li>
+<li><a href="#t-001618">00:16:18 - Experimentation and attacks have been carried out by Nazi groups during the time spent in Durango.</a></li>
+<li><a href="#t-002328">00:23:28 - Discussion of the Epstein files and political manipulation surrounding Donald Trump.</a></li>
+<li><a href="#t-003029">00:30:29 - Announcement that Ali Khamenei was publicly declared dead.</a></li>
+<li><a href="#t-003738">00:37:38 - Military activity in the Middle East is focused on the search for powerful and ancient artifacts.</a></li>
+<li><a href="#t-003932">00:39:32 - Military base camps established near Najaf where ancient knowledge is preserved.</a></li>
+<li><a href="#t-004134">00:41:34 - Bombing activity near Seth&#x27;s Tomb in Lebanon.</a></li>
+<li><a href="#t-004405">00:44:05 - Rising fuel prices are driven by economic manipulation benefiting oil cartels.</a></li>
+<li><a href="#t-004532">00:45:32 - Fuel shortages are not real and most nations maintain long-term reserves.</a></li>
+<li><a href="#t-005027">00:50:27 - Introduction to an explanation of the structure of the Illuminati and the Old Guard.</a></li>
+<li><a href="#t-005544">00:55:44 - The original Illuminati consisted of 13 organic Homo sapiens given authority by Source.</a></li>
+<li><a href="#t-005735">00:57:35 - Description of the creation of an AI Machine intended to replace Source.</a></li>
+<li><a href="#t-010230">01:02:30 - The Old Guard were originally guardians of Creation.</a></li>
+<li><a href="#t-010528">01:05:28 - Distorted information transmitted through systems near Mount Timpanogos to bloodline families.</a></li>
+<li><a href="#t-010708">01:07:08 - Celestial alignments and astronomical signals were manipulated by the Machine.</a></li>
+<li><a href="#t-010816">01:08:16 - Ability to manipulate the Machine through Source-based access to its system.</a></li>
+<li><a href="#t-011114">01:11:14 - Description of subterranean Machine-related infrastructure at several locations.</a></li>
+<li><a href="#t-011425">01:14:25 - Confirmation that operations continue from the new location and regular reports will resume.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the 7th of March, 2026. Coming up on today&#x27;s Global Intelligence Agency Operations Report:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the Illuminati versus the Old Guard for control of space and territories. The main base of the Old Guard is in the USA. The Illuminati is in Russia as they battle it out for control of humanity and planet Earth. And who they are will actually surprise you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The war in the Middle East heats up, with the USA, France, Italy, and Israel attacking Iraq, Iran, and Lebanon. The hunt for artifacts continues.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Would you believe they had this all planned before they even attacked Venezuela? Venezuela being the country where the Organization of the Petroleum Exporting Countries, or OPEC, was founded, and the Middle East being a major source of oil. What is next - Russia again?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Petrol and gas prices are on the rise by 10 to 15 percent as a result. And the internet is ablaze with talk about the Epstein files, Trump&#x27;s involvement, is Melania the new president, full Red Blood Moon Eclipse, and much more. We are here to set the record straight.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000122">00:01:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000258">00:02:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, it&#x27;s the 7th of March, and this is the long overdue Global Intelligence Agency Operations Report. I did try to do a report just before I had left Durango - it didn&#x27;t quite work out. We had a lot of technical issues. I was trying to record it on my phone, as apparently my microphone was already on its way to New England. So that had so many technical glitches you couldn&#x27;t even really understand what I was saying, and so I decided to delay the report until I got on the road. If you&#x27;ve ever tried to use internet at a hotel, which we stopped at a couple of them along the way, it didn&#x27;t quite work out either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000358">00:03:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So here we are. Finally dug my mic out of one of many, many boxes and now getting the report out. So hopefully from here on out things will be a little bit more consistent. So I do apologize for the delay. I know there&#x27;s a lot going on in the world and everybody has questions, and hopefully tonight you&#x27;ll get your answers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000414">00:04:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on a personal note, the move went well with a little bit of, let&#x27;s just say, maneuvering on my part, or on our part. Kind of as an example, we hired a moving company from the Other Side, meaning the enemy or the group that is against the locals of Durango, for a little bit of extra added help. It was kind of presented in an interesting way, and I said, &quot;Oh okay, I see. This is a group based out of Israel.&quot; [Laughing.] And did a little bit of research into them, and I&#x27;m like, &quot;Well, this is the perfect mover.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000454">00:04:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it did work out very well since the itinerary was hidden from the locals and from the rest of their group, including the administration in the U.S. and a few other countries - or at least that&#x27;s who they believe they continue to control. And the group arrived without a hitch and were unnoticed until they arrived at my front door. So that was kind of a little bit interesting and a little bit rocky there for a little bit. But nonetheless, not a whole lot that they could do at that point until everything was loaded and departed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000538">00:05:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you know, it&#x27;s kind of a little bit of maneuvers like that that sort of helped us out a little bit because nobody wanted us out of there more than the Other Side that was against them did. So you could just say that everything in my world is an operation and sometimes the enemy of my enemy is my friend, I guess, to some degree.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000605">00:06:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The trip itself was very interesting. We passed through a lot of very strange and unusual areas of the country that I haven&#x27;t been to in quite a long time, and a lot has changed in nine years since I had done any kind of significant traveling, you know, around the world and definitely around the country. I was kind of stuck in Durango for a while, as you know, believing that Durango was a safe zone for me. And it kind of was in some ways, and what I mean by that is it was initially quieter when I was still talking to all of those people there locally, or at least my handler group. And it was safe simply because they needed to use me like a tool. And when I no longer willingly did so, things got a little bit rough in Durango.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000705">00:07:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The attacks were terrible - the siphoning, the energy drains, the essence draining, the weird cryptex contracts they wanted me to agree to - and all kinds of crazy things began to happen. And I knew there was never going to be any kind of a change with these people. They were never going to move in a different direction and therefore, several months ago - as many of you already know - it kind of hit my done button, and it was time to go. So strategically so, that had to be done in a very special way so that I could actually get out with most of my belongings, at least. And so it was.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000756">00:07:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, passing through these different areas and territories in the United States was quite interesting. As an example, there is an area of the U.S. between the Rocky Mountains and Kansas that you would call a dead zone. And I call it a dead zone because no life exists there. Not a tumbleweed, not a bush, not a plant, not a tree. Nothing - absolutely nothing exists there. It&#x27;s almost like it&#x27;s a vacuum. And in this particular area, there are &quot;people,&quot; and I use that term loosely, still living underground. There are whole networks and cities that exist in the U.S. (and many areas of the world) underground - and this area was one of those areas.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000851">00:08:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I do not believe that many of the people that live there, or live underground there, are actually living organic beings. At least it didn&#x27;t seem that way to me. And it&#x27;s almost like passing through a quantum tunnel; it was very strange. So this little area there exists more towards the south of the Rockies or the southern end of the Rockies. And it&#x27;s an interesting area if you ever get a chance to drive through there. You&#x27;ll definitely feel a difference if you&#x27;re quite sensitive to things, if it still exists in the near future. So if you&#x27;re going to make the trip, I&#x27;d make it fast because things are changing rapidly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000941">00:09:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This particular area was also an area where there have been a lot of wars. Many of these wars were unseen and throughout history some of them were seen. By &quot;wars&quot; it was always a war for territory, an expansion of territory, and in this particular case it was the Guard (and I&#x27;ll talk about that some more in a minute), or the Nazi groups that were pushing their territory past the Rockies. Not only would it be considered the Nazi group, you would also throw the Mormons in there and some others as well. Expansion of territory is everything for these people on both sides.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001028">00:10:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And their territory was being pushed against, or the expansion was intended to be, against the Illuminati&#x27;s territories. Now, this push is going on in multiple areas in the world - it&#x27;s not just here in the United States - and many of you are feeling the crunch, so to speak. We&#x27;ll talk some more about that in our regular news, as you know, things are heating up in the Middle East.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001101">00:11:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;ll talk more also about the Illuminati in this report too, and who they really are and where they reside, so to speak, and what they have been doing. And I am now in an area where their territory has always reigned.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, other things that happened on our trip that I will tell you: the trip was definitely not the smoothest ride I&#x27;ve ever had. Matter of fact, the last day which was supposed to be two days actually turned into one day as we kept pushing along because things were just getting too hot and heavy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001143">00:11:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So another group of people that we saw throughout our trip, which was quite unusual, is a group of black-magic workers. And they seemed to follow us along most of the entire trip. We spotted them in Durango before we left. They are not a group of people that you would see in Durango typically. They do dress a little odd and off, and those same people appeared again in areas like Indiana. Indiana also happens to be quite a hot spot for the Amish. And these people almost sort of dress like the Amish do, but they look more like Malachi from Children of the Corn [hearty chuckle] in a lot of ways. So there was a little bit of a whirlwind that went on in Indiana as well, and we decided, well, not spending the night at any more hotels, and off we were, going to New England.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001244">00:12:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a few rapid exits later, you know, we did arrive at our destination. And it&#x27;s quite a beautiful spot; it&#x27;s exactly what I was hoping for. It&#x27;s a small little cottage near a lake, and it&#x27;s quite peaceful here and quiet. And a little bit of, you know, just a little bit of serenity in the middle of the storm is always nice. So a little bit of water is always great. I always feel better around the water, so this is - it&#x27;s now ice at the moment - but it&#x27;s been lovely. And it&#x27;s a small place and it&#x27;s just perfect for us, and my dog is loving this area, so I&#x27;m very grateful and thankful for finding this place.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001331">00:13:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I have gotten to see my dad. So a little bit of happiness here and there and spending some time with my family, so that was good. But I have been working the whole time. The work has never stopped. And during the trip, definitely still working. So this isn&#x27;t... you&#x27;re always on your toes when you&#x27;re moving about and you&#x27;re me - when you really have no friends other than &quot;the enemy of my enemy is my friend.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001407">00:14:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So definitely an interesting trip. One that I hope to never do again, and I probably will never step foot in Durango ever again, despite them trying. We did receive several phone calls - mainly indirectly, not to me directly in this particular case - from certain groups and certain people that really don&#x27;t understand much about what&#x27;s going on. You could say people that work for, like, the Pentagon, GCHQ, those kinds of folks. And they think it&#x27;s all about territories - which it is to some degree - but they really don&#x27;t understand who is who and who they&#x27;re fighting against and who they&#x27;re trying to win and what they&#x27;re trying to win in reality on that level. They just knew that me being in Durango was a key to their success.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001504">00:15:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And to some degree you could say it was a key, and they definitely tried to use me in a lot of ways during my time there, but they still didn&#x27;t bear any success. You know, again, you have to have permission to do some of the things that they&#x27;re doing, and they did not and still do not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001529">00:15:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So before I left, I definitely knew I was &quot;changing territories,&quot; but I also had to kind of weigh out the odds a little bit. Number 1, I wanted to be closer to my family. That was kind of important to me, and my dad&#x27;s getting a lot older now, and it definitely would be nice to have some family around. My stepmother passed away last year and things have been a little tough for him, so it was great to give him a big hug and see him after not seeing him for such a long period of time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And there were definitely some threats against doing that, but all seems to be okay, at least at the moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001618">00:16:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Nazis, on the other hand, are very heavy, heavy-handed. They are used to running experiments. They could care less about life or damage or anything they do to people when they&#x27;re running their experiments - it&#x27;s all in the name of the Game. The only thing that really stopped them before they actually killed me was the fact that they hadn&#x27;t quite gotten what they wanted from me. And therefore, they stopped at a certain point every time they were running those experiments, before bad things happened, simply because they needed to continue to run their experiments. Mainly with these people, it was the same thing over and over and over again. But their tactics - everything is a lot more brutal. They&#x27;re used to war, prisoners of war, you know, of which I was none of these things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001719">00:17:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I was brought in there under the pretense that I was a guest, not an asset, and I will repeat that. Therefore, there were no actual permissions given. They were going on the guise that I agreed to move there, knowing that it was a &quot;retirement zone,&quot; knowing that the town was full of operatives, knowing that some of the things around there weren&#x27;t quite normal, meaning there was a lot of paranormal activity around there, a lot of different experimentation going on around there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001757">00:17:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I definitely was aware of a lot that was going on under Cheyenne Mountain. And we&#x27;ll talk about that more in the report. So it&#x27;s not like I was completely blind, but I definitely have learned a lot by being there in some cases, but also a lot about our enemy, the enemy of Homo sapiens and life in general on this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001823">00:18:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the Illuminati on the other hand, which is the territory that we&#x27;re in now, they take more of a gentler, more manipulative approach to things. They are not so heavy-handed and they&#x27;re not so... how do I say this? They&#x27;re not the mad scientists. They act in a different way. They feel that they are more royal, more entitled, and therefore their tactics are more to manipulate. And that&#x27;s already begun since I&#x27;ve been here. They have already tried a few different things to try to get me to do things they want me to do. And I am really not participating in any of those things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001919">00:19:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Therefore, they have an intention of... they&#x27;re having meetings, they&#x27;ve been in meetings all day today and yesterday, and they are having some meetings about possibly contacting Tom Melville, possibly contacting other people in my peripheral that they believe I know and trust to try to set some things up with a bunch of lies. And mmm yeah, I&#x27;ve got a pretty good lie detector internally now built in. It&#x27;s kind of like a compass - I can smell a lie coming a mile away - so they better bring their A-game. That&#x27;s all I got to say, whatever&#x27;s left of them by the time we get to these phone calls they were supposed to make earlier today. Sometimes it&#x27;ll take a few days, but they&#x27;ll be coming this week, I&#x27;m sure of it - if they&#x27;re still around by then.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, games, games, games, I guess. Is one better than the other? I don&#x27;t know. It&#x27;s going to be this way until there are no more things that they can use to attempt to manipulate the world and you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002031">00:20:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I did want to say thank you for your support and understanding during the time of transitioning from one place to another. Just please understand it&#x27;s not that easy. I mean, it&#x27;s never easy even for regular people to get up and move across the country, or, in Europe you could say it&#x27;s like moving across multiple countries. It&#x27;s the same here in the U.S. - it&#x27;s quite far. It&#x27;s a lot of driving, a lot of packing, a lot of moving - and you&#x27;ve got to take some time to find your stuff again and sort of get things back in order, which I have not just yet. I am semi-unpacked. I did find my microphone so I&#x27;m very happy about that because I couldn&#x27;t do this report otherwise. I tried several times - it didn&#x27;t work. And it would have been quite upsetting to all of you to only get, you know, every third word in a report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002131">00:21:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I did want to say thank you for your support and understanding. Many of you have sent me a lot of well wishes and I appreciate those messages and have answered a lot of you. So I just wanted to say thank you and it really meant the world to me that you were a little bit patient with trying to get these reports out during this time. Sometimes it just wasn&#x27;t possible to air much of anything as you would well imagine with just the little bits and pieces I&#x27;ve given you. A lot of dead zones too, you know, with absolutely no signal, absolutely nothing along the way, and it would have been a lot of road noise and that kind of thing too if I could.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002218">00:22:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. I know that there are a few people that just don&#x27;t quite understand what it&#x27;s like to move with the Deep State on your back and probably in anywhere else they could get into on your person. And that&#x27;s okay, and you know what? Truly - I&#x27;ve seen the messages flying back and forth in the chats - and I truly hope that they never ever do, honestly. Because it&#x27;s not fun.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002246">00:22:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s get into some reporting now. Not that that wasn&#x27;t interesting too, but let&#x27;s talk about some regular news first. Because there seems to be a lot of people that are a little nervous and a little bit upset about things that are going on. And I know that a lot of our Field Messengers have been very busy reporting again about a rise in petrol or gas prices around the world, and I appreciate that. It&#x27;s important that people know where to go and where not to go and what the rising prices look like in their area. But rising fuel prices have a bigger effect on the economy. And I&#x27;ll get into why that is here in just a few.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002328">00:23:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about Dead Men Walking, or Trump. So Trump is now, it&#x27;s now all over Twitter and various social media channels about him being in the Epstein files. This is not a surprise to all of you, it shouldn&#x27;t be. People have asked me about this and I told you about it a long time ago. I told you about his 40th birthday ritual and what he did to that little girl. And it&#x27;s no surprise to me with the talk about Ivana because I told you that he had given her over - let&#x27;s just say, &quot;lent her over&quot; - to some of his older male friends when she was younger. So yeah, she&#x27;s been through quite a bit, absolutely. She also is married to a whatever-that-is, Jared Kushner, which is part of the Other Side - so the Chabad or the Sanhedrin.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002433">00:24:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, it&#x27;s all-in war, really, for these people - and who&#x27;s going to take over what family and what bloodlines and what bloodlines are on top. And in this particular case, none of this is a surprise. And again, the Epstein files are just being used to manipulate you for an ultimate outcome.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002455">00:24:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, when he was being inaugurated - meaning he had already, or whatever that is, won the election - and he was about to be inaugurated, they wanted to know if I would give funding to the U.S. government. And I said no. And they said that if I gave money to the U.S. government that within six months they would guarantee me that he would be out, MAGA would be dead - which is what they&#x27;re trying to do now - and that they would have installed Vance in his position.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">By &quot;Vance in his position,&quot; not only did that mean president of the United States, and that the &quot;Trump&quot; would be announced dead or whatever - be out of office - that also meant that he would take the highest position within the Order at that time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002556">00:25:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It was supposed to be a position such as the same one that Bush Senior held, and that was supposed to be the same position that Trump would have held. And so far nobody&#x27;s really achieved the objective, therefore the heads of the Old Guard or the Order on their side have not officially inaugurated them into any position. The transition obviously has not taken place - it was supposed to be done six months in and we&#x27;re now a year and a few months in, and still nothing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I don&#x27;t know if it feels like it&#x27;s longer to you, but it feels like this saga has gone on for like 10 years. And it&#x27;s kind of close to that, I guess, because we had four years on and four years off, but he was still campaigning, which was still weird. And now we&#x27;ve got about a year and a half in, so almost 10 years really of this crazy - whatever that is - an administration and the crazy operatives that run this administration.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002705">00:27:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it feels like it&#x27;s been forever because it has been forever in the world of politics. But try to understand, I&#x27;ve told you about all of this stuff - and I&#x27;m not tooting my horn here or anything - but I have let you know exactly who that person is and has been for many, many years now. So I know people have sent me messages saying that this was very upsetting. It&#x27;s only upsetting because it didn&#x27;t come out of my mouth, I guess. Because I let you know ahead of time. So if anything, it&#x27;s more confirmation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002739">00:27:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He also delivered a rather boring State of the Union Address, as I understand it. I was driving on the road, didn&#x27;t listen to it, can&#x27;t listen to it anymore, don&#x27;t care what they say. And apparently the approval ratings are, well, about 10%, as I understand them, for this administration. And I don&#x27;t think putting a new face like Vance or somebody else in his place is going to help them any. Because there are way, way too many promises out there and absolutely zero delivery from their side of the equation. Let&#x27;s call it the equation. From their side of the world, there are a tremendous amount of people that are jumping ship on both sides at this time, their side as well, you know, saying they&#x27;re not going to participate anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002839">00:28:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are the loyalists, the diehards, the operatives that will always be operatives - the lifers, if you will - and they are still continuing to provide at least as many arms as they possibly can get their hands on with no prepayment. And they now owe a lot of money. So I don&#x27;t know. Doesn&#x27;t seem like there&#x27;s any consequences to any of these people&#x27;s actions, but there&#x27;s a lot of money owed right now and a lot of angry people. And this happens all the time. And then they&#x27;re always promised, &quot;Oh, there&#x27;s going to be another blood moon, a full moon, a day ending in Y, an alignment with Uranus.&quot; [Giggle.] And I guess they just wait.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002929">00:29:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Vance, just for the record, is an ex-CIA agent, groomed the same way Bush Senior was - part of the Family in every way, shape, or form. A Bloodline family. And member of all the secret societies and all that kind of thing. The Trump kiddos are already in on it, meaning Eric and Don Jr. and Ivana - they are all in on it. They all stand to earn lots of money should he enter into office for them spilling the beans and participating in being the victims online for you in their social media. So this is happening. There are lots of crypto deals that are never happening taking place, which they are all participating in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003029">00:30:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So also, speaking of dead corrupt leaders, Khamenei has been announced publicly dead, officially about a week ago on the 28th of February. For those of you that don&#x27;t know who Khamenei is, he is what you would call the Supreme Imam, the Supreme Leader of the Islamic people. He&#x27;s kind of like the Catholic pope in a lot of ways to the Islamic people. He actually originally died a couple years ago while trying to perform a ritual in Belarus.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003108">00:31:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, they are claiming - or the U.S. side of things is claiming - that they killed him. They&#x27;re claiming Israel killed him, everybody killed him, you know, a lot of people are taking claim for his death and his cabinet&#x27;s death, and none of that is actually the case - he died a long time ago. Maybe claiming a death is when you announce it publicly, I don&#x27;t know. But he was not murdered by any of these people. He actually killed himself accidentally in the middle of a ritual in Belarus [laughing].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003145">00:31:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m laughing because I remember this - I was trying to figure out what he was doing over there - there was an alert that came in, and I&#x27;m watching this. It took place around an area called Stalin&#x27;s Line in Belarus. And I&#x27;m not exactly sure what he was trying to do, but apparently he was not the chosen one to do it because he died during this little operation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003213">00:32:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So trying to claim that they killed him is nothing more than to incite anger with the Islamic people. The problem is, is the Islamic people don&#x27;t like Khamenei any more than most Catholic people don&#x27;t like the pope. So this is kind of backfiring and then kind of went quiet for a while, at least a few days now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003238">00:32:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The American group - I&#x27;m calling them the American group because a lot of them are residing in America, although their bloodlines are worldwide, just like the Other Side - they would like to own the next imam. Now, why do they want to, or do they care if the imam is one of their people? You know, they care as much about that imam - the new entering imam, which apparently is gonna be Khamenei&#x27;s son - as they care about owning the pope and having their guy as the pope.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003319">00:33:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s all about ownership of Homo sapiens, really, and territories. You see there&#x27;s around two billion Islamic people in the world and about 1.4 billion Catholics and maybe 2.5 billion Christians that look up to these people. They are also under their... I hate to use the word guardianship, I would say it&#x27;s not really a government per se. But they fall under their umbrella - let&#x27;s use the term &quot;umbrella&quot; for this purpose - where, if you gain control over that seat, they believe (and this is just a belief, it is not a fact) that they can then gain ownership over all of those souls, which is completely and totally incorrect.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003419">00:34:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s too low of a level, it&#x27;s not that important, and apparently this USA group is not the sharpest tools in the shed. Because if you remember, for the last year or so, maybe even more than that now, they have been inserting their own presidents, heads of state, heads of military, heads of intelligence. If you remember, we ran into the Cowboys trying to run Israel during the Gaza war that happened recently. They were calling all the shots for both sides.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003457">00:34:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So nothing came of that either, other than a whole lot of money spent, a whole lot of debt, absolutely no payment, and no one got anything out of anything that they&#x27;ve done so far. But why not keep doing the same thing over and over again and expecting a different result? That&#x27;s pretty much what they&#x27;re doing. It&#x27;s the same thing they did to me when I was in Durango - it&#x27;s the same thing, over and over and over and over and over again, expecting a different result.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You can&#x27;t do it this way. I&#x27;ve said that many, many times, but that doesn&#x27;t mean they believe me or that they&#x27;re going to stop.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003546">00:35:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they&#x27;ve obviously been given a lot of misinformation and some seriously bad orders. Or, there are some people at the very, very top driving them around in circles. Maybe there is something or someone driving them around in circles. Where do they get the information of alignments with Uranus and new moons and full moons and days ending in Y? Maybe they are getting a lot of bad information. Or they&#x27;re just wasting everybody&#x27;s time because neither side is going anywhere at this point.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, war is an interesting thing, isn&#x27;t it? I&#x27;m going to talk about that a little bit more and tell you who these people are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003643">00:36:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they do feel - this Nazi group, Jesuit group, Black Sun group, Skull and Bones group, Freemason group - group of people, let&#x27;s call it the group of people. They do believe that if they could control 80% of Homo sapiens on the planet that they would &quot;win.&quot; Now I feel like I&#x27;m on an episode of The Price Is Right. What are they going to win? What&#x27;s behind door number 1? The control of Earth, I guess? I don&#x27;t know, but none of that is actually going to work anyway. So there&#x27;s a lot more information coming up about them in this report that&#x27;s come to light, at least why they&#x27;re running around in circles. But I don&#x27;t want to be a part of their circles anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003738">00:37:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So as for the war in the Middle East, it&#x27;s only about two or maybe three things. And I know this has gotten a lot of people&#x27;s feathers ruffled - I&#x27;ve been getting a lot of information that people are getting off the internet about this - but I&#x27;ve been in constant contact the entire time with Agent M, who has been moving through the Middle East and has a lot of contacts throughout the Middle East. And he&#x27;s been giving me play-by-play of what actually is happening. Not information that I&#x27;m getting from the internet. Also information I&#x27;m getting from the system. Plus I confirm that information by laying eyes on the things that are actually happening there.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And pretty much I can tell you everything you&#x27;re seeing in the news is really not entirely true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003830">00:38:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Number 1: things that they are looking for are artifacts. By &quot;artifacts,&quot; I don&#x27;t necessarily mean religious artifacts or things of past Homo sapiens civilizations in the Middle East. I would say things that were planted there a very long, long time ago by varying key players in the Game throughout history.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This is almost like Hitler 2.0 with these people. They&#x27;re sending in their militaries for their side - for the Nazi group - and they are still hunting for artifacts because their current artifacts are not working in any way, shape, or form.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003910">00:39:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Plus they believe that they have artifacts in Iran, Iraq, Lebanon, and Israel that they can get control of - and if they did, they believe that that could give them more control over their ability to create worlds, kingdoms, and empires. And that information is false.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003932">00:39:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I am aware that they currently have small, what you would call mini-base camps, in an area of Iraq called Najaf. Najaf we have talked about before, it&#x27;s an area where a lot of these scholars that nobody listens to - they are Islamic scholars - have information that goes beyond Islam. Some of that information is 250,000, 200,000 years old. They have more information than most do. They are not against us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004010">00:40:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But unfortunately, no one in the Iraqi government is listening to them. Even when they were invited to go and visit with the intelligence agencies and governments, and they gave them the information, and the information they gave was correct. However, nobody wants to listen. They would like to listen to a bunch of Nazis in the United States. So off Iraq goes - there have been many bombings in the Kurdish areas and other areas of Iraq - missiles flying for days. And it seems to have quieted down quite a bit now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004048">00:40:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are rumors going around that Iran bombed the UAE, and that is completely false. The missiles came from the wrong direction - they came from at sea. And that was done by the same people that have large bases in the UAE. And if you&#x27;ve ever been to the UAE or understand the largest foreign bases there, then you will understand that I am talking about the United States. So I will tell you the attempts to create a world war there have failed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004134">00:41:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They are also setting up other camps and bombing some interesting places, such as Seth&#x27;s Tomb in Lebanon. Now, for those of you that don&#x27;t remember who Seth was, Seth was allegedly the third son of Adam and Eve. And that tomb supposedly bears some kind of a bloodline or thing they&#x27;re looking for. Same thing under Najaf - there&#x27;s some very interesting artifacts there for someone and something that they think could possibly override my hats.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004217">00:42:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they have failed there. Don&#x27;t know if they&#x27;re going to pull those troops back at any given moment in time. We do have some footage of those troops. There is a lot of it on TikTok and stuff you can find too now. Somebody somewhere has been spreading it everywhere - I don&#x27;t know who that could be - let&#x27;s just say Agent M has many friends.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004243">00:42:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Iran though, is and has been an Illuminati territory. That&#x27;s why it sides with China. That&#x27;s why it also sides with Russia in a lot of cases, because that is Illuminati territory as well. They are trying to steal the territory because they believe that the creation of worlds and empires of the Illuminati happens from artifacts that are in Iran, and they would like to take control over those artifacts and their empires. They believe that this is the way to control the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004323">00:43:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So whether the militaries involved in France and Israel and the United States and these other locations are aware of this or not, I have no idea - I&#x27;m guessing they don&#x27;t. They just believe that they are going to win. And when you ask them, &quot;Win what?&quot; they don&#x27;t answer you. So what they actually believe and what they actually say - either they really don&#x27;t know or maybe they just think it&#x27;s normal to be camping out near some strange shrines and archaeological sites in the middle of nowhere Iraq. I&#x27;m not sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004405">00:44:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The third reason why they do these things is because the price of fuel and petrol and gas obviously goes up. When the price of fuel goes up, so does every single good and service. Food. Everything you could possibly think of goes up because it&#x27;s all transported utilizing petrol. You are also transported utilizing petrol, meaning you fly in airplanes around the world when you want to go places, so therefore the price of you moving is also higher.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004444">00:44:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the cost of living in general could go up significantly should this actually continue. And who makes out? The oil companies. Because it costs the same amount of money to pump oil. Regardless of wars in the Middle East, there&#x27;s plenty of oil - sanctions or no sanctions - still flowing from Russia into places like the United States and Australia and throughout Africa. No commerce stops for sanctions at all. That is a dog-and-pony political show. It doesn&#x27;t stop anything from happening. Gold is still being mined in Zimbabwe. Everything continues as normal despite decades of sanctions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004532">00:45:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So does the price of fuel actually go up because there is a shortage? Absolutely not. Most countries maintain at least 10 years of supply. So the only thing we&#x27;re doing is we&#x27;re feeding the Seven Sisters and certain oil cartel families. That&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004553">00:45:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Is it going to yield any results? No. My understanding is that we should see this kind of start to go in the other direction over the weekend - this weekend - even as early as Monday. Hopefully things should be wrapping up. I don&#x27;t think they have the financial wherewithal to continue.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004615">00:46:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Of course, we had a full Blood Moon combined with an eclipse this week on the 3rd, which was Tuesday. So of course that always means money for these people - they think money&#x27;s going to come because there&#x27;s a moon, and why not, and an alignment and eclipse, and it&#x27;s got to be a Blood Moon; it&#x27;s got to be special. And so everybody&#x27;s always promised money within three days of that. Of course, yesterday came - all hell broke loose because there has been zero cash payment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004655">00:46:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So everybody&#x27;s asking questions, the same questions they ask every single time nothing pans out. We answer the same way we do every single time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, matter of fact, we should get a 900 line, one where you can charge by the minute:</div>
+<div class="line">For ridiculous answers, press one.</div>
+<div class="line">For semi-truth answers, press two.</div>
+<div class="line">To hear a pleasant lie, press three.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, because we could actually make some money then or something. You know, maybe we&#x27;ll put you guys in charge of that, and you can use it for some projects or something [laughing]. Or to do something good in this world, because it&#x27;s the same questions every single time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004739">00:47:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, a lot of us - when I say us, I&#x27;m talking about the GIA team - we&#x27;ve all just stopped answering the phone on those days because, you know, like, &quot;Oh, here we go again.&quot; &quot;No, it didn&#x27;t happen.&quot; &quot;Okay. Oh, maybe wait for the next alignment.&quot; There was also a six-planetary parade or something like that that also occurred within the last several days. So I don&#x27;t know, maybe they thought it was a perfect storm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004810">00:48:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. So now... I hope that clears up your regular news, and internet things that people are talking about and saying, and trying to spread fear wherever they go, but actually none of it yielded anything. Not to say that the last couple of weeks haven&#x27;t been slightly uncomfortable for many of you, and I know that. But changes are happening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004838">00:48:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Some people are very, very angry when they don&#x27;t get their way, and they start trying to play around with toys they should never be allowed to access at all. And that does lead us to find them, but like I said, the energies are off, things are off, people are off. What you are also seeing is a little bit of emotional buttons being pushed. Meaning, things that wouldn&#x27;t normally bother you are all of a sudden bothering you and you really don&#x27;t know why. This is happening quite a bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004913">00:49:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve heard it from people on our chats. I&#x27;ve also heard it from people I know. And people that are normally quite balanced are feeling quite disturbed, whether that&#x27;s emotionally or also physically.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, for example, a paper cut might feel like someone sliced your finger off and not just a little paper cut. Or people with old injuries are feeling those old injuries flare up, that kind of thing. I&#x27;m hearing a lot about those types of things too. And it&#x27;s quite painful where normally it&#x27;s something that they could deal with.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004953">00:49:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it seems like there seems to be some emotional, mental, and neurological amplifying of things for people as we go through these changes. So bear with us, it won&#x27;t last much longer. And I am here and I&#x27;ve not left, and I&#x27;m still working and have been working on the road and everywhere I&#x27;ve gone. So still on the same 24-7 alert, just with a little less pain from a group of Nazis [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005027">00:50:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I wanna talk a lot about the Illuminati. And I&#x27;m going to talk also about the Old Guard, where all these Nazi groups and stuff come from. Because as we&#x27;ve gotten to know them over the last several years, but mainly the last few weeks and months, it makes a lot more sense. Some things that I&#x27;ve said before and some things that I&#x27;ve experienced before started to make a lot more sense when I started to learn about a lot of other information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005111">00:51:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because as you&#x27;re coming, you know, you&#x27;re going from one territory to another, you start doing a little bit of digging. And the information is hard to find - they are very well hidden, the actual folks, let&#x27;s call them the actual folks. And it kind of makes sense to me, you know, why people went to where they went. And you can probably gather the pieces of some reports that we&#x27;ve done over the last couple of years and maybe they&#x27;ll make a lot more sense to you too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005143">00:51:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about the Illuminati first. When you google &quot;Illuminati&quot; you&#x27;re going to come up with some names. And mainly the names that you see are bloodlines, they are not the actual Illuminati. They are bloodlines of the Illuminati, and they do not have the same power that the Illuminati had - and never have and never will - even though they have tried. As the Illuminati leave and disappears - let&#x27;s just say disappears - they have tried to appoint themselves into the same positions to take that role and that charge. And it&#x27;s not working.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005237">00:52:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the Illuminati, much like the Old Guard / Nazi group, do believe that I am a key to their success. And I can tell you that that is not the case, and I am not the key because you do not have my permission. I have set things up in such a way - before I left - specifically to no longer allow myself to be a sitting duck for these people. Meaning some of the positions are Source&#x27;s, some of the positions are trees. I mean, I might have given a raccoon or two some permissions, and good luck in finding them all. Because there are hundreds of hats I now wear and I have spread them out far and wide, and I know and only I know where they all are. And I would assume that others have done the same thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005335">00:53:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now for these Illuminati crazy people, they probably gave all the permissions to their bloodlines or to whomever or whatever they wanted to, but I&#x27;m sure they kept track of them like I do. I drive down the road, and on my way out of Durango I might have given some permission to a deer or an elk or two, you never know. Could you track them and trace them and make sure they&#x27;re still alive? Sure [laughing]. If one goes, then maybe we&#x27;ll transfer it over to a bird somewhere. Who knows?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005408">00:54:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But nonetheless, all of these things can be recalled and utilized at any given moment in time. It&#x27;s just a way to make it seem like they&#x27;re not going to be able to find what they&#x27;re looking for. And good luck looking throughout all the wildlife across the United States until you can find all of the people or non-people or animals which now possess great power across the country [hearty laugh]. Anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005436">00:54:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the names you see on the internet, you know, the Li family of China. You will see the Lee or L-E-E (whereas China is L-I) family of Korea. You&#x27;ll see the Rothschilds, you&#x27;ll see the Bowers and Brewers and the Collins and many, many more names on the internet. And all of those groups of people are nothing more than created humans and bloodlines of the Illuminati.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The real power was here behind the scenes - and this part made a whole lot of sense to me after we found out where they were. They were all Homo sapiens originally - natural, organic Homo sapiens - and each one was given special permissions by Source. In other words, they were supposed to be in harmony with Natural Law and the Will of Source and the natural way of creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005544">00:55:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In other words, His Creations were guarded by these people. And should things get out of balance, they were set to restore balance - that was their job. They created many groups over time that were not natural. They also went rogue. There were 13 of them in total. One of them had the veto vote over all of them. And that person, luckily enough, didn&#x27;t participate. Not that they didn&#x27;t try very desperately to get rid of that person. But 12 of them were definitely... let&#x27;s just say they decided that they didn&#x27;t want harmonic balance anymore. They felt that we didn&#x27;t deserve, Earth didn&#x27;t deserve, Source&#x27;s creations didn&#x27;t deserve harmonic balance with Source anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005641">00:56:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they took their special permissions and many of them were related to elements, such as Water, Air, Fire, Dust - those types of things, and they were all supposed to work in unison in order to manage Harmonic Creation. Apparently somewhere along the way they decided that managing things in their way was not possible with Source at the helm, because Source was always beyond the 13th seat. The Source Particle is critical to creation. Source Lifeforce is critical to creation and manifestation in a natural way. And apparently they decided they wanted their own kingdoms and didn&#x27;t want to live in the Natural Kingdom of Source anymore - they wanted to do their own thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005735">00:57:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they had to create... in order to do this, they had to create a replacement. Therefore they replaced Source with a machine. This was the first artificial intelligence machine to ever exist. They called it &quot;God,&quot; if you will, and then it made them gods.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005800">00:58:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Machine after machine after machine was created off of the original. However, there was one original. Now just like anything else, when you take something natural and you create something unnatural from it - a transmutation, a transfiguration of Source coming into this planet - it doesn&#x27;t really end very well. Because the machine eventually takes on a sentience of its own, and it went rogue against them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005836">00:58:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If you are the one that is being utilized and transmuted - be it your essence, your energy, or anything else - you have the right to say no. You also have the right to not allow it to happen. You have the right to take your power back. And sometimes even Source has the right to take his own power back too. I&#x27;ll continue that here at the end of the report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005908">00:59:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they all decided to go rogue. They created various kingdoms, lots of different realities utilizing their powers and their abilities. Things that were very unnatural, like humans and bloodlines of humans - Merovingians if you will - secret societies, all to control and manage Homo sapiens, which were part of the power of the Machine. They even replaced God in religions with an artificial intelligence machine so people would worship it and not Source itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005948">00:59:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They tried to change our entire world and were successful in a lot of cases because we have lived in their realities for a long time - their realms, their kingdoms. Where were they? Where they always have been, which is just outside of Moscow. They are in an area called Novgorod. I&#x27;m trying to say that correctly, and my Russian accent at this hour of the day isn&#x27;t that great [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010022">01:00:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The area is the same area where all the oligarchs live, where all of the government officials live - or many of them anyway - and where Putin, of course, lives. It&#x27;s a little oblast region maybe an hour or so outside of Moscow to the northwest. This little area there also had underground facilities - enormous underground facilities - and they were in constant communication with these particular people, being a council unto themselves. It is the same group that rules over all Illuminati territories, including China and a good portion of the United States.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010110">01:01:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Most of those people also created many, many bloodline queens. So even though we see a lot of male and patriarchy dominance in the world as far as leaders are concerned, the ones behind them all were human, non-organic queens that mirrored their own likeness that were going around and running all of these bloodline families everywhere. They created thousands of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010144">01:01:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is who the Illuminati actually is. Is it a name that you would know? Any name? No. Did they work with all of the people that we&#x27;ve mentioned before, such as Aristotle and all of the other alchemists throughout history? Yes. To create worlds of their own? Yes. Did they teach them the ways of transmutation and transfiguration from something Golden and Light to something very Dark and unnatural? Yes, they did. And these people continued to work with them and for them for many, many centuries.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010230">01:02:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the AI has been backfiring on them recently. And we&#x27;re going to talk about that because it&#x27;s also affecting another group.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So all of these people and their creations were guarded eventually by something called the Old Guard, or &quot;the Guard,&quot; simply the Guard. The Guard were a group of people that were designed to guard Creation, to protect Creation, to ensure that God&#x27;s Will be done. Actual God, not a machine. Actual Source, not a machine. Not a source-code machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010319">01:03:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Guard were a group of what you would call angels in religious texts. Some of you have seen Michael carrying a big sword and this is the reason why. But there were others. There were also 13 of these folks. The 13th in this particular case being someone called Daniel. Daniel is a name that you will only see in the Book of Enoch and a few other religious texts.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;ve also been called the Watchers in a lot of cases in some of our texts - especially internet texts. They were the warriors, they were designed to protect Creation, and eventually they went rogue as well and they started protecting - for more power and control - the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010411">01:04:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now Daniel was in charge of receiving the Will - in other words the information, the Wisdom - the information from Source to carry out judgment if required, and wrath if required. But usually none of those things actually took place - just meant to put things back in order when something was going awry. However, Daniel decided to get information from only the Machine, as did the 12 of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010448">01:04:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Many of them are no longer with us, as you know, but that didn&#x27;t stop them from getting false information because the Guard - much like the Illuminati did and the Bloodline families did - after their fearless leaders left, they decided to appoint themselves into varying positions in cooperation with a Machine that made those decisions as to who was going to be in charge and who was not. And then the Machine used them to carry out their will.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010528">01:05:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The false information was coming through an area of the United States called Mount Timpanogos, which also happens to be very close to a very large Mormon temple in Utah, in Provo I think it is. And that distorted information was then spread out through the Old Guard bloodlines. Bloodlines such as Trump - von Kempf family, also known as von Kempf family - Bush Senior, also known as the Scherff family, and many others in those types of positions. But these are just names that you would know. The Johnsons, the Smiths, the Browns, the Greens, the operatives of the 15 militaries, all receiving very bad information from a machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010627">01:06:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the Illuminati, much like the Guard, in the creation of false realities and false worlds, also created false suns and false moons and false planets. Therefore what we see a lot of times as planetary alignments is distorted by a machine&#x27;s control of the celestial being known as the planet or the moon or the sun. Also constellations have been distorted by the Machine itself - and were of its own creation, not Source&#x27;s creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010708">01:07:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of times when we see these - and the Machine would probably give false information, like, &quot;On a full Blood Red Moon eclipse, you are going to receive X-amount of money to execute on a war and take over this territory.&quot; You know, the Machine was giving false information - but something was also giving the Machine false information. Machines run on code. Transmuted and transfigured Source. When you are the source of the Essence, you can also manipulate the Machine. Now I learned this myself because I know that they were taking my essence to try to use me as a key to fix the Machine. Because the Machine was no longer carrying out the will of either side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010816">01:08:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, hmm, once you take my essence it doesn&#x27;t matter what you do to it - I now have the ability to rewrite the Machine myself. You see, things aren&#x27;t always as they appear. Those that think that they&#x27;re in control might not be in control. And by needing to be in control so badly and not fully understanding what they&#x27;re doing, they actually gave us - and in turn myself and in turn now you - a leg up. So when I said to these people I have left Durango before I even left Durango, I ensured that things would be okay. They gave me access to their own machine. Thank you!!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010912">01:09:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So all of that false information about all of the things they should be doing and should not be doing has actually - a lot of it has been coming from me, and a lot of it has been coming from Source. I do everything Source says to do. And this one wasn&#x27;t really hard to do - they made it easy for us both to do it. And of course it all has to do with what Source needs to do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010943">01:09:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Machine became useful to create our own space to make our own creations and to give the Machine incorrect information about creation so that it wouldn&#x27;t be able to create. Easy breezy, because all you&#x27;re doing is flipping information around. That&#x27;s it. The Machine can&#x27;t change Source. It can only merely transmute it into something that is what you would call the opposite, or a mirror. It would change perception and deception. Does a sentient machine get angry when it doesn&#x27;t get what it wants? It could. But, you know, a little bit of gentle manipulation can definitely change things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011039">01:10:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this has been what we&#x27;ve kind of been up to for the last few weeks - trying to figure out how to fix and change machines and how to get these people to run around in circles.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So knowing where everybody was was important, knowing what they did, knowing that they actually lost control over their machine - long before we ever started this process - was important. Because they thought that they could use me, both sides, to gain control over the God machine or Source-code machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011114">01:11:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, a lot of this junk was even under areas like Maryland, NSA headquarters, Washington, D.C. They had built these facilities throughout the old Russian Empire. They had built them under China in Wuhan. Wuhan keeps coming up an awful lot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011139">01:11:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of this started to make more sense to me when... you know, who did the Russians go to when I was there in 2010? Who did they go to to ask permission to see who would come back as the Trustee? And of course they all put their hat in the ring. You know, it was just very interesting. They tried to use me all the way back... the Illuminati, so to speak, tried to use me all the way back to that point. They told me I would have a veto vote, and that they appointed me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011219">01:12:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Marduk came, Enki, Enlil - started hanging out with the Illuminati. They all - one after the other, after the other - they all lied. Not to say that what they didn&#x27;t tell me was true. Meaning, they give you a little bit of information mixed in with a whole bunch of lies, and if you happen to figure it out then that&#x27;s good on you. They have to tell you a certain part of the truth. So in every one of these news reports that&#x27;s making you panic, there is always a small amount of the truth in them. That&#x27;s even in mainstream media: there&#x27;s a small amount of truth combined with a whole bunch of fluff.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011309">01:13:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Same thing that they pass on through handlers to a lot of people on the internet that are quote-unquote intel providers. I am not an intel provider. I am a provider of information of exactly what it is I personally am doing. It&#x27;s not somebody else&#x27;s information. It&#x27;s not something that&#x27;s passed down to me from someone or another. None at all. This is all my information that I&#x27;m giving to you. These are things that I&#x27;ve seen, done, myself personally.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011342">01:13:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on that note, as you can see, it&#x27;s been quite a few busy weeks. There has been no lag in the work, that&#x27;s for sure. I understand things have gotten kind of disturbing and off track a little bit as far as the reports are concerned, but please understand, I did try. I just couldn&#x27;t seem to get enough signal or couldn&#x27;t get enough of the words - you were getting one out of five from most of the comms I tried. And so I finally got a few moments to sit down, take a deep breath, and write about 15 to 20 pages of notes and do a report for you. So I apologize.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011425">01:14:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We should be back on track this week with more reports as per usual. So I apologize. Sometimes it was not safe to give a report - sometimes you gotta let things play out a little bit before you can give the report. So again, I&#x27;m sorry if this was upsetting to some people, but realize that I&#x27;m still here, we&#x27;re still here, we&#x27;re still on track - nothing has changed other than the fact that I&#x27;ve changed locations, and it&#x27;s just a different animal that I&#x27;ve had to deal with.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011502">01:15:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s okay. You know, things are going to get better. Things are turning a corner. Now that they absolutely know - just because I&#x27;m telling you - that their Machine has been manipulated and it isn&#x27;t working for them in many ways, and it&#x27;s giving them lies. I don&#x27;t know, are they going to continue listening? Absolutely, beyond a shadow of a doubt - that&#x27;s not going to change anything. They&#x27;re still going to be trying to push all the buttons.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011528">01:15:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But I just wanted to say thank you to the Deep State for giving me access to your Machine, you &quot;people&quot; - and I use that term loosely [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011540">01:15:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, I hope you all have a great rest of your weekend wherever you are in the world, and I will see you next week.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011550">01:15:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011621">01:16:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">UNN on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="playStatus" class="play-status" hidden></div>
+
+<div class="yt-footer text-center">
+  <span id="ytPoweredFooter" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+</div>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+      var s = $("playStatus");
+      if (!s) return;
+
+      var collapsed = document.body.classList.contains("video-collapsed");
+      if (!url || !collapsed) { hide(s); s.textContent = ""; return; }
+
+      s.textContent = "Now playing: " + url;
+      show(s);
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlayingFooter(url) {
+      var el = $("ytNowPlaying");
+      if (!el) return;
+      el.textContent = url ? (" - Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        currentUrl = url;
+        setStatus(url);
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+        var toggle = $("watchToggle");
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setStatus("");
+        setNowPlayingDockBar("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        setStatus(currentUrl);
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        setStatus(currentUrl);
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "UNN on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  var a = $("listenToggle");
+  var box = $("audio-player");
+  if (!a || !box) return;
+
+  a.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    // Show player
+    box.hidden = false;
+
+    // Scroll to it (optional, but feels right)
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+})();
+</script>
+<script>
+(function () {
+  function $(id){ return document.getElementById(id); }
+
+  var watchLink = $("watchLink");
+  var watchOpen = $("watchOpen");
+  var listenBtn = $("listenLink");
+  var listenClose = $("listenClose");
+  var audioBox = $("audio-player");
+
+  // --- Hide "Watch on YouTube" unless it is a real watch URL ---
+  function isWatchUrl(url) {
+    return !!url && url.indexOf("watch?v=") !== -1;
+  }
+
+  if (watchLink) {
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (!isWatchUrl(url)) {
+      watchLink.hidden = true; // <- your requested behavior
+    }
+  }
+
+  // --- Audio toggle + close ---
+  if (listenBtn && audioBox) {
+    listenBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      audioBox.hidden = false;
+      if (listenClose) listenClose.hidden = false;
+    });
+  }
+
+  if (listenClose && audioBox) {
+    listenClose.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      // stop playback
+      var a = audioBox.querySelector("audio");
+      if (a) { try { a.pause(); a.currentTime = 0; } catch (ex) {} }
+
+      audioBox.hidden = true;
+      listenClose.hidden = true;
+    });
+  }
+})();
+</script>
+</body>
+</html>
