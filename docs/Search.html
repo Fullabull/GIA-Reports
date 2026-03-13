@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Disclosure History</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f7f7f7;
+      color: #222;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.4rem;
+    }
+
+    .status {
+      margin-bottom: 1rem;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid #d8d8d8;
+      border-radius: 6px;
+      background: #fafafa;
+      font-size: 0.95rem;
+    }
+
+    .search-row {
+      display: none;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .search-row.ready {
+      display: flex;
+    }
+
+    #searchForm {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      width: 100%;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row-main #searchInput {
+      flex: 1;
+      min-width: 320px;
+    }
+
+    .row-options {
+      font-size: 0.95rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.7rem 0.8rem;
+      font-size: 1rem;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+    }
+
+    #findButton {
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #f3f3f3;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Search Reports from the Office of the Guardian</h1>
+
+    <div id="status" class="status">Loading search archive...</div>
+
+    <div id="searchRow" class="search-row">
+      <form id="searchForm">
+        <div class="row row-main">
+          <input id="searchInput" type="text" placeholder="Enter search text..." autocomplete="off" />
+
+          <button id="findButton" type="submit">Find</button>
+
+          <select id="sortOrder">
+            <option value="newest" selected>Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+
+          <select id="maxRows">
+            <option value="25">25 rows</option>
+            <option value="50" selected>50 rows</option>
+            <option value="100">100 rows</option>
+            <option value="200">200 rows</option>
+            <option value="500">500 rows</option>
+          </select>
+        </div>
+
+        <div class="row row-options">
+          <label for="matchType">Match:</label>
+          <select id="matchType">
+            <option value="substring" selected>Substring</option>
+            <option value="word">Whole word</option>
+          </select>
+
+          <label for="caseType">Case:</label>
+          <select id="caseType">
+            <option value="insensitive" selected>Ignore case</option>
+            <option value="sensitive">Match case</option>
+          </select>
+        </div>
+      </form>
+    </div>
+
+    <div id="results" style="display:none; margin-top:1rem;"></div>
+
+    <div id="viewerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000;">
+      <div style="position:absolute; top:5%; left:5%; width:90%; height:90%; background:#fff; border:1px solid #999; border-radius:8px; display:flex; flex-direction:column;">
+        <div id="viewerTitle" style="padding:0.75rem 1rem; border-bottom:1px solid #ddd; font-weight:bold;"></div>
+
+        <div id="viewerBody" style="flex:1; overflow:auto; padding:1rem; font-family:Consolas, monospace; white-space:pre-wrap;"></div>
+
+        <div style="padding:0.75rem 1rem; border-top:1px solid #ddd; text-align:center;">
+          <button id="viewerPrevButton" type="button">Prev</button>
+          <button id="viewerPrevHitButton" type="button">&lt;&lt;</button>
+          <button id="viewerCloseButton" type="button">Close</button>
+          <button id="viewerNextHitButton" type="button">&gt;&gt;</button>
+          <button id="viewerNextButton" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/GIA-Reports/docs/js/jszip.min.js"></script>
+  <script>
+    (function () {
+      const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
+
+      const caseTypeEl = document.getElementById('caseType');
+      const matchTypeEl = document.getElementById('matchType');
+      const maxRowsEl = document.getElementById('maxRows');
+      const resultsEl = document.getElementById('results');
+      const searchFormEl = document.getElementById('searchForm');
+      const searchInputEl = document.getElementById('searchInput');
+      const searchRowEl = document.getElementById('searchRow');
+      const sortOrderEl = document.getElementById('sortOrder');
+      const statusEl = document.getElementById('status');
+
+      const viewerOverlayEl = document.getElementById('viewerOverlay');
+      const viewerTitleEl = document.getElementById('viewerTitle');
+      const viewerBodyEl = document.getElementById('viewerBody');
+      const viewerPrevButtonEl = document.getElementById('viewerPrevButton');
+      const viewerCloseButtonEl = document.getElementById('viewerCloseButton');
+      const viewerNextButtonEl = document.getElementById('viewerNextButton');
+      const viewerPrevHitButtonEl = document.getElementById('viewerPrevHitButton');
+      const viewerNextHitButtonEl = document.getElementById('viewerNextHitButton');
+
+      window.GIASearchArchive = {
+        loaded: false,
+        files: []
+      };
+
+      window.GIASearchResults = [];
+      window.GIACurrentResultIndex = -1;
+
+      window.GIAHitElements = [];
+      window.GIACurrentHitIndex = -1;
+
+      function escapeHtml(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function getSearchRegex(query, matchType, caseType, globalFlag) {
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = (matchType === 'word') ? ('\\b' + safe + '\\b') : safe;
+        let flags = '';
+        if (globalFlag) flags += 'g';
+        if (caseType === 'insensitive') flags += 'i';
+        return new RegExp(pattern, flags);
+      }
+
+      function updateCurrentHit() {
+
+        for (let i = 0; i < window.GIAHitElements.length; i++) {
+          window.GIAHitElements[i].style.background =
+            (i === window.GIACurrentHitIndex) ? 'orange' : 'yellow';
+        }
+
+        if (window.GIACurrentHitIndex >= 0 && window.GIAHitElements[window.GIACurrentHitIndex]) {
+          window.GIAHitElements[window.GIACurrentHitIndex].scrollIntoView({ block: 'center' });
+        }
+
+        viewerPrevHitButtonEl.disabled = (window.GIACurrentHitIndex <= 0);
+        viewerNextHitButtonEl.disabled =
+          (window.GIACurrentHitIndex >= window.GIAHitElements.length - 1);
+
+        const filename = viewerTitleEl.textContent.split('   ')[0];
+
+        if (window.GIAHitElements.length > 0) {
+          viewerTitleEl.textContent =
+            filename + '   (Hit ' +
+            (window.GIACurrentHitIndex + 1) +
+            ' of ' +
+            window.GIAHitElements.length +
+            ')';
+        } else {
+          viewerTitleEl.textContent = filename;
+        }
+
+      }
+
+      function openViewer(file, query) {
+        const filename = file.name.split('/').pop();
+        const matchType = matchTypeEl.value;
+        const caseType = caseTypeEl.value;
+
+        viewerTitleEl.textContent = filename + '   ';
+
+        const regex = getSearchRegex(query, matchType, caseType, true);
+
+        let html = '';
+        let lastIndex = 0;
+        let match;
+        let hitCount = 0;
+
+        while ((match = regex.exec(file.text)) !== null) {
+          html += escapeHtml(file.text.substring(lastIndex, match.index));
+          html += '<span class="viewerHit">' + escapeHtml(match[0]) + '</span>';
+          lastIndex = match.index + match[0].length;
+          hitCount++;
+
+          if (match[0].length === 0) {
+            regex.lastIndex++;
+          }
+        }
+
+        html += escapeHtml(file.text.substring(lastIndex));
+
+        if (hitCount > 0) {
+          viewerBodyEl.innerHTML = html;
+          window.GIAHitElements = Array.from(viewerBodyEl.querySelectorAll('.viewerHit'));
+          window.GIACurrentHitIndex = 0;
+        } else {
+          viewerBodyEl.textContent = file.text;
+          window.GIAHitElements = [];
+          window.GIACurrentHitIndex = -1;
+        }
+
+        viewerOverlayEl.style.display = 'block';
+
+        if (window.GIAHitElements.length > 0) {
+          updateCurrentHit();
+        } else {
+          viewerBodyEl.scrollTop = 0;
+          viewerPrevHitButtonEl.disabled = true;
+          viewerNextHitButtonEl.disabled = true;
+        }
+
+        viewerPrevButtonEl.disabled = (window.GIACurrentResultIndex <= 0);
+        viewerNextButtonEl.disabled = (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
+      }
+
+      function runSearch(query) {
+        const matchType = matchTypeEl.value;
+        const caseType = caseTypeEl.value;
+        const maxRows = parseInt(maxRowsEl.value, 10);
+        const fileMatchRegex = getSearchRegex(query, matchType, caseType, false);
+        const countRegex = getSearchRegex(query, matchType, caseType, true);
+
+        let totalMatches = 0;
+        let matches = [];
+
+        for (const file of window.GIASearchArchive.files) {
+          if (fileMatchRegex.test(file.text)) {
+            matches.push(file);
+            totalMatches++;
+          }
+        }
+
+        resultsEl.style.display = 'block';
+
+        if (matches.length === 0) {
+          resultsEl.textContent = 'No matches found.';
+          window.GIASearchResults = [];
+          return;
+        }
+
+        const sortOrder = sortOrderEl.value;
+
+        matches.sort(function(a, b) {
+          const aName = a.name.split('/').pop();
+          const bName = b.name.split('/').pop();
+
+          if (sortOrder === 'oldest') {
+            if (a.year !== b.year) return a.year - b.year;
+            return aName.localeCompare(bName);
+          } else {
+            if (a.year !== b.year) return b.year - a.year;
+            return bName.localeCompare(aName);
+          }
+        });
+
+        matches = matches.slice(0, maxRows);
+        window.GIASearchResults = matches;
+
+        let html = '<div>Found in ' + totalMatches + ' file(s)';
+
+        if (totalMatches > matches.length) {
+          html += ' (showing first ' + matches.length + ')';
+        }
+
+        html += ':</div>';
+        html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
+        html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
+
+        for (const file of matches) {
+          const filename = file.name.split('/').pop();
+          const hits = file.text.match(countRegex);
+          const count = hits ? hits.length : 0;
+
+          html += '<tr>';
+          html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
+          html += '<td><a href="#" class="resultLink" data-result-index="' + matches.indexOf(file) + '">' + filename + '</a></td>';
+          html += '</tr>';
+        }
+
+        html += '</table>';
+        resultsEl.innerHTML = html;
+
+        const resultLinks = resultsEl.querySelectorAll('.resultLink');
+
+        for (const link of resultLinks) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const resultIndex = parseInt(this.getAttribute('data-result-index'), 10);
+            const file = window.GIASearchResults[resultIndex];
+
+            window.GIACurrentResultIndex = resultIndex;
+            openViewer(file, query);
+          });
+        }
+      }
+
+      viewerCloseButtonEl.addEventListener('click', function () {
+        viewerOverlayEl.style.display = 'none';
+      });
+
+      viewerOverlayEl.addEventListener('click', function (e) {
+        if (e.target === viewerOverlayEl) {
+          viewerOverlayEl.style.display = 'none';
+        }
+      });
+
+      viewerPrevButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentResultIndex <= 0) {
+          return;
+        }
+
+        window.GIACurrentResultIndex--;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+      });
+
+      viewerNextButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1) {
+          return;
+        }
+
+        window.GIACurrentResultIndex++;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+      });
+
+      viewerPrevHitButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentHitIndex <= 0) {
+          return;
+        }
+
+        window.GIACurrentHitIndex--;
+        updateCurrentHit();
+      });
+
+      viewerNextHitButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentHitIndex >= window.GIAHitElements.length - 1) {
+          return;
+        }
+
+        window.GIACurrentHitIndex++;
+        updateCurrentHit();
+      });
+
+      searchFormEl.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const query = searchInputEl.value.trim();
+        if (!query) {
+          resultsEl.style.display = 'none';
+          resultsEl.textContent = '';
+          return;
+        }
+
+        window.lastSearchQuery = query;
+        runSearch(query);
+      });
+
+      sortOrderEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery);
+        }
+      });
+
+      maxRowsEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery);
+        }
+      });
+
+      matchTypeEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery);
+        }
+      });
+
+      caseTypeEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery);
+        }
+      });
+
+      async function loadSearchArchive() {
+        try {
+          statusEl.textContent = 'Fetching search.zip...';
+
+          const response = await fetch(ZIP_URL, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status + ' while fetching ' + ZIP_URL);
+          }
+
+          statusEl.textContent = 'Reading zip into memory...';
+          const zipBuffer = await response.arrayBuffer();
+
+          statusEl.textContent = 'Inflating archive...';
+          const zip = await JSZip.loadAsync(zipBuffer);
+
+          const files = [];
+          const entries = Object.keys(zip.files);
+
+          for (const name of entries) {
+            const entry = zip.files[name];
+            if (entry.dir) {
+              continue;
+            }
+
+            const text = await entry.async('string');
+            const year = parseInt(name.match(/\d{4}/)[0], 10);
+
+            const htmlName = name
+              .replace('_WSR.txt', '_GIA_Report.html')
+              .replace('.txt', '_GIA_Report.html');
+
+            const url = '/GIA-Reports/docs/' + htmlName;
+
+            files.push({
+              name: name,
+              url: url,
+              text: text,
+              year: year
+            });
+          }
+
+          window.GIASearchArchive.loaded = true;
+          window.GIASearchArchive.files = files;
+
+          statusEl.textContent = 'Archive loaded: ' + files.length + ' file(s) ready.';
+          searchRowEl.classList.add('ready');
+          searchInputEl.focus();
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Failed to load search archive: ' + err.message;
+        }
+      }
+
+      loadSearchArchive();
+    })();
+  </script>
+</body>
+</html>
