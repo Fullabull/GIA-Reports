@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Mar-13</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* Bottom-corner status */
+        .play-status {
+            display: none !important; /*NOTE! THIS STATUS BAR IS NOT BEING DISPLAYED NOW. */
+            position: fixed;
+            left: 11px;
+            bottom: 11px;
+            z-index: 10021;
+            background: rgba(1,0,0,0.80);
+            border: 2px solid rgba(255,255,255,0.18);
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 13px;
+            max-width: 71%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+
+        /* Video mode: hide seldom-used image toggles (and avoid hiding the player) */
+        body.has-video-dock #toggleButton,
+        body.has-video-dock #resetButton { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <!-- <button class="header-btn" id="toggleButton">Hide Images</button>
+                <button class="header-btn" id="resetButton">Reset Images</button> -->
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Mar-13 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Video header is a separate fixed header shown only when video is active -->
+<div id="videoHeader" hidden>
+    <!-- Row 2: we MOVE the entire normal header .parent into here -->
+    <div id="videoHeaderRow2"></div>
+
+    <!-- Row 3: video controls live here -->
+    <div id="videoHeaderRow3"></div>
+
+    <!-- Player area -->
+    <div id="videoHeaderPlayer"></div>
+</div>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Mar-13
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos" class="watch-link-btn" id="watchLink" data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">
+            Watch on YouTube
+        </a>
+
+        <a href="#" class="watch-link-btn" id="listenClose" hidden>
+            Close Player
+        </a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
+            UNN on YouTube
+        </a>
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        The Guardian explains that rising global fuel prices and flight cancellations are not caused by real shortages but by deliberate refinery choke points imposed through financial control structures tied to BlackRock, State Street, and Vanguard. These attempts are part of a broader struggle between the Dynasty Families and the Black Sun faction to leverage commodities markets and revive shadow financial systems that once produced dollar allocations. Simultaneously, conflict across the Middle East reflects competing attempts to secure the last remaining power structure of the collapsing Empire. The Guardian reveals that the true root of this struggle lies in ancient empire structures tied to parallel existences within the Matrix. These shadow systems historically allowed manipulation of banking, timelines, and material systems through mirrored parallel worlds. However, the Source-based creation structure has been increasingly removed from their reach, preventing the Empire from fully controlling the Golden Kingdom of Source. The Guardian explains that the key to this system cannot be extracted or captured and therefore the competing factions cannot gain control of the Empire they are attempting to revive. Humanity can accelerate the collapse of these shadow systems by healing personal trauma and strengthening connection to Source, which weakens the shadow-self mechanisms used by Empire systems for manipulation. As deadlines tied to equinox events approach, rumors circulate regarding geopolitical narratives such as the alleged &quot;exit&quot; of Donald Trump, but the Guardian states that the Empire itself will collapse before any faction succeeds in reclaiming control of it.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000331">00:03:31 - UNN Field Messengers report global fuel price increases while insiders confirm no real oil shortage exists.</a></li>
+<li><a href="#t-000428">00:04:28 - Thousands of flights are canceled worldwide under the narrative of rising fuel costs despite stable aviation fuel supply.</a></li>
+<li><a href="#t-000551">00:05:51 - Refineries are allegedly refusing to process oil, creating artificial scarcity tied to major financial shareholders.</a></li>
+<li><a href="#t-000648">00:06:48 - BlackRock, State Street, and Vanguard appear linked to the refinery slowdown and broader commodities manipulation.</a></li>
+<li><a href="#t-000756">00:07:56 - Shadow banking systems historically mirrored commodities futures markets to generate additional dollar allocations.</a></li>
+<li><a href="#t-001123">00:11:23 - Attempts by financial factions to leverage commodities markets for new dollar allocations are currently failing.</a></li>
+<li><a href="#t-001331">00:13:31 - Conflict in the Middle East reflects a larger struggle between power factions attempting to maintain control of the collapsing Empire.</a></li>
+<li><a href="#t-001633">00:16:33 - The Greater Israel Project is described as an effort to establish a kingdom structure tied to messianic narratives.</a></li>
+<li><a href="#t-002034">00:20:34 - Chinese Dynasty investments heavily influence Iranian oil networks and covert transport systems.</a></li>
+<li><a href="#t-002400">00:24:00 - Military strikes across the Middle East are disrupting oil supply routes while multiple factions attempt to leverage resources.</a></li>
+<li><a href="#t-003019">00:30:19 - Long-standing Chinese attempts to leverage global resources through the Shanghai Exchange and AIIB have produced no financial releases.</a></li>
+<li><a href="#t-003500">00:35:00 - Nazi factions continue searching for artifact-based assets believed to grant control of parallel systems.</a></li>
+<li><a href="#t-003741">00:37:41 - Ancient empire divisions of humanity were historically organized into five territorial power structures.</a></li>
+<li><a href="#t-004109">00:41:09 - A Source-origin spark of creation once located near the Middle East became the central power object sought by Empire factions.</a></li>
+<li><a href="#t-004302">00:43:02 - Parallel existences created mirrored shadow systems including shadow banking, shadow media, and shadow governance.</a></li>
+<li><a href="#t-004636">00:46:36 - Illuminati factions falsely claimed to have fully conquered the Golden Kingdom of Source.</a></li>
+<li><a href="#t-004847">00:48:47 - Attempts to extract the key to the Kingdom of Source from the Guardian have repeatedly failed.</a></li>
+<li><a href="#t-005215">00:52:15 - Shadow selves operate through trauma points that allow Empire systems to manipulate individuals.</a></li>
+<li><a href="#t-005844">00:58:44 - Timeline creation systems previously used by Empire factions are no longer functioning.</a></li>
+<li><a href="#t-010102">01:01:02 - EMF attacks and technological manipulation operate through parallel existence rather than Source creation.</a></li>
+<li><a href="#t-010401">01:04:01 - Rumors circulate that Donald Trump may experience a staged &quot;exit&quot; narrative tied to geopolitical timing events.</a></li>
+<li><a href="#t-010714">01:07:14 - The Guardian states that the Empire itself will collapse before any faction gains control of it.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the 13th of March, 2026. Coming up on today&#x27;s Global Intelligence Agency Operations Report:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Gas prices are on the rise. Flights are being canceled. The price of food and goods could also rise as a result. In the financial world, this is called artificial hyperinflation. In the world of the Deep State, it&#x27;s all about contracts and the oil cartel.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Today we are going to take a deeper dive into the Matrix as we learn about shadow parallel worlds. Your shadow self isn&#x27;t exactly what you think it might be. Here is how they create and use it against the people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And rumors are flying about a Simpsons prediction that Donald Trump will die tomorrow. Is there any truth to it? Or is this a sequel to the 1990s movie called Wag the Dog? Remember, operatives create the problem and make sure they are the solution.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000102">00:01:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000238">00:02:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, it is the 13th of March. We are two days before the Ides of March. And maybe about halfway through Equinox time, close to it anyway. Equinox time always starts about 30 days before the Equinox, and they have definitely ramped things up for their equinox. I don&#x27;t know what they&#x27;re expecting or what they&#x27;re thinking is going to happen, but pretty much we&#x27;re probably gonna end up hopefully better off, at least on our end, and they will end up in the same place they are right now.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But meanwhile, there&#x27;s a lot going on out there. Some of it&#x27;s regular news, and then we&#x27;re gonna of course tell you the story behind what you see floating around all over the place, all over mainstream media and some alternative media.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000331">00:03:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, let&#x27;s talk about gas prices, because we touched on it a little bit in the last report, but I wanted to take a little bit of a deeper dive. Our Field Messengers are doing a great job for the actual regular UNN News where they are reporting their prices and the rise in prices at the pumps in their local area, not just in the United States but from all around the world. So thank you so much to Field Messengers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000359">00:03:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are also reports coming in that Australia may, at least from our Field Messengers and people on the ground there in Australia, they say they may be out of fuel in as quickly as 10 days. Now, we&#x27;ve got a little bit of inside information for you Australians about that story. And nobody&#x27;s really running out of anything, kind of.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000428">00:04:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They are also canceling a lot of flights out of New Zealand, Australia, and other parts of the world as well, basically saying that if you want to rebook, you can rebook - and of course at a much higher cost. However, thousands and thousands of flights are being canceled worldwide due to alleged rising costs in fuel, [and this] when most of the fuel utilized in aircraft comes from Russia - which has nothing to do with the Middle East. It&#x27;s a very specific type of fuel, often called JP-54, and nobody is running short of anything at this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000509">00:05:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, an inside Source in the U.S. that handles some of the terminals involved - let&#x27;s just say this person (as all customs and borders patrol) comes from a certain agency we know as the CIA, so this person is involved with that crew. He basically says that there is no shortage - this is for the U.S. - that there is no shortage of oil coming into the country in any way, shape, or form. I have also heard the same about Australia and other areas of the world where they allegedly are having an oil shortage.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000551">00:05:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now what he did say - which led me to do some investigating around the world - was that they are limiting the amount of refined oil, which means that the refineries are simply refusing to process oil at this stage in the game. Now, if you do a little bit of research into who owns the refineries in your country - including Australia and the U.S. - you might find people like ExxonMobil behind the scenes, you know, majority shareholders in other companies, then there are shareholders in other companies, but at the end of the road you will always come to BlackRock, State Street, and Vanguard. There is definitely something going on with BlackRock, State Street, and Vanguard for sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000648">00:06:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So are they the ones that are telling their refineries - that they own, on down the food chain - not to refine any oil into gas or petrol? And is that really what is creating the shortage? From people on the inside, they&#x27;re saying, in part, yes. So despite everything that&#x27;s going on in the Middle East - and we&#x27;ll talk about that in just a little bit - but it appears that they are implementing what we call a &quot;pinch point&quot; or a &quot;choke point&quot; in the oil and gas industry.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000728">00:07:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, Larry Fink, the CEO of BlackRock, has often said, &quot;You will own nothing and like it.&quot; &quot;You will see price increases.&quot; &quot;We&#x27;re going to starve you out.&quot; He&#x27;s made all kinds of comments over the last few years, since the Pandemic, about basically starving the rest of us humans out - or Homo sapiens, I should say - and this is another way they can do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000756">00:07:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, BlackRock, State Street, and Vanguard stand to gain a lot (in the past) from something we call the shadow banking system. Now you&#x27;ve probably heard this term before, &quot;shadow banking,&quot; and it is probably on the internet, that kind of thing. They talk about the Federal Reserve, but they don&#x27;t really talk about what a shadow banking system is, and we&#x27;re going to talk more about that in just a little bit in great detail - because it&#x27;s not just banking that exists within the shadows.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000834">00:08:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">BlackRock used to hold a very strong tie to the commodities futures market. The commodities futures market - if you don&#x27;t know what that is, I&#x27;ll just give it to you in brief - that is where most worldwide commodities are all traded, and they are all traded in dollars. So everything from cotton to pork to wheat to grain to silver, gold, oil, and other commodities are traded on this market.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000908">00:09:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now this is a commodities FUTURES market, so these are projected production rates based on varying companies contributing to global production. In this particular case we&#x27;re referring to oil because it&#x27;s going to drive up every other market. So in the case of oil, we know we have oil cartels, we have something called the Seven Sisters which was birthed out of Standard Oil and tied to Rockefeller for quite a number of years until the anti-monopoly laws came into effect, and they split it up into seven main companies worldwide.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000954">00:09:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But BlackRock, having a shadow of the commodities futures market that we see on the internet, has been able to own and trade the production of every commodity listed on the commodities futures market. When the price of a barrel of oil, for example, goes up on the commodities futures market, that is also mirrored into the shadow banking system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001030">00:10:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Normally that would mean that the supply of oil is not as great as the demand - remember, I told you everything in finance works on supply and demand, regardless of whether or not it&#x27;s gold-backed in a debt-based system. So in that particular case, normally something would be triggered, and they would be allowed new allocations of dollars - very specifically, dollars and only dollars, because that&#x27;s the way the commodities futures market works - to increase the supply of oil in order to meet the demand and regulate the prices.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001123">00:11:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The same thing works for gold and for silver and all the other commodities. They say, and keep telling you in the alternative media, that the price of silver is going up, the price of gold is going up: buy, buy, buy, buy, buy. Well, I&#x27;m not saying that they cannot manipulate those numbers in any way, shape, or form. What I am saying is that the companies that stand to gain the most are BlackRock, Vanguard, and State Street.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">While all of those companies are basically Black Sun-owned companies and tied into the Nazi Party, which has its headquarters here in the United States. They are also the group that is behind the Trump administration very heavily, and they are also the group that is fighting the Dynasty Families for control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001216">00:12:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they have been trying desperately for the last few days - based on the increase in oil prices and the alleged almost war that they also created in the Middle East - they have been trying desperately to leverage against the commodities futures market (and it&#x27;s simply not working) to get new allocations of dollars.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001240">00:12:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They are also working on and have released information to certain groups of people, letting them know that they are going to be able to take the cash pallets that were issued by Bush Sr. (of Supernotes) and they were going to be able to repatriate that money into the banking system, based on these new allocations - which also did not happen today. This will go into some other news that we&#x27;re hearing, some rumors, later on in the report.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But BlackRock and their attempted leveraging isn&#x27;t working because the shadow system isn&#x27;t working the way that it used to - and it hasn&#x27;t actually worked that way in quite some time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001331">00:13:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Iran and Israel. There&#x27;s also a lot of chatter going on in the Middle East about who is going to control what - the U.S. only being one party here - and there&#x27;s a bigger war at hand going on in the Middle East as well. So I want to talk about a couple of key factors that are hitting the news and the alternative media as well as mainstream media so that we can kind of understand more about the players in the game and why the Middle East.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001404">00:14:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about Israel. So Israel is still trying to implement what&#x27;s called the Greater Israel Project, where basically the majority of countries in the Middle East become the Kingdom of Israel. They are also selling the fact that this could bring in the Messiah as a savior or a leader. They don&#x27;t actually say the savior of you, the people, or even of the Jewish people - just &quot;the Savior.&quot; So let&#x27;s take a look at what Netanyahu had to say about that in this video.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001441">00:14:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Netanyahu: &quot;I recognize this and I believe we all recognize the fact that we will reach the kingdom. We will make it to the return of the Messiah, but this will not happen next Thursday. The lives of nations are always precarious and surrounded with threats. Our survival, our endurance is a result of alliances that we forge for our existence to be stronger. No doubt we are moving from one battle to another, from the establishment. And with this battle now, with this operation, Israel has become stronger than ever.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001532">00:15:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he mentions a kingdom, doesn&#x27;t say what kind of kingdom, doesn&#x27;t say the kingdom of God, or doesn&#x27;t even say, &quot;the kingdom of Israel.&quot; So we&#x27;re wondering what kingdom he&#x27;s referring to. That&#x27;s number 1.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 2, he says, &quot;to bring in the Messiah.&quot; And we&#x27;re wondering who that is the savior of and who for. He doesn&#x27;t say the people, doesn&#x27;t say the saving of the Jewish people. Now we have heard rumors behind the scenes of them bringing in more red heifers, for sacrificing, in the very near future. Apparently that was supposed to happen this week. But I also found it interesting that he says in this video &quot;next Thursday.&quot; I just wonder where they get this from. You know, what are they expecting to happen next Thursday? So we&#x27;ll see what he actually means by that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001633">00:16:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the Greater Israel Project is all about installing a kingdom - under which whoever and whomever controls the kingdom of Israel, or the country of Israel in this case, from behind the scenes - whomever is still in control of that country would become the kings of the kingdom apparently. And they would probably be appointing someone that we would all need to see as a Messiah. And I do not believe it is actually a Source-appointed or God-appointed person or party or savior as we would know it in the biblical or religious sense. It doesn&#x27;t seem that way from everything I&#x27;m hearing behind the scenes and everything that&#x27;s coming from Israel.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We all know Netanyahu is not the nicest person in the world and probably someone that most of you would like to meet in a dark alley [chuckle] with you as the aggressor, I&#x27;m sure - if you have lived in Israel and have been subject to the whims of Netanyahu.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001740">00:17:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Netanyahu is also very, very close to a group we call the Sanhedrin. And the Sanhedrin has come and gone many times. The Sanhedrin... there are two sides of the Sanhedrin and the Chabad. The Chabad is known as a Jewish religious group that does positive deeds, that type of thing, and sure, are those people out there as well? Yes, those are people that know nothing about what we&#x27;re talking about today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001811">00:18:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Chabad, however, has a very dark side as well. And the Chabad in Israel is actually closely related to a Coven we call the Sanhedrin, as well as people like Jared Kushner. If you&#x27;ve been watching the news, then you&#x27;ll know that Jared Kushner is also the one that allegedly is negotiating with Iran, supposedly on behalf of the United States, and also Gaza and Israel because he is on the board or alleged interim government of the Gaza Strip. Isn&#x27;t that great?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001848">00:18:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So interestingly enough, as his negotiations continue, Iran has more precision strikes than ever over the last several days. So I&#x27;m not sure what he&#x27;s negotiating over there, but it looks like he&#x27;s getting Iran to spend a lot of that Chinese money that they get from behind the scenes on bombing the entire Middle East. Hmm. Wonder who Iran is really working for, and I&#x27;m wondering if the Chinese Dynasty Families know exactly what&#x27;s happening? I&#x27;m sure they do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001926">00:19:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So next, I want to talk a little bit more about Iran as well. Iran, most of Iran&#x27;s oil investments right now are coming from the dynasty group of the Illuminati that we talked about last week. In this case, the dynasty that we&#x27;re referring to is China and the Chinese.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">China has a lot of black investment funds, even though Iran states that most of its oil supplies are state-owned, and most of the oil companies in Iran are state-owned. That is not true unless you&#x27;re talking about the nation state of China. They have a lot of black investment funds, a lot of front people within the country, including the now allegedly passed away, may rise again, Khamenei, the Supreme Leader, the imam that we talked about that passed away, allegedly, which now may rise again, we don&#x27;t know. The narrative says so, so we&#x27;ll see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002034">00:20:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But China also has black fleets going back and forth transporting oil. I have had video footage of them actually even taking singular barrels of oil on dirt bikes for a dollar a barrel going across the border into Pakistan as well, at one point in time. So they&#x27;re getting the oil out of Iran any way they possibly can and transporting it to China where China actually refines a lot of oil.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, you might ask, with all the large pipelines going from Russia to China, which China has not been paying for, they tried paying in RMB or Chinese yuan, but they have not actually been able to utilize that cash as of yet. And they&#x27;re quite behind on their bills. I know that they&#x27;re quite behind on the bills in Iran as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002130">00:21:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now Kushner goes over there, he starts negotiating with quote-unquote &quot;Iran&quot; - Kushner being a part of the Greater Israel Project and the Chabad and the Sanhedrin that hails from Israel and runs Israel - which is also closely associated with the Illuminati faction we call the Chinese Dynasties.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it makes you wonder who he&#x27;s negotiating on behalf of. I&#x27;m assuming he is on the inside at this point - having married into the Black Sun Families - so I am sure he is over there doing his good work for and on behalf of the Dynasty Families. We do have some other indications of his quote-unquote &quot;successes&quot; that we&#x27;ll talk about some more.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002220">00:22:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Meaning, has he been successful in achieving his objective? The answer is no. Has either side - as a double agent that he&#x27;s playing - has either side actually achieved their objective? No. And it&#x27;s not possible for them to achieve the objective they&#x27;re looking to quote-unquote &quot;achieve.&quot; However, he has successfully ordered strikes on Oman coming from Iran. There are strikes also happening from Israel and the U.S. as well as Iran in places like the UAE as well and false flags there. He has also been ordering strikes from there for free. Congratulations, Iran, glad you&#x27;re working for free. Well, you know, appointing the son of Khamenei to be the next supreme leader tells me that the Dynasty is still in force there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002323">00:23:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They have also hit oil fields in Iraq as well. So it&#x27;s Iraq, Oman, UAE. Obviously, there have been strikes on Iran as well. They&#x27;ve also been bombing the heck out of Lebanon. Basically the whole Middle East has been fired upon repeatedly for the last two weeks. We actually have some footage of that as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002400">00:24:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: &quot;God is great! God is great! This is the destruction of the American oil in the north of the Gulf of Africa. Long live the Republic of Iran!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002434">00:24:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hmm. So you see, some ships are also being bombed as well. Those are oil ships, typically. You know, they&#x27;re kind of preventing all the oil from coming out of the Middle East. Where are they going? Are they going to China? Are they going to the U.S.? Were they going through Saudi Arabia? Saudi Arabia oil fields have also been hit, which is known to be an ally of the United States, a &quot;non-NATO ally,&quot; as they call it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002503">00:25:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We also know in the past (before his death) Donald Rumsfeld was actually in charge of the entire financial system of the Middle East - at least as far as the Red Book or the Red Empire was concerned, for quite a long time. As well as their partnerships with many companies in Houston, Texas, in which Aramco (Saudi Arabia&#x27;s largest oil company) acts as a front for all of the black oil coming out of the Middle East and has for many, many years.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the oil is extracted for pennies on the dollar, goes through Aramco, they take their cut, they sell it to their partners in Houston, and before you know it, we&#x27;re getting sanctioned oil here in the United States, which they get for close to free through BlackRock-owned companies like ExxonMobil, as an example.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002605">00:26:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is kind of how the oil game has been played for a long, long time. So this little situation that&#x27;s happening is causing kind of a disturbance. Now, we know that Iran is still with the Dynasties. Khamenei was part of the Dynasty Families. There are also rumors being spread by the Q-Crew that are saying that Khamenei has been found alive.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, here&#x27;s the interesting part about Khamenei, and I will repeat what I&#x27;ve said most recently, that Khamenei actually died a couple of years ago doing a ritual in Belarus. We don&#x27;t know who that has been for a long time. Most leaders in the Middle East know that&#x27;s not Khamenei. They have had meetings with the not-Khamenei - reminiscing about times and say fishing trips that they had gone on together that they never actually took - to see what fake Khamenei would say. I know that for sure from a particular prime minister in another country that absolutely came back and said, &quot;That is not - that is not Khamenei.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002712">00:27:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the dead people are not dead, and they might be found alive, we&#x27;re not sure. But anyway, the country of Iran is clearly with the Dynasty Family. Jared Kushner has told everybody in the American administration that he can get the job done over there. By &quot;getting the job done,&quot; I guess that means bombing-for-free coming from the Dynasty Families so that they can get some money over here, because even behind the scenes the Pentagon is saying that they&#x27;re broke. The government is saying that they&#x27;re broke. There is no war chest. There are no backup funds.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we are not in an oil crisis over here. We are only in an oil crisis because BlackRock has said to make sure that the United States is in an oil crisis, along with several other countries to include but not limited to Australia and the European Union.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002807">00:28:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On the other side, you have the Black Sun and the Nazi group. They are also continuing to try to leverage these contracts and do what they can on their side to try and get money as well. So each side appears to be trying to hold together a power structure and control structure and a crumbling empire. Talk more about the empire here shortly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002840">00:28:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">China, for their part in the contract leveraging - or, for the &quot;Dynasty side&quot; - I feel like we&#x27;re kind of doing a play-by-play of a baseball game here, you know? Oh, and Team A is going to run the bases and get a home run, and Team B... you know, what&#x27;s that song there? Let&#x27;s see, I think it&#x27;s by Meat Loaf or something like that, where they keep, you know, &quot;Oh, he&#x27;s rounding second base,&quot; you know. That&#x27;s what I kind of feel like watching this little show go on because it is very interesting because we are very much interested to see if either side could actually get an empire before the empire actually crumbles completely and totally. Which, it&#x27;s falling - it&#x27;s falling fast.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002929">00:29:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so China on their side of it has already leveraged a lot of Iran&#x27;s oil to the Shanghai exchange. They are doing so in RMB and yuan as well as a few other baskets of BRICS currencies in the recent past. They have also done the same with Venezuela&#x27;s oil as well as other commodities that they have believed that they have secured throughout the African continent, also in other areas of Latin America. The other side also believes that they have commodities through their now defunct Aladdin system that was tied to the commodities futures market.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003019">00:30:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So both people are doing the same exact thing that they did before, both yielding zero results. The first time I heard about the Black platform tied to the Asian Infrastructure Investment Bank (AIIB) and the Shanghai Exchange was well over a decade ago - around 12, 13 years ago I had heard about it from some Africans that had said that China has come in and leveraged resources near the southern part of the African continent.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003056">00:30:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I do know that other people in places - in Australia there are a few Maori tribes, as you may or may not know - one is actually Maoris, the other ones are Rothschild-appointed Maori. Just like in Hawaii in America, you have the actual local Polynesian folk, and then you have the Rothschild-installed Polynesian folk that also claim to be the original owners of the land. So you&#x27;ve got multiple groups there. You also have American Indians and you have Native Americans. Native American tribes in certain areas are as white as white can be, without even a hint of red or brown or any other black color that the Native American tribes are, but they are also installed by the Dynasty Families.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003157">00:31:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they have basically married into and/or replicated the original people that would have... I hate to use the term &quot;rule&quot;... but the rightful people for the lands. Now, there are certain people out there that have appealed to places like the Vatican - you&#x27;ve probably seen these letters - and Sovereign Man and all kinds of things that have tried to reclaim native lands for native people. Not just Americans, but in other areas of the world as well - Inuits in Canada - and they have had no success because you&#x27;re appealing to two different groups and neither one of them care if an actual Homo sapiens lives or dies. So they have already installed their own people that give their own consent to the things that they do in these particular areas.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003256">00:32:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so back to China. So China&#x27;s already been trying for well over a decade now, if not two decades - because I only heard about it in 2013. So that was the first time I had heard about this leveraging platform. So it&#x27;s been quite awhile that they have been trying to leverage (without success), with agreement from tribes in Hawaii which are the Rothschild Dynasty tribes, and Maoris, fake Maoris throughout the New Zealand-Australia area, and other fake tribes that have also been installed in, and/or basically have joined with the Dynasty Families with big promises and no delivery over the last several years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003341">00:33:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are also native Latino tribes throughout South America that have also conceded to the Dynasty Families, have agreed to work with them, and sent over their rights to China. And China has been unsuccessful in releasing actually any cash against all of these assets that they allegedly &quot;acquired.&quot; I say allegedly because nobody has really acquired anything. And it depends on what world you&#x27;re living in whether or not those assets are even in those locations.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003418">00:34:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The same thing goes for the Nazi groups. They are also still hunting for many things themselves. Not only are they trying to acquire assets, such as oil and gas, and then re-up their same platform over and over and over again with the commodities futures trading that has not worked in a number of years. They are still trying to make those leverages. They&#x27;re still trying to - and I&#x27;m gonna yawn here because the first time I saw these same pallets of cash was in 2010 with my own eyeballs sitting in front of them, so that was 16 years ago - where they have been trying to repatriate this cash ever since.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003500">00:35:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">For a short period of time they were able to do it through and in small amounts of less than $25,000. I think some of them might have taken up to $50,000 of these notes through Wells Fargo Bank, but at that time - this was almost a decade ago and the banking system was a different place. They also had permissions from a bunch of Chinese people to do so. And I actually have pictures somewhere in my files of them actually doing this with white vans pulling up to Wells Fargo in Durango, Colorado. So I am absolutely sure that they were probably splitting proceeds at that point, and everybody was happy.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, those Durango people really took an awful lot and gave absolutely nothing but grief, and a whole lot of it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003558">00:35:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The other thing the Nazi groups are looking for feverishly: they&#x27;re still hunting for artifacts that they would consider to be assets. This is the Black Sun Nazi group. They believe that if they can get the artifacts that were utilized by the Illuminati side - to create in this world additional worlds, timelines, and parallel existences - they believe that they can take over the empire. Because that&#x27;s what this is all about. Everything you&#x27;re seeing right now happening is the grand finale in a fireworks show and you got the people on the right doing this and the people on the left - it&#x27;s almost like a tennis match - your head is flipping back and forth so fast you don&#x27;t know which one is doing what at this point and who is keeping score of what.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003708">00:37:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about the Empire. And we&#x27;ve talked about many empires over the last several months and we&#x27;re kind of getting to the final roots of empire creation. And I&#x27;m going to go over a little bit more today about empires and the Matrix, simply because it&#x27;s relative to every other thing that I just went over, including one that I&#x27;m going to save for the end.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003741">00:37:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in an empire, originally, and you can recall, around 250,000 years ago there was a peace agreement that occurred. It occurred between five groups, in which all five got a specific area of the planet and a specific group of humans or Homo sapiens to go along with it. We know these particular empires as Black, White, Yellow, Brown, and Red.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003819">00:38:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We know Red people are often considered the Native Americans and Latin Americans, believe it or not, South America. They would also consider the Brown people - not of Latino origin - they would consider them of Middle Eastern origin in this particular case. The White people would be considered all of Europe, including all the way through Russia. Yellow people, that&#x27;s the Asians, that&#x27;s obvious. Black people, I think we know the origin of the black people, that would be throughout the African continent. And that pretty much consists of your empires.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So they split up the Homo sapiens races, so to speak, into these different empires. And each empire, for a time, was at peace.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003912">00:39:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I haven&#x27;t really talked much about the Brown Empire, but I&#x27;m going to touch on that now because it&#x27;s important to understand what I mean by &quot;Brown.&quot; I don&#x27;t necessarily mean, in this particular case, the brown people of the Middle East - although this is relative. Just because there are a lot of lighter-skinned Middle Eastern people, that doesn&#x27;t mean they&#x27;re not considered part of the Brown Empire.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003940">00:39:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Brown Empire is the most important one to these people, meaning the Nazi group and the Illuminati group. They don&#x27;t really understand why, half of them, but that is the whole reason for the Middle East erupting the way that it is now because they&#x27;re getting to the very end of power and control on both sides. At this point, it&#x27;s every man for himself. There are no loyalties between sides - they&#x27;re just trying to maintain a crumbling empire. So keep that in mind as we go along here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004020">00:40:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the Brown Empire is actually considered to be black gold. There is something that is not far - I will say &quot;not far&quot; - from the Middle East, which was kind of moved somewhat to that location, and it&#x27;s a location in Bangladesh. There is also a second location in India, as well, tied to this. And this was, let&#x27;s say, the original piece of Source that created Earth in the first place. And from here, all of Creation was made. I wouldn&#x27;t call it so much a DNA blueprint or a universal or omniversal blueprint, as I would call it a &quot;source of creation.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004109">00:41:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If you think of it more of like Source&#x27;s Womb, where all of Creation could come from, that would kind of be what this would actually be - a second one. Meaning, a little piece of Source here, which then created Earth, I would say, from the beginning - a spark. It kind of looks like a pulsating light. It is gold, its original one - it is gold in origin. And there were keepers of this Light as well. This special item.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And this is an item they&#x27;re hunting for desperately. They won&#x27;t find it because it&#x27;s not here anymore, which has made the Empire crumble even further.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004157">00:41:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as the other part, which is located in... I think it&#x27;s West Bengal, which is now part of India. So in India there is a second part in which they committed alchemy on this Spark and then mirrored it to this location. So every bit of creation - back to the very beginning itself - was then mirrored out in what we call a parallel existence.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">One thing of Source, one thing of, let&#x27;s call it Anti-Source, or one shadow spark, or one shadow piece of ethereum or materium or consciousness would then come from the other side. And that&#x27;s how we became who we are now, because we have more than one parallel existence existing within our person at the same time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004302">00:43:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the parallel existences are where they operate. These are your shadow selves we hear about in the alternative media. These are the shadow worlds that we hear about. These are the shadow banking systems that we hear about. These are the shadow media systems we hear about.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This parallel world exists and coexists within - or at least it did - within the actual existence of Source and Reality of Source itself. So you see, we&#x27;re kind of getting down to the base root of the problem here over the last couple of weeks. You know, everybody thinks &quot;Well, there&#x27;s no reports. No reports - Kim must not be working.&quot; That&#x27;s absolutely not true - always working.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004400">00:44:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So out of these parallel shadow existences, this is where the empires themselves got their power. Are people color-coded according to their empire? No, not necessarily, even though you would see where the base origin of races could have come from. But that doesn&#x27;t mean we are color-coded necessarily in accordance with our empires. And we do travel about, and we do move from country to country. We have all colors in a lot of different places, but basically it&#x27;s the place where you reside and where you are a citizen of that makes you a part of that territory or that empire.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004450">00:44:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">At one point in time, they combined or overthrew the leaders of the other empires to the point where there was only one empire left. Predominantly, you could say that would be, well, the Black Empire [chuckle]. And the Black Empire, or the Dark Empire, or the Parallel-Existence Empire that existed within all the other empires, eventually took over everything. Now the only problem that they have is the Brown Empire.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004529">00:45:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And that&#x27;s not necessarily related to the people of the Middle East, that is more because the black gold has failed to completely overthrow the Golden Kingdom of Source. You could call it a kingdom, you could call it an empire. In Source&#x27;s world it&#x27;s the Kingdom; in their world it would be considered the Empire of all empires - if they could control that one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004603">00:46:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as they know, not everybody knows the secret. The secret being that even though the Illuminati created the parallel world to coexist in the Golden Kingdom, they do not know that they never could complete it - they never could completely overthrow the Kingdom of Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004636">00:46:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, you see, the Nazi group thinks they did it - because they have lied this whole time. I know you&#x27;re shocked - what would the Illuminati be if they didn&#x27;t lie? So they lied the whole time and said, oh, they overthrew it. You know, they control it. And so now these people want it. Everybody wants the Empire.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004657">00:46:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Nazi group seems to know that it began in the Middle East, or at least there&#x27;s enough artifacts there to allude to the fact that that&#x27;s where it began. And that would be the most powerful kingdom or empire they could control. If they have the parallel empire then they have access to all the other empires, whereas before they were only gatekeepers, securities and guards.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004723">00:47:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They want the control panel for this kingdom, that&#x27;s what they want desperately. And they don&#x27;t just want the black gold or the Brown side, they want the Golden side. And they have been pushing hard. The Illuminati, on their part, wants the same thing - they both want control of the Golden Kingdom of Source. Which, despite rumors, despite lies - has never ever truly completely happened. Did they manage to insert some things into it? Sure. Is that influence waning as well? Yes. Are they in full-on panic mode at this point? Yes. And they have been for days.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004818">00:48:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, all that&#x27;s really done for me is make me really, really super popular for the last week, because they believe I am the key that they need to overthrow the Kingdom of Source. Because in the past, each one of the Keepers, including the Keepers of the Spark of Creation, all turned it over to them. Why? I have no idea. But they did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004847">00:48:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In my case, I&#x27;m not that stupid. You see, I&#x27;ve known for a long, long time those Durangotang people, the Durango people, have been trying desperately to get this key from me so they can overthrow this Kingdom and take it over for their group. I absolutely am 1000 percent sure for nine years they drilled me like I am an oil field [laughing]. In every which way but possible - to try to extract this from me. They&#x27;ve used my essence, they&#x27;ve used my energy, they&#x27;ve done all kinds of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004924">00:49:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Matter of fact, even today - even today - I had a short brief conversation with Tom, who happened to be driving through the country and in a little area of Pennsylvania we know because it is a huge SSP time-travel time base - and all they wanted to hear me say on the phone (which I never actually said, by the way) is that I would work with them. I never said that. Because if I had said that, they would be drilling me even harder than they&#x27;ve drilled me all day today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005005">00:50:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Yep. But I knew they were going to do that anyway so it didn&#x27;t really make a difference. Frequencies, you name it. They also would like to extract the key. Well, they can stick it where the sun doesn&#x27;t shine because the key is not within me. What, do you think, I&#x27;m stupid? After all those years in Durango, that I would just hold everything on my person? Oh, you have lost your ever-loving mind. Oh no, that&#x27;s very far, far away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005029">00:50:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the only thing I do, it&#x27;s kind of like, you could consider me... if the Kingdom of Source was an Airbnb and you&#x27;d get the key for like one night, you know, that&#x27;s how it works. Because I just need to go get the key from the owner (because I know the owner well) whenever I want to grab a key and I need to do something there and then I just get rid of it as fast as I got it. And it might not be a night - might be a minute, might be an hour, might be for 20 minutes - and then it&#x27;s gone. So, I don&#x27;t even hold that anymore because I&#x27;m not stupid.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, you people have taught me well - these Deep State people have taught me well, I should say, not you people - but the Deep State people have taught me very well, that I know how to stay alive. And this is how it&#x27;s done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005114">00:51:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I don&#x27;t know what the purpose of today&#x27;s exercise was, except for diverting Tom on his way wherever he was going today. But this is how this whole craziness works. They need that in order to create or recreate an empire. And I am not going to give it to them because I don&#x27;t have it. I take it when I can use it, I take it when I need it, and it&#x27;s very brief and fleeting - and good luck to you finding that, Deep State people. Crazy people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because they don&#x27;t want to sit down and talk, they don&#x27;t want to negotiate, they don&#x27;t want to even concede, they don&#x27;t want to do anything. They don&#x27;t even want to ask me for it, they&#x27;d just like to extract it from me. But maybe that worked for all the other people, but perhaps I learned how to stay safe. So this is how it&#x27;s done. So good luck, Deep State people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005215">00:52:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, for that reason, I just wanted to touch base on parallel existence versus parallel worlds, and I want you to understand what I mean by &quot;shadow self&quot; because I don&#x27;t think a lot of people on the internet quite explain it correctly. They tell you on the internet that you can do your shadow work, and that you can be free of your shadow self. And I don&#x27;t entirely believe that because it is not under your control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005244">00:52:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I think you can manage it, somewhat, to a degree. But when they have you on their target list - and right now the target list of people is anyone going against the Empire. The outliers, the people who have rebelled, so to speak, to some degree against the Empire in one way or another.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, that could simply be you meditating, connecting with Source, and bringing more Source energy into your person than a parallel existence would allow for - you are now considered a threat to the Empire. Because they can&#x27;t have Homo sapiens being wholly without a shadow self, because that&#x27;s the only part of you they can manipulate (and the part of others).</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005344">00:53:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they need you to have that. So they have programs running right now, like big fear programs. And lots of crazy programs that make you afraid, or make you angry, like these pedophile programs and stuff that they have running. You know, I&#x27;m not saying that I don&#x27;t wish somebody would arrest or even hang all of these pedophile people - but they are the pedophile people that are actually putting this stuff out!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean think about it for just one second. These people sell children to people that like to do bad things to children. That&#x27;s who they are. And they&#x27;re the ones putting the information out. Why?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005434">00:54:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This has to do with your shadow self. You know, we&#x27;ve all had life experiences - by the time you&#x27;re old enough to be listening to this report you&#x27;ve had some life experiences - and some of them probably were not pleasant. Whether that is a physical issue, meaning perhaps you threw your back out, or broke an arm, or had an injury or had an illness.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">These things are considered to be traumas within your person. They are places where your shadow self can - I hate to use the word &quot;portal&quot; because that&#x27;s probably not correct - can infiltrate into your natural self. Because the wound never goes away, it stays open. There are ways you can close it and heal yourself, using the natural part of yourself. Absolutely. But this is how a shadow self interferes with you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005540">00:55:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, you only have one true parallel-creation self. That&#x27;s one parallel-creation Dark soul, parallel creation Breath, parallel Consciousness - all of these things exist in a parallel existence that coexists within your person. They have only been able to create one of those, only one. They don&#x27;t understand why, but only one. Now from a parallel existence, they mirrored that existence into what you call timelines, time loops, other worlds - Everywhere World, Anywhere World, like the Q-People say - that absolutely is true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005630">00:56:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, it doesn&#x27;t really make a difference because those are like pictures. They are snapshots of the parallel existence. Parallel existence mirrors creation or creates the exact opposite. So if something is White, it could be Black in the parallel existence. If something is Dark, then it will be Light in a parallel existence, and vice versa.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005704">00:57:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in a timeline or a time loop, it is a picture or a snapshot of the parallel existence only. So in other words, once a timeline is created, it can only take a picture of what is in a parallel existence that is constantly changing, because it&#x27;s paralleling everything that Source does.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005731">00:57:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s also the way - the more that we create in our side, sometimes it feels like the more you get attacked, or the more you get hit. For Number 1, you&#x27;re the outlier now, you know, you&#x27;re someone for them to watch - as long as they could have and could control a parallel existence. Their controls in a parallel existence have been limited. There are certain things they could never ever control, contrary to popular belief. And I&#x27;m sorry, but right now it&#x27;s not the time to say that publicly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005810">00:58:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are other things that they could control: banking systems, computer systems. They have even limited access to your car: to stop your brakes from working, to start your car, stop your car, turn on your mobile phone, turn off your mobile phone. Isn&#x27;t that exciting? Because the particles that create your phone as a materium object also have parallel existence inside them. That is waning.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005844">00:58:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;m going to challenge you this week - or ask you this week, politely, I should say - to think about what I&#x27;ve said about parallel existences and focus a little bit of time on yourself trying to heal yourself. The more you heal yourself, the faster this will go away.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean, we&#x27;re going to work on it as best as we can, especially from a guardian position. We have maybe a little bit of override, for all the people that don&#x27;t know, but you know and you can help. You know people always ask, &quot;How can we help?&quot; These are things that will help heal things faster, including your banking system. And I know everybody wants that and nobody wants it more than me, because I&#x27;ve been waiting a really long time to try to do this. And that has led us to all of these understandings of why we have not been able to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005940">00:59:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next, timelines. They can no longer create new timelines; they haven&#x27;t been able to do that in a while. For a while there they were on autopilot, infinitely creating one after the other, after the other, after the other, after the other. But again, snapshots and pictures. Only as long as the alchemical five kingdoms were overlaying creation. You take that piece of creation that they stole away - because we don&#x27;t need it here anymore - and you put it someplace else that they don&#x27;t have access to, then it&#x27;s not mirroring anything now, is it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010024">01:00:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these are the things that are beginning to happen this past week. But that bit of understanding I wanted you to have, so that you can A, defend yourself, Number 1. And Number 2, help the process along so that we can move along a little quicker and share with people that may understand what you&#x27;re saying. You know, don&#x27;t try to force it on other people - from a guardian standpoint, we can do certain things to help other people too. So we will move along as quickly as we can.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010102">01:01:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. The parallel existence - also, I wanted to add for those of you that have frequent attacks, you feel like you have EMF attacks, all of those types of things - understand a lot of that comes through the parallel existence. It does not come from the Creation side. It cannot attack the Creation side of yourself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now this isn&#x27;t like you&#x27;re half Black and half White, you&#x27;re mixed in Gold with Black all together, as an example. So if you can focus on the Creation to override the Black part or the parallel or shadow self of yourself you can lessen the effects of what you consider to be black-magic workers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010152">01:01:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We do know that the Dark side of the Chabad is in full force, along with whomever the next generation of the Sanhedrin is, because we&#x27;re seeing them everywhere. The interesting part about these particular covens, or black-magic workers, is they are all shadow selves. Whatever is in them looks like what you would call in a religious text a demon. It&#x27;s ugly, it&#x27;s black, and they can actually send it out from themselves at certain times of day like a remote control car to attack you and you don&#x27;t even see it coming. Little shadows out of the corner of your eye, those types of things - they can actually send these outside of themselves and do this to you. They can give you random things like stabs in the head and random drains of energy because they are vampires - they feed on you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010255">01:02:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The parallel existence doesn&#x27;t exist if you don&#x27;t exist. If you aren&#x27;t creating, it&#x27;s not creating. If Source isn&#x27;t creating, it&#x27;s not creating. If Source isn&#x27;t producing energy or Ethereum, it doesn&#x27;t have any energy or Ethereum either. Matter of fact, if Source starts to reverse things - listen carefully - if Source starts to reverse things and create in a different way, the parallel existence doesn&#x27;t exist either. There are lots of tips and tricks that we can do ourselves personally to help this along.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010332">01:03:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these are my hopes - that some of you that are a little bit more savvy will take into account as we try to make it through this week. And I&#x27;ll tell you the backlash can be brutal, so make sure you shield yourself and try to not take things personally and that kind of thing too. Because these things are... the backlash, when you attack it, is brutal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010401">01:04:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, one more bit of information that I kind of mentioned in the Coming Up that I wanted to cover. Next rumor: apparently The Simpsons have another prediction from an episode that never aired that has been passed around online from - I guess - the creators of The Simpsons; I don&#x27;t know. Or could it be Q, or could it be the CIA, who knows? I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So whoever writes The Simpsons apparently has made another prediction: that Donald Trump is going to die tomorrow, on March 14, wherever you are in the world [chuckle]. We have an understanding that there is a narrative that has been prepared for as to the quote-unquote &quot;exit.&quot; This is what they&#x27;re calling the &quot;exit&quot; of Donald Trump.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010504">01:05:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, when we asked, &quot;When is this exit going to occur? Is it tomorrow?&quot; And I know it hasn&#x27;t been prepared for tomorrow - at least unless they just go haphazard (which they do from time to time) - but these things are prepared, even when someone actually of a public figure like that dies of natural causes, let&#x27;s just say - if there is such a thing. Then there&#x27;s weeks of prep time, there&#x27;s weeks of when the funeral is going to be announced - sometimes it&#x27;s months later so as to not disrupt business worldwide. And we don&#x27;t see those preparations having been made just yet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010545">01:05:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So is it going to happen? I don&#x27;t know, these people are a little crazy over there. Do I believe that there is something to a deadline for this war for control of the Empire? I do. I believe there is a deadline. Is that the Ides of March that&#x27;s coming up in a couple days? Is that the Equinox? Which is a little over a week away. I don&#x27;t know when their deadline is, but I&#x27;m going to find out. Is it St. Patrick&#x27;s Day? I don&#x27;t know. You know, there&#x27;s all kinds of... there&#x27;s Passover, there&#x27;s Easter coming up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010634">01:06:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">When is that deadline? And have they passed a deadline? Did they give each other a deadline as to when they had to choose which one is going to rule over the entire empire that&#x27;s dying? Maybe they have to fix the empire first, and then they figure out who&#x27;s going to rule it? I don&#x27;t know. Maybe there&#x27;s an alignment I&#x27;m unaware of that is supposed to happen tomorrow, or something that occurs on the Ides of March where they believe they&#x27;re going to get something back. No idea. We&#x27;ll find out, probably in the next report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010714">01:07:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But my opinion is the Empire will go before they go. And that&#x27;s where my money is at. My money is always on Source, always. And he always has perfect timing for everything. And my money is on Source and the Empire disappearing. How about you?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010732">01:07:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, that has been the GIA Report for the 13th of March, 2026. And I look forward to speaking to you again real soon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010743">01:07:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010814">01:08:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">UNN on YouTube</a>
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="playStatus" class="play-status" hidden></div>
+
+<div class="yt-footer text-center">
+  <span id="ytPoweredFooter" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+</div>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function $(id) { return document.getElementById(id); }
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+    function setStatus(url) {
+      var s = $("playStatus");
+      if (!s) return;
+
+      var collapsed = document.body.classList.contains("video-collapsed");
+      if (!url || !collapsed) { hide(s); s.textContent = ""; return; }
+
+      s.textContent = "Now playing: " + url;
+      show(s);
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function setNowPlayingFooter(url) {
+      var el = $("ytNowPlaying");
+      if (!el) return;
+      el.textContent = url ? (" - Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+        var toggle = $("watchToggle");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+            show(toggle);
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+            hide(toggle);
+        }
+
+        currentUrl = url;
+        setStatus(url);
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+        var toggle = $("watchToggle");
+
+        if (frame && frame.src) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        if (frame) frame.src = ""; /* stop playback */
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setStatus("");
+        setNowPlayingDockBar("");
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide(toggle);
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        show($("watchToggle"));
+        setStatus(currentUrl);
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        hide($("watchToggle"));
+        setStatus(currentUrl);
+        updateDockOffset();
+    }
+
+function showNotice(onContinue, url) {
+    var notice = $("ytNotice");
+    var btnContinue = $("ytNoticeContinue");
+    var btnCancel = $("ytNoticeCancel");
+    var chk = $("ytNoticeDontShow");
+    var inlineLink = $("ytNoticeInlineLink");
+
+    /* If the notice UI isn't present for some reason, just continue */
+    if (!notice || !btnContinue || !btnCancel || !chk) {
+        onContinue();
+        return;
+    }
+
+    /* Keep the inline link pointed at the current video URL */
+    if (inlineLink && url) inlineLink.href = url;
+
+    show(notice);
+
+    function cleanup() {
+        hide(notice);
+        btnContinue.onclick = null;
+        btnCancel.onclick = null;
+    }
+
+    btnContinue.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+        onContinue();
+    };
+
+    btnCancel.onclick = function () {
+        if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+        cleanup();
+    };
+}
+
+    var watchLink = $("watchLink");
+    var watchToggle = $("watchToggle");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (watchToggle) {
+        watchToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            expandDock();
+        });
+    }
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    /* Keep "UNN on YouTube" aligned with the current VIDEO_URL */
+    if (watchOpen && watchLink) {
+        var u = watchLink.getAttribute("data-video-url") || watchLink.href;
+        watchOpen.href = u;
+    }
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  var a = $("listenToggle");
+  var box = $("audio-player");
+  if (!a || !box) return;
+
+  a.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    // Show player
+    box.hidden = false;
+
+    // Scroll to it (optional, but feels right)
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+})();
+</script>
+<script>
+(function () {
+  function $(id){ return document.getElementById(id); }
+
+  var watchLink = $("watchLink");
+  var watchOpen = $("watchOpen");
+  var listenBtn = $("listenLink");
+  var listenClose = $("listenClose");
+  var audioBox = $("audio-player");
+
+  // --- Hide "Watch on YouTube" unless it is a real watch URL ---
+  function isWatchUrl(url) {
+    return !!url && url.indexOf("watch?v=") !== -1;
+  }
+
+  if (watchLink) {
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (!isWatchUrl(url)) {
+      watchLink.hidden = true; // <- your requested behavior
+    }
+  }
+
+  // --- Audio toggle + close ---
+  if (listenBtn && audioBox) {
+    listenBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      audioBox.hidden = false;
+      if (listenClose) listenClose.hidden = false;
+    });
+  }
+
+  if (listenClose && audioBox) {
+    listenClose.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      // stop playback
+      var a = audioBox.querySelector("audio");
+      if (a) { try { a.pause(); a.currentTime = 0; } catch (ex) {} }
+
+      audioBox.hidden = true;
+      listenClose.hidden = true;
+    });
+  }
+})();
+</script>
+</body>
+</html>
