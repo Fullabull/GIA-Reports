@@ -1,0 +1,50 @@
+#!/bin/sh
+
+collisions=$(
+(
+    git ls-files
+    git diff --cached --name-only --diff-filter=ACMR
+) | sort -f | uniq -D -i | awk '
+{
+    key=tolower($0)
+    if (!(key in first)) {
+        first[key]=$0
+        count[key]=1
+    } else if ($0 != first[key]) {
+        count[key]++
+        vals[key]=vals[key] "\n" $0
+    }
+}
+END {
+    for (k in count) {
+        if (count[k] > 1) {
+            print first[k] vals[k]
+        }
+    }
+}'
+)
+
+if [ -n "$collisions" ]; then
+    echo ""
+    echo "ERROR: Case-insensitive filename collision detected."
+    echo "These paths differ only by case:"
+    echo "$collisions"
+    echo ""
+    echo "Fix the filenames before committing."
+    exit 1
+fi
+
+bad=$(
+    git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)[Ii]ndex\.html$'
+)
+
+if [ -n "$bad" ]; then
+    echo ""
+    echo "ERROR: Do not commit Index.html or other case variants."
+    echo "Use lowercase index.html only."
+    echo "$bad"
+    echo ""
+    exit 1
+fi
+
+exit 0
