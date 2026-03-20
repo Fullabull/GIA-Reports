@@ -230,10 +230,6 @@
             Watch on YouTube
         </a>
 
-        <a href="#" class="watch-link-btn" id="listenClose" hidden>
-            Close Player
-        </a>
-
         <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos" class="watch-link-btn" id="watchOpen" target="_blank" rel="noopener">
             UNN on YouTube
         </a>
@@ -1418,21 +1414,44 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
         var dock = $("videoDock");
 
         var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
 
-        if (frame && frame.src && (!audioDockPlayer || audioDockPlayer.hidden)) {
+        var videoIsOpen = !!(frame && frame.src);
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+
+        if (videoIsOpen && !audioIsOpen) {
             if (!confirm("Close the YouTube player?")) return;
         }
 
-        if (frame) frame.src = ""; /* stop playback */
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
         hide(dock);
 
         document.body.classList.remove("has-video-dock");
         document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
 
         localStorage.removeItem(LS_COLLAPSE);
 
         currentUrl = "";
         setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
 
         hide($("videoExpand"));
         show($("videoCollapse"));
@@ -1556,7 +1575,6 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
     (function () {
           var watchLink = $("watchLink");
           var listenBtn = $("listenLink");
-          var listenClose = $("listenClose");
           var audioBox = $("audio-player");
 
           var dock = $("videoDock");
@@ -1571,7 +1589,7 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
 
           function isWatchUrl(url) {
                   return !!url && url.indexOf("watch?v=") !== -1;
-                }
+          }
 
           function getInlineAudioSource() {
                   if (!audioBox) return "";
@@ -1582,7 +1600,7 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                   if (audioEl && audioEl.src) return audioEl.src;
 
                   return "";
-                }
+          }
 
           function openAudioDock() {
                   var src = getInlineAudioSource();
@@ -1590,6 +1608,7 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
 
                   if (videoFrame) videoFrame.src = "";
                   if (videoBox) videoBox.hidden = true;
+                  document.body.classList.remove("video-collapsed");
 
                   audioDockSource.src = src;
                   audioDockElement.load();
@@ -1606,7 +1625,6 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                   if (expandBtn) expandBtn.hidden = true;
                   if (collapseBtn) collapseBtn.hidden = false;
 
-                  if (listenClose) listenClose.hidden = false;
                   if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
 
                   if (videoOpen) {
@@ -1617,34 +1635,35 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                   if (audioBox) audioBox.hidden = true;
 
                   updateDockOffset();
-                }
+          }
 
           function closeAudioDockIfOpen() {
                   if (!audioDockPlayer || audioDockPlayer.hidden) return;
 
                   try {
-                            audioDockElement.pause();
-                            audioDockElement.currentTime = 0;
-                          } catch (ex) {}
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
 
                   audioDockSource.src = "";
                   audioDockElement.load();
 
                   audioDockPlayer.hidden = true;
-                  if (videoBox) videoBox.hidden = false;
 
-                  if (listenClose) listenClose.hidden = true;
                   if (nowPlayingText) nowPlayingText.textContent = "";
 
+                  document.body.classList.remove("audio-dock-active");
+
                   if (!videoFrame || !videoFrame.src) {
-                            if (dock) dock.hidden = true;
-                            document.body.classList.remove("has-video-dock");
-                            document.body.classList.remove("video-collapsed");
-                            document.body.classList.remove("audio-dock-active");
-                          }
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
 
                   updateDockOffset();
-                }
+          }
 
           if (watchLink) {
                   var url = watchLink.getAttribute("data-video-url") || watchLink.href;
@@ -1660,19 +1679,6 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                           });
                 }
 
-          if (listenClose) {
-                  listenClose.addEventListener("click", function (e) {
-                            e.preventDefault();
-                            closeAudioDockIfOpen();
-                          });
-                }
-
-          var videoClose = $("videoClose");
-          if (videoClose) {
-                  videoClose.addEventListener("click", function () {
-                            closeAudioDockIfOpen();
-                          });
-                }
     })();
 </script>
 </body>
