@@ -1,12 +1,20 @@
 import os
 import sys
+import re
 from pathlib import Path
 
-FOOTER_HTML = '<footer class="site-footer">© 2026 Technology Solutions of WA. All rights reserved.</footer>'
+FOOTER_HTML = '<footer class="site-footer">&copy; 2026 Technology Solutions of WA. All rights reserved.</footer>'
 FOOTER_TEXT = 'Technology Solutions of WA. All rights reserved.'
 
 def already_has_footer(text: str) -> bool:
-    return FOOTER_TEXT in text
+    return FOOTER_HTML in text
+
+def normalize_footer(text: str) -> str:
+    pattern = re.compile(
+        r'<footer\b[^>]*>\s*(?:&copy;|&#169;|©|�)?\s*2026\s+Technology Solutions of WA\.\s+All rights reserved\.\s*</footer>',
+        re.IGNORECASE
+    )
+    return pattern.sub(FOOTER_HTML, text)
 
 def insert_footer(text: str) -> str:
     lower = text.lower()
@@ -20,7 +28,6 @@ def iter_html_files(target: Path):
         if target.suffix.lower() == ".html":
             yield target
         return
-
     if target.is_dir():
         yield from target.rglob("*.html")
 
@@ -61,7 +68,12 @@ def main():
             skipped += 1
             continue
 
-        new_text = insert_footer(text)
+        normalized_text = normalize_footer(text)
+
+        if normalized_text != text:
+            new_text = normalized_text
+        else:
+            new_text = insert_footer(text)
 
         if new_text == text:
             skipped += 1

@@ -3,14 +3,13 @@ Basic usage:
 py -3 add_footer.py [target] [stdout]
 
 *******************************************************
-Option 1
-!! If no target is specified the default is all docs!!
+** Option 1
+** WARNING:
+** If no target is specified this processes all docs!!
 *******************************************************
 py -3 add_footer.py
 
-This processes:
-
-%GIA%\docs\**\*.html
+This processes: %GIA%\docs\**\*.html
 
 *******************************************************
 ** Option 2 - Entire docs folder (explicit)
