@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search GIA Repository</title>
+<style>
+
+  :root {
+    --search-page-bg: #08141C;
+    --search-surface-bg: #1C272E;
+    --search-block-bg: #2B353C;
+    --search-block-hover-bg: #394349;
+    --search-block-selected-bg: #525B60;
+    --search-block-anchor-bg: #666D72;
+    --search-button-bg: #212C33;
+    --search-button-hover-bg: #343E45;
+    --search-border-color: #525B60;
+    --search-text: #F4F4F4;
+    --search-text-muted: #C8D0D4;
+    --search-selected-text: #F4F4F4;
+    --search-anchor-text: #F4F4F4;
+    --search-disabled-bg: #121D25;
+    --search-disabled-text: #C8D0D4;
+    --search-feedback-color: #575F65;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 2rem;
+    background: var(--search-page-bg);
+    color: var(--search-text);
+  }
+
+  .search-wrap,
+  .search-panel,
+  .search-dialog,
+  .search-results-dialog,
+  .search-controls,
+  .search-toolbar {
+    background: var(--search-surface-bg);
+    color: var(--search-text);
+  }
+
+  input,
+  select,
+  textarea {
+    background: var(--search-block-bg);
+    color: var(--search-text);
+    border: 1px solid var(--search-border-color);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--search-text-muted);
+  }
+
+  input[type="text"],
+  input[type="number"] {
+    padding: 0.7rem 0.8rem;
+    font-size: 1rem;
+    border-radius: 4px;
+  }
+
+  select {
+    padding: 0.7rem 0.8rem;
+    font-size: 1rem;
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  select:hover {
+    border-color: rgba(124,196,255,0.4);
+  }
+
+  select:focus {
+    outline: none;
+    border-color: rgba(124,196,255,0.6);
+  }
+
+  button {
+    background: var(--search-button-bg);
+    color: var(--search-text);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      0 1px 2px rgba(0,0,0,0.28);
+    transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.05s ease;
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--search-button-hover-bg);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 1px 3px rgba(0,0,0,0.34);
+  }
+
+  button:disabled {
+    background: var(--search-disabled-bg);
+    border-color: var(--search-border-color);
+    color: var(--search-disabled-text);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.75;
+    pointer-events: none;
+  }
+
+  button:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 1px 2px rgba(0,0,0,0.35);
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--search-surface-bg);
+    border: 1px solid var(--search-border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+  }
+
+  h1 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    color: var(--search-text);
+  }
+
+  .status {
+    margin-bottom: 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--search-border-color);
+    border-radius: 6px;
+    background: var(--search-block-bg);
+    color: var(--search-text-muted);
+    font-size: 0.95rem;
+  }
+
+  .search-row {
+    display: none;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .search-row.ready {
+    display: flex;
+  }
+
+  #searchForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .row-main #searchInput {
+    flex: 1 1 320px; /* prefers 320px but shrinks if necessary */
+    min-width: 0;
+  }
+
+  .row-options {
+    font-size: 0.95rem;
+    padding-top: 0.15rem;
+  }
+
+  #backButton,
+  #researchButton,
+  #clearButton,
+  #findButton,
+  #resetSelectionsButton,
+  #saveSelectionsButton,
+  #btnAdvancedToggle {
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    border: 1px solid var(--search-border-color);
+    border-radius: 8px;
+    background: var(--search-button-bg);
+    color: var(--search-text);
+    cursor: pointer;
+  }
+
+  #findButton:hover,
+  #clearButton:hover,
+  #saveSelectionsButton:hover,
+  #resetSelectionsButton:hover,
+  #btnAdvancedToggle:hover {
+    background: var(--search-button-hover-bg);
+  }
+
+  #clearButton {
+    display: none;
+  }
+
+  a {
+    color: var(--search-text);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--search-text);
+    text-decoration: underline;
+  }
+
+  a:visited {
+    color: var(--search-text-muted);
+  }
+
+  a:active {
+    color: var(--search-text);
+  }
+
+  .selection-bar {
+    display: none;
+    margin-top: 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--search-border-color);
+    border-radius: 6px;
+    background: var(--search-block-bg);
+    color: var(--search-text);
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .selection-bar.ready {
+    display: flex;
+  }
+
+  .selection-count {
+    font-weight: bold;
+    margin-right: 0.5rem;
+  }
+
+  .viewerHit {
+    background: #4A565E;
+    color: var(--search-text);
+  }
+
+  #advancedPanel {
+    background: var(--search-advanced-bg);
+    border: 1px solid var(--search-advanced-border);
+    border-left: 4px solid var(--search-advanced-accent);
+    border-radius: 6px;
+    box-shadow:
+      0 10px 28px rgba(0,0,0,0.45),
+      0 0 0 1px var(--search-advanced-glow);
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  #advancedPanel .adv-row button,
+  #advancedPanel .adv-row input.term-input {
+    margin-right: 4px;
+  }
+
+  #advancedPanel .not-toggle {
+    min-width: 72px;
+    text-align: left;
+    font-family: Consolas, monospace;
+  }
+
+  #advancedPanel .not-toggle.active {
+    background: var(--search-block-selected-bg);
+    color: var(--search-selected-text);
+  }
+
+  #advancedPanel .op-btn.active {
+    background: var(--search-block-anchor-bg);
+    color: var(--search-anchor-text);
+  }
+
+  #advancedPanel .advanced-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-bottom: 0.75rem; /* 👈 breathing room below */
+  }
+
+  #advancedPanel .advanced-actions button {
+    font-size: 1.05rem;
+    padding: 0.8rem 1.3rem;   /* 👈 bigger click targets */
+    border-radius: 10px;      /* slightly rounder than normal buttons */
+    min-width: 110px;         /* keeps them consistent */
+  }
+
+
+  #advancedPanel.advanced-panel-hidden {
+    display: none;
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  #advancedPanel.advanced-panel-enter {
+    display: block;
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  #advancedPanel.advanced-panel-open {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+
+  .research-mode {
+    background-color: #2a3248;
+    color: #ffd36e;
+    border: 1px solid #525b60;
+  }
+
+@keyframes wrapFlash {
+  0%   { background-color: rgba(255, 215, 0, 0.0); }
+  40%  { background-color: rgba(255, 215, 0, 0.35); }
+  100% { background-color: rgba(255, 215, 0, 0.0); }
+}
+
+.wrap-flash {
+  animation: wrapFlash 0.4s ease-out;
+}
+
+.default-mode {
+  outline: 2px solid gold;
+  outline-offset: 1px;
+}
+
+  #themeNavBar button {
+    min-width: 44px;
+  }
+
+  #themeToggleButton {
+    min-width: 320px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 700px) {
+    #themeToggleButton {
+      min-width: 0;
+      width: 100%;
+    }
+
+    #themeNavBar {
+      width: 100%;
+    }
+  }
+
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.75rem; flex-wrap:wrap;">
+      <a href="/GIA-Reports/docs/index.html" id="homeLink">&larr; Exit Search</a>
+
+      <div id="themeNavBar" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; justify-content:flex-end;">
+        <button id="themePrevButton" type="button" title="Previous theme">&lt;</button>
+        <button id="themeToggleButton" type="button" title="Current theme">Theme</button>
+        <button id="themeNextButton" type="button" title="Next theme">&gt;</button>
+        <button id="themeResetButton" type="button" title="Reset to Deep Sea">Reset</button>
+      </div>
+    </div>
+
+    <h1>Search Reports from the Office of the Guardian</h1>
+
+    <div id="status" class="status">Loading search archive...</div>
+
+    <div id="advancedPanel" class="advanced-panel-hidden" style="padding:12px; margin-top:10px;">
+
+    <div style="font-size:1.05rem; font-weight:600; margin-bottom:10px; color:var(--search-text);">Advanced Search</div>
+    <div style="border-top:1px solid rgba(124,196,255,0.18); margin:0 0 10px 0;"></div>
+
+      <!-- TOP CONTROL ROW -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+
+        <!-- LEFT SIDE -->
+        <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+
+          <label>
+            Match:
+            <select id="advancedMatchType">
+              <option value="substring" selected>Substring</option>
+              <option value="whole">Whole word</option>
+            </select>
+          </label>
+
+          <label>
+            <input type="checkbox" id="caseSensitiveCheckbox"> Case Sensitive
+          </label>
+
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+
+          <label>
+            Sort:
+            <select id="advancedSortOrder">
+              <option value="newest" selected>Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+
+          <label>
+            Max:
+            <select id="advancedMaxRows">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+          </label>
+
+        </div>
+
+      </div>
+
+      <!-- ADVANCED ROWS -->
+      <div id="advancedRows" style="margin-top:10px;"></div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="advanced-actions">
+        <button id="btnAdvancedSearch">Search</button>
+        <button id="btnAdvancedClear">Clear</button>
+        <button id="btnAdvancedClose">Close</button>
+      </div>
+
+    </div>
+
+    <div id="searchRow" class="search-row">
+      <form id="searchForm">
+        <div class="row row-main">
+          <input id="searchInput" type="text" placeholder="Enter search text..." autocomplete="off" />
+
+          <button id="findButton" type="button">Find</button>
+          <button id="researchButton" type="button" style="display:none;">ReSearch</button>
+          <button id="backButton" type="button" style="display:none;">Back</button>
+
+          <select id="sortOrder">
+            <option value="newest" selected>Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+
+          <select id="maxRows">
+            <option value="25">25 rows</option>
+            <option value="50" selected>50 rows</option>
+            <option value="100">100 rows</option>
+            <option value="200">200 rows</option>
+            <option value="500">500 rows</option>
+          </select>
+        </div>
+
+        <div class="row row-options">
+          <label for="matchType">Match:</label>
+          <select id="matchType">
+            <option value="substring" selected>Substring</option>
+            <option value="whole">Whole word</option>
+          </select>
+
+          <label for="caseType">Case:</label>
+          <select id="caseType">
+            <option value="insensitive" selected>Ignore case</option>
+            <option value="sensitive">Match case</option>
+          </select>
+
+          <button type="button" id="btnAdvancedToggle">Advanced</button>
+          <!--
+          <button id="btnAdvancedToggle" type="button" hidden aria-hidden="true" tabindex="-1" >Advanced</button>
+          -->
+          <button type="button" id="clearButton">Reset</button>
+        </div>
+
+      </form>
+    </div>
+
+    <div id="selectionBar" class="selection-bar">
+      <span id="selectionCount" class="selection-count">Selected: 0</span>
+      <label for="includeMetadataCheckbox">
+        <input id="includeMetadataCheckbox" type="checkbox" checked />
+        Include metadata
+      </label>
+      <button id="saveSelectionsButton" type="button">Save Selections</button>
+      <button id="resetSelectionsButton" type="button">Reset Selections</button>
+    </div>
+
+    <div id="results" style="display:none; margin-top:1rem;"></div>
+
+    <div id="viewerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000;">
+      <div style="position:absolute; top:5%; left:5%; width:90%; height:90%; background:var(--search-surface-bg);color:var(--search-text); border:1px solid #999; border-radius:8px; display:flex; flex-direction:column;">
+
+        <div style="padding:0.75rem 1rem; border-bottom:1px solid #ddd; display:flex; align-items:center;">
+
+          <!-- LEFT -->
+          <div id="viewerTitle" style="font-weight:bold; flex:1;"></div>
+
+          <!-- CENTER -->
+          <div style="display:flex; gap:0.75rem; justify-content:center;">
+            <button id="viewerPrevButton" type="button">Prev File</button>
+            <button id="viewerNextButton" type="button">Next File</button>
+          </div>
+
+          <!-- RIGHT -->
+          <div style="flex:1; display:flex; justify-content:flex-end;">
+            <button id="viewerThemeToggleButton" type="button">Theme</button>
+          </div>
+
+        </div>
+
+        <div id="viewerBody" style="flex:1; overflow:auto; padding:1rem; font-family:Consolas, monospace; white-space:pre-wrap;"></div>
+
+        <div id="viewerSelectBar" style="padding:0.3rem 1rem 0.2rem 1rem; border-top:1px solid var(--search-border-color); text-align:center;">
+          <span style="margin-right:0.5rem; color:var(--search-text-muted);">Select for Export:</span>
+          <button id="viewerSelectPrevBlockButton" type="button">Previous</button>
+          <button id="viewerSelectButton" type="button">Select This Block</button>
+          <button id="viewerSelectNextBlockButton" type="button">Next</button>
+        </div>
+
+        <div style="padding:0.2rem 1rem 0.4rem 1rem; border-top:1px solid var(--search-border-color); text-align:center;">
+          <span style="margin-right:0.5rem; color:var(--search-text-muted);">Navigate:</span>
+          <button id="viewerPrevHitButton" type="button">&lt;&lt;</button>
+          <button id="viewerCloseButton" type="button">Return to Results</button>
+          <button id="viewerNextHitButton" type="button">&gt;&gt;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/GIA-Reports/docs/js/jszip.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script>
+    (function () {
+      const TOOL_VERSION = '2026-03-29.1';
+      const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
+
+      const themeToggleButtonEl = document.getElementById('themeToggleButton');
+      const viewerThemeToggleButtonEl = document.getElementById('viewerThemeToggleButton');
+      const themePrevButtonEl = document.getElementById('themePrevButton');
+      const themeNextButtonEl = document.getElementById('themeNextButton');
+      const themeResetButtonEl = document.getElementById('themeResetButton');
+
+      const caseTypeEl = document.getElementById('caseType');
+      const matchTypeEl = document.getElementById('matchType');
+      const maxRowsEl = document.getElementById('maxRows');
+      const resultsEl = document.getElementById('results');
+      const searchFormEl = document.getElementById('searchForm');
+      const searchInputEl = document.getElementById('searchInput');
+      const searchRowEl = document.getElementById('searchRow');
+      const sortOrderEl = document.getElementById('sortOrder');
+      const statusEl = document.getElementById('status');
+      const clearButtonEl = document.getElementById('clearButton');
+      const findButtonEl = document.getElementById('findButton');
+      const backButtonEl = document.getElementById('backButton');
+      const researchButtonEl = document.getElementById('researchButton');
+
+      const advancedPanelEl = document.getElementById('advancedPanel');
+      const btnAdvancedToggleEl = document.getElementById('btnAdvancedToggle');
+      const advancedRowsEl = document.getElementById('advancedRows');
+      const btnAdvancedSearchEl = document.getElementById('btnAdvancedSearch');
+      const btnAdvancedClearEl = document.getElementById('btnAdvancedClear');
+      const btnAdvancedCloseEl = document.getElementById('btnAdvancedClose');
+      const advancedMatchTypeEl = document.getElementById('advancedMatchType');
+      const advancedSortOrderEl = document.getElementById('advancedSortOrder');
+      const advancedMaxRowsEl = document.getElementById('advancedMaxRows');
+      const caseSensitiveCheckboxEl = document.getElementById('caseSensitiveCheckbox');
+
+      const selectionBarEl = document.getElementById('selectionBar');
+      const selectionCountEl = document.getElementById('selectionCount');
+      const includeMetadataCheckboxEl = document.getElementById('includeMetadataCheckbox');
+      const saveSelectionsButtonEl = document.getElementById('saveSelectionsButton');
+      const resetSelectionsButtonEl = document.getElementById('resetSelectionsButton');
+
+      const viewerOverlayEl = document.getElementById('viewerOverlay');
+      const viewerTitleEl = document.getElementById('viewerTitle');
+      const viewerBodyEl = document.getElementById('viewerBody');
+      const viewerPrevButtonEl = document.getElementById('viewerPrevButton');
+      const viewerCloseButtonEl = document.getElementById('viewerCloseButton');
+      const viewerNextButtonEl = document.getElementById('viewerNextButton');
+      const viewerPrevHitButtonEl = document.getElementById('viewerPrevHitButton');
+      const viewerNextHitButtonEl = document.getElementById('viewerNextHitButton');
+      const viewerSelectButtonEl = document.getElementById('viewerSelectButton');
+      const viewerSelectPrevBlockButtonEl = document.getElementById('viewerSelectPrevBlockButton');
+      const viewerSelectNextBlockButtonEl = document.getElementById('viewerSelectNextBlockButton');
+
+
+      const LS_DEFAULT_SEARCH_MODE = 'GIADefaultSearchMode';
+      const LS_SEARCH_THEME_INDEX = 'GIASearchThemeIndex';
+      const savedMode = localStorage.getItem(LS_DEFAULT_SEARCH_MODE);
+
+      window.GIACurrentHitIndex = -1;
+      window.GIACurrentOpenFile = null;
+      window.GIACurrentResultIndex = -1;
+      window.GIADefaultSearchMode = (savedMode === 'research') ? 'research' : 'find';
+      window.GIAFullSearchResults = [];
+      window.GIAHitElements = [];
+      window.GIAHitMatches = [];
+      window.GIAReSearchChain = [];
+      window.GIAReSearchHistory = [];
+      window.GIAReSearchMode = false;
+      window.GIASearchArchive = { loaded: false, files: [] };
+      window.GIASearchBaseFiles = [];
+      window.GIASearchResults = [];
+      window.GIASelectedResults = [];
+      window.lastSearchOptions = {};
+      window.lastSearchQuery = '';
+
+      function clamp(n, min, max) {
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function hexToRgb(hex) {
+        const h = hex.replace('#', '').trim();
+        if (h.length !== 6 && h.length !== 8) {
+          throw new Error('Expected 6-digit or 8-digit hex: ' + hex);
+        }
+
+        const s = h.slice(0, 6);
+
+        return {
+          r: parseInt(s.slice(0, 2), 16),
+          g: parseInt(s.slice(2, 4), 16),
+          b: parseInt(s.slice(4, 6), 16)
+        };
+      }
+
+      function rgbToHex(r, g, b) {
+        const toHex = function (v) {
+          return clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0').toUpperCase();
+        };
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+      }
+
+      function mix(hex1, hex2, amount) {
+        const a = hexToRgb(hex1);
+        const b = hexToRgb(hex2);
+        const t = clamp(amount, 0, 1);
+
+        return rgbToHex(
+          a.r + (b.r - a.r) * t,
+          a.g + (b.g - a.g) * t,
+          a.b + (b.b - a.b) * t
+        );
+      }
+
+      function luminance(hex) {
+        const rgb = hexToRgb(hex);
+
+        function channel(v) {
+          v /= 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        }
+
+        const R = channel(rgb.r);
+        const G = channel(rgb.g);
+        const B = channel(rgb.b);
+
+        return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+      }
+
+      function isLightBase(hex) {
+        return luminance(hex) >= 0.45;
+      }
+
+      function makeSearchThemeFromBase(name, baseHex, familyName, absoluteIndex) {
+        const light = isLightBase(baseHex);
+
+        let pageBg;
+        let surfaceBg;
+        let blockBg;
+        let blockHoverBg;
+        let blockSelectedBg;
+        let blockAnchorBg;
+        let buttonBg;
+        let buttonHoverBg;
+        let borderColor;
+        let textColor;
+        let mutedTextColor;
+        let selectedTextColor;
+        let anchorTextColor;
+        let disabledBg;
+        let disabledTextColor;
+        let feedbackColor;
+        let advancedBg;
+        let advancedBorder;
+        let advancedAccent;
+        let advancedGlow;
+
+        if (light) {
+          pageBg = baseHex;
+          surfaceBg = mix(baseHex, '#000000', 0.04);
+          blockBg = mix(baseHex, '#000000', 0.08);
+          blockHoverBg = mix(baseHex, '#000000', 0.14);
+          blockSelectedBg = mix(baseHex, '#000000', 0.22);
+          blockAnchorBg = mix(baseHex, '#000000', 0.30);
+
+          buttonBg = mix(baseHex, '#000000', 0.06);
+          buttonHoverBg = mix(baseHex, '#000000', 0.12);
+          borderColor = mix(baseHex, '#000000', 0.25);
+
+          textColor = '#202020';
+          mutedTextColor = '#606060';
+          selectedTextColor = '#202020';
+          anchorTextColor = '#202020';
+
+          disabledBg = mix(baseHex, '#000000', 0.03);
+          disabledTextColor = '#606060';
+          feedbackColor = mix(baseHex, '#000000', 0.26);
+
+          advancedBg = mix(baseHex, '#000000', 0.06);
+          advancedBorder = 'rgba(0,0,0,0.18)';
+          advancedAccent = 'rgba(0,0,0,0.32)';
+          advancedGlow = 'rgba(0,0,0,0.06)';
+        } else {
+          pageBg = baseHex;
+          surfaceBg = mix(baseHex, '#FFFFFF', 0.12);
+          blockBg = mix(baseHex, '#FFFFFF', 0.18);
+          blockHoverBg = mix(baseHex, '#FFFFFF', 0.24);
+          blockSelectedBg = mix(baseHex, '#FFFFFF', 0.32);
+          blockAnchorBg = mix(baseHex, '#FFFFFF', 0.40);
+
+          buttonBg = mix(baseHex, '#FFFFFF', 0.14);
+          buttonHoverBg = mix(baseHex, '#FFFFFF', 0.22);
+          borderColor = mix(baseHex, '#FFFFFF', 0.32);
+
+          textColor = '#F4F4F4';
+          mutedTextColor = '#C8D0D4';
+          selectedTextColor = '#F4F4F4';
+          anchorTextColor = '#F4F4F4';
+
+          disabledBg = mix(baseHex, '#000000', 0.10);
+          disabledTextColor = '#C8D0D4';
+          feedbackColor = mix(baseHex, '#FFFFFF', 0.28);
+
+          advancedBg = mix(baseHex, '#FFFFFF', 0.16);
+          advancedBorder = 'rgba(124,196,255,0.35)';
+          advancedAccent = 'rgba(124,196,255,0.75)';
+          advancedGlow = 'rgba(124,196,255,0.12)';
+        }
+
+        return {
+          name: name,
+          familyName: familyName,
+          activeFamilyIndex: -1,
+          toneIndex: -1,
+          absoluteIndex: absoluteIndex,
+          baseHex: baseHex,
+          accentHex: null,
+          theme: {
+            pageBg: pageBg,
+            surfaceBg: surfaceBg,
+            blockBg: blockBg,
+            blockHoverBg: blockHoverBg,
+            blockSelectedBg: blockSelectedBg,
+            blockAnchorBg: blockAnchorBg,
+            buttonBg: buttonBg,
+            buttonHoverBg: buttonHoverBg,
+            borderColor: borderColor,
+            textColor: textColor,
+            mutedTextColor: mutedTextColor,
+            selectedTextColor: selectedTextColor,
+            anchorTextColor: anchorTextColor,
+            disabledBg: disabledBg,
+            disabledTextColor: disabledTextColor,
+            feedbackColor: feedbackColor,
+            advancedBg: advancedBg,
+            advancedBorder: advancedBorder,
+            advancedAccent: advancedAccent,
+            advancedGlow: advancedGlow
+          }
+        };
+      }
+
+const starterBases = [
+  { name: 'White to Light 01', familyName: 'White to Light', base: '#FFFFFF' },
+  { name: 'White to Light 02', familyName: 'White to Light', base: '#FFFFF4' },
+  { name: 'White to Light 03', familyName: 'White to Light', base: '#FFFFF2' },
+  { name: 'White to Light 04', familyName: 'White to Light', base: '#FFFFF0' },
+  { name: 'White to Light 05', familyName: 'White to Light', base: '#FFFAFA' },
+  { name: 'White to Light 06', familyName: 'White to Light', base: '#F9F9F9' },
+  { name: 'White to Light 07', familyName: 'White to Light', base: '#F7F7F7' },
+  { name: 'White to Light 08', familyName: 'White to Light', base: '#F2F2F2' },
+  { name: 'White to Light 09', familyName: 'White to Light', base: '#FDFCF3' },
+  { name: 'White to Light 10', familyName: 'White to Light', base: '#FCFCF6' },
+
+  { name: 'Light and Creme 01', familyName: 'Light and Creme', base: '#FFFDD0' },
+  { name: 'Light and Creme 02', familyName: 'Light and Creme', base: '#FFF8DC' },
+  { name: 'Light and Creme 03', familyName: 'Light and Creme', base: '#FFFAF0' },
+  { name: 'Light and Creme 04', familyName: 'Light and Creme', base: '#FFF5EE' },
+  { name: 'Light and Creme 05', familyName: 'Light and Creme', base: '#FFEFDB' },
+  { name: 'Light and Creme 06', familyName: 'Light and Creme', base: '#FFEBCD' },
+  { name: 'Light and Creme 07', familyName: 'Light and Creme', base: '#FEF5D5' },
+  { name: 'Light and Creme 08', familyName: 'Light and Creme', base: '#FEF2D4' },
+  { name: 'Light and Creme 09', familyName: 'Light and Creme', base: '#FEF1D6' },
+  { name: 'Light and Creme 10', familyName: 'Light and Creme', base: '#FCEFD3' },
+
+  { name: 'Skin to Medium 01', familyName: 'Skin to Medium', base: '#FBF7F5' },
+  { name: 'Skin to Medium 02', familyName: 'Skin to Medium', base: '#FBF4DD' },
+  { name: 'Skin to Medium 03', familyName: 'Skin to Medium', base: '#FAF0E6' },
+  { name: 'Skin to Medium 04', familyName: 'Skin to Medium', base: '#FAEBD7' },
+  { name: 'Skin to Medium 05', familyName: 'Skin to Medium', base: '#F9F1F1' },
+  { name: 'Skin to Medium 06', familyName: 'Skin to Medium', base: '#F9F0D8' },
+  { name: 'Skin to Medium 07', familyName: 'Skin to Medium', base: '#FDF5E6' },
+  { name: 'Skin to Medium 08', familyName: 'Skin to Medium', base: '#FDF3D6' },
+  { name: 'Skin to Medium 09', familyName: 'Skin to Medium', base: '#F0EAD6' },
+  { name: 'Skin to Medium 10', familyName: 'Skin to Medium', base: '#E2DBC5' },
+
+  { name: 'Medium to Earth 01', familyName: 'Medium to Earth', base: '#BDBCA7' },
+  { name: 'Medium to Earth 02', familyName: 'Medium to Earth', base: '#BBD58E' },
+  { name: 'Medium to Earth 03', familyName: 'Medium to Earth', base: '#919481' },
+  { name: 'Medium to Earth 04', familyName: 'Medium to Earth', base: '#656E5B' },
+  { name: 'Medium to Earth 05', familyName: 'Medium to Earth', base: '#5A6F4E' },
+  { name: 'Medium to Earth 06', familyName: 'Medium to Earth', base: '#588157' },
+  { name: 'Medium to Earth 07', familyName: 'Medium to Earth', base: '#4A4A4A' },
+  { name: 'Medium to Earth 08', familyName: 'Medium to Earth', base: '#47593F' },
+  { name: 'Medium to Earth 09', familyName: 'Medium to Earth', base: '#415B38' },
+  { name: 'Medium to Earth 10', familyName: 'Medium to Earth', base: '#3F523F' },
+
+  { name: 'Earth to Dark 01', familyName: 'Earth to Dark', base: '#3E4F3E' },
+  { name: 'Earth to Dark 02', familyName: 'Earth to Dark', base: '#3A5A40' },
+  { name: 'Earth to Dark 03', familyName: 'Earth to Dark', base: '#3A4D38' },
+  { name: 'Earth to Dark 04', familyName: 'Earth to Dark', base: '#344E41' },
+  { name: 'Earth to Dark 05', familyName: 'Earth to Dark', base: '#33482F' },
+  { name: 'Earth to Dark 06', familyName: 'Earth to Dark', base: '#313131' },
+  { name: 'Earth to Dark 07', familyName: 'Earth to Dark', base: '#29412A' },
+  { name: 'Earth to Dark 08', familyName: 'Earth to Dark', base: '#263B28' },
+  { name: 'Earth to Dark 09', familyName: 'Earth to Dark', base: '#233A24' },
+  { name: 'Earth to Dark 10', familyName: 'Earth to Dark', base: '#1D311D' }
+];
+
+
+      const searchThemes = starterBases.map(function (item, index) {
+        return makeSearchThemeFromBase(item.name, item.base, item.familyName, index);
+      });
+
+
+
+      function applySortOrderChange() {
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      }
+
+      function applyMaxRowsChange() {
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      }
+
+      function syncAdvancedControlsFromMain() {
+        advancedMatchTypeEl.value = matchTypeEl.value;
+        advancedSortOrderEl.value = sortOrderEl.value;
+        advancedMaxRowsEl.value = maxRowsEl.value;
+        caseSensitiveCheckboxEl.checked = (caseTypeEl.value === 'sensitive');
+      }
+
+      function rerenderCurrentResults() {
+        if (!Array.isArray(window.GIAFullSearchResults)) {
+          return;
+        }
+
+        console.log('rerenderCurrentResults GIAFullSearchResults.length =', window.GIAFullSearchResults.length);
+        console.log('rerenderCurrentResults lastSearchQuery =', window.lastSearchQuery);
+        console.log('rerenderCurrentResults maxRows =', maxRowsEl.value);
+
+        let matches = window.GIAFullSearchResults.slice();
+        const sortOrder = sortOrderEl.value;
+        const maxRows = parseInt(maxRowsEl.value, 10);
+
+        matches.sort(function(a, b) {
+          const aName = a.name.split('/').pop();
+          const bName = b.name.split('/').pop();
+
+          if (sortOrder === 'oldest') {
+            if (a.year !== b.year) return a.year - b.year;
+            return aName.localeCompare(bName);
+          } else {
+            if (a.year !== b.year) return b.year - a.year;
+            return bName.localeCompare(aName);
+          }
+        });
+
+        const totalMatchedFiles = matches.length;
+        matches = matches.slice(0, maxRows);
+        window.GIASearchResults = matches;
+
+        let html = '<div>Found in ' + totalMatchedFiles + ' file(s)';
+        if (totalMatchedFiles > matches.length) {
+          html += ' (showing first ' + matches.length + ')';
+        }
+        html += ':</div>';
+        html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
+        html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
+
+        const effectiveMatchType =
+          window.lastSearchOptions && window.lastSearchOptions.matchType
+            ? window.lastSearchOptions.matchType
+            : matchTypeEl.value;
+
+        const effectiveCaseType =
+          window.lastSearchOptions && window.lastSearchOptions.caseType
+            ? window.lastSearchOptions.caseType
+            : caseTypeEl.value;
+
+        const countRegex = getSearchRegex(
+          window.lastSearchQuery,
+          effectiveMatchType,
+          effectiveCaseType,
+          true
+        );
+
+        for (let i = 0; i < matches.length; i++) {
+          const file = matches[i];
+          const filename = file.name.split('/').pop();
+          const hits = file.text.match(countRegex);
+          const count = hits ? hits.length : 0;
+
+          html += '<tr>';
+          html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
+          html += '<td><a href="#" class="resultLink" data-result-index="' + i + '">' + filename + '</a></td>';
+          html += '</tr>';
+        }
+
+        html += '</table>';
+        resultsEl.innerHTML = html;
+
+        const resultLinks = resultsEl.querySelectorAll('.resultLink');
+        for (const link of resultLinks) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const resultIndex = parseInt(this.getAttribute('data-result-index'), 10);
+            const file = window.GIASearchResults[resultIndex];
+            window.GIACurrentResultIndex = resultIndex;
+            openViewer(file, window.lastSearchQuery);
+          });
+        }
+      }
+
+      function resetViewerState() {
+        window.GIACurrentResultIndex = -1;
+        window.GIACurrentOpenFile = null;
+        window.GIAHitElements = [];
+        window.GIAHitMatches = [];
+        window.GIACurrentHitIndex = -1;
+        viewerTitleEl.textContent = '';
+      }
+
+      function runFindSearch(query) {
+        window.lastSearchQuery = query;
+        window.GIAReSearchMode = false;
+        window.GIAReSearchChain = [];
+        window.GIAReSearchHistory = [];
+        window.GIASearchResults = [];
+
+        statusEl.textContent = '';
+        updateReSearchState();
+
+        runSearch(query);
+      }
+
+      function setDefaultSearchMode(mode) {
+        window.GIADefaultSearchMode = mode;
+        localStorage.setItem(LS_DEFAULT_SEARCH_MODE, mode);
+        updateDefaultSearchModeUI();
+        updateStatusBar();
+      }
+
+      function getDefaultSearchModeLabel() {
+      return window.GIADefaultSearchMode === 'research' ? 'ReSearch' : 'Find';
+      }
+
+      function updateDefaultSearchModeUI() {
+        findButtonEl.classList.toggle('default-mode', window.GIADefaultSearchMode === 'find');
+        researchButtonEl.classList.toggle('default-mode', window.GIADefaultSearchMode === 'research');
+      }
+
+      let defaultModeHoldTimer = null;
+      const DEFAULT_MODE_HOLD_MS = 600;
+
+      function attachDefaultModeLongPress(buttonEl, mode) {
+        function startHold() {
+          clearTimeout(defaultModeHoldTimer);
+          defaultModeHoldTimer = setTimeout(function () {
+            setDefaultSearchMode(mode);
+          }, DEFAULT_MODE_HOLD_MS);
+        }
+
+        function cancelHold() {
+          clearTimeout(defaultModeHoldTimer);
+          defaultModeHoldTimer = null;
+        }
+
+        buttonEl.addEventListener('mousedown', startHold);
+        buttonEl.addEventListener('mouseup', cancelHold);
+        buttonEl.addEventListener('mouseleave', cancelHold);
+
+        buttonEl.addEventListener('touchstart', startHold, { passive: true });
+        buttonEl.addEventListener('touchend', cancelHold);
+        buttonEl.addEventListener('touchcancel', cancelHold);
+      }
+
+      attachDefaultModeLongPress(findButtonEl, 'find');
+      attachDefaultModeLongPress(researchButtonEl, 'research');
+      updateDefaultSearchModeUI();
+
+      function flashWrap(direction) {
+        if (!viewerOverlayEl) return;
+
+        viewerOverlayEl.classList.add('wrap-flash');
+
+        setTimeout(() => {
+          viewerOverlayEl.classList.remove('wrap-flash');
+        }, 450);
+      }
+
+      function moveToPreviousHit() {
+        if (!window.GIAHitElements || window.GIAHitElements.length === 0) {
+          return;
+        }
+
+        if (window.GIACurrentHitIndex > 0) {
+          window.GIACurrentHitIndex--;
+          updateCurrentHit();
+          return;
+        }
+
+        if (window.GIACurrentResultIndex > 0) {
+          window.GIACurrentResultIndex--;
+          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+          openViewer(file, window.lastSearchQuery);
+
+          if (window.GIAHitElements.length > 0) {
+            window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
+            updateCurrentHit();
+          }
+          return;
+        }
+
+        window.GIACurrentResultIndex = window.GIASearchResults.length - 1;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+
+        if (window.GIAHitElements.length > 0) {
+          window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
+          updateCurrentHit();
+          flashWrap('backward');
+        }
+      }
+
+      function moveToNextHit() {
+        if (!window.GIAHitElements || window.GIAHitElements.length === 0) {
+          return;
+        }
+
+        if (window.GIACurrentHitIndex < window.GIAHitElements.length - 1) {
+          window.GIACurrentHitIndex++;
+          updateCurrentHit();
+          return;
+        }
+
+        if (window.GIACurrentResultIndex < window.GIASearchResults.length - 1) {
+          window.GIACurrentResultIndex++;
+          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+          openViewer(file, window.lastSearchQuery);
+
+          if (window.GIAHitElements.length > 0) {
+            window.GIACurrentHitIndex = 0;
+            updateCurrentHit();
+          }
+          return;
+        }
+
+        window.GIACurrentResultIndex = 0;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+
+        if (window.GIAHitElements.length > 0) {
+          window.GIACurrentHitIndex = 0;
+          updateCurrentHit();
+          flashWrap('forward');
+        }
+      }
+
+      function updateReSearchState() {
+        const hasActiveSubset =
+          window.GIAReSearchMode &&
+          Array.isArray(window.GIASearchResults) &&
+          window.GIASearchResults.length > 0;
+
+        const hasHistory =
+          Array.isArray(window.GIAReSearchHistory) &&
+          window.GIAReSearchHistory.length > 0;
+
+        researchButtonEl.style.display = hasActiveSubset ? 'inline-block' : 'none';
+        backButtonEl.style.display = hasHistory ? 'inline-block' : 'none';
+      }
+
+      function updateSearchModeUI() {
+        if (window.GIAReSearchMode) {
+          findButtonEl.textContent = 'ReSearch';
+          findButtonEl.classList.add('research-mode');
+        } else {
+          findButtonEl.textContent = 'Find';
+          findButtonEl.classList.remove('research-mode');
+        }
+      }
+
+      function applySearchTheme(theme) {
+        const root = document.documentElement;
+
+        root.style.setProperty('--search-page-bg', theme.pageBg);
+        root.style.setProperty('--search-surface-bg', theme.surfaceBg);
+        root.style.setProperty('--search-block-bg', theme.blockBg);
+        root.style.setProperty('--search-block-hover-bg', theme.blockHoverBg);
+        root.style.setProperty('--search-block-selected-bg', theme.blockSelectedBg);
+        root.style.setProperty('--search-block-anchor-bg', theme.blockAnchorBg);
+        root.style.setProperty('--search-button-bg', theme.buttonBg);
+        root.style.setProperty('--search-button-hover-bg', theme.buttonHoverBg);
+        root.style.setProperty('--search-border-color', theme.borderColor);
+        root.style.setProperty('--search-text', theme.textColor);
+        root.style.setProperty('--search-text-muted', theme.mutedTextColor);
+        root.style.setProperty('--search-selected-text', theme.selectedTextColor);
+        root.style.setProperty('--search-anchor-text', theme.anchorTextColor);
+        root.style.setProperty('--search-disabled-bg', theme.disabledBg);
+        root.style.setProperty('--search-disabled-text', theme.disabledTextColor);
+        root.style.setProperty('--search-feedback-color', theme.feedbackColor);
+        root.style.setProperty('--search-advanced-bg', theme.advancedBg);
+        root.style.setProperty('--search-advanced-border', theme.advancedBorder);
+        root.style.setProperty('--search-advanced-accent', theme.advancedAccent);
+        root.style.setProperty('--search-advanced-glow', theme.advancedGlow);       
+      }
+
+      function updateThemeButtonLabel() {
+        const current = searchThemes[currentThemeIndex];
+        if (!current) {
+          themeToggleButtonEl.textContent = 'Theme';
+          return;
+        }
+
+        themeToggleButtonEl.textContent =
+          'Theme: ' + current.name +
+          ' (' + (currentThemeIndex + 1) + ' of ' + searchThemes.length + ')' +
+          ' - ' + current.baseHex;
+      }
+
+      function applyThemeByIndex(index) {
+        if (index < 0) {
+          index = searchThemes.length - 1;
+        } else if (index >= searchThemes.length) {
+          index = 0;
+        }
+
+        currentThemeIndex = index;
+        localStorage.setItem(LS_SEARCH_THEME_INDEX, String(currentThemeIndex));
+        applySearchTheme(searchThemes[currentThemeIndex].theme);
+        updateThemeButtonLabel();
+      }
+
+
+      function extractDateFromFilename(filename) {
+        const m = filename.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) {
+          return '00000000';
+        }
+        return m[1] + m[2] + m[3]; // YYYYMMDD
+      }
+
+      function normalizeTime(ts) {
+        if (!ts) {
+          return '00:00:00';
+        }
+        return ts;
+      }
+
+      function escapeHtml(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function escapeRegex(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+
+      function getSearchRegex(query, matchType, caseType, globalFlag) {
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = (matchType === 'whole') ? ('\\b' + safe + '\\b') : safe;
+        let flags = '';
+        if (globalFlag) flags += 'g';
+        if (caseType === 'insensitive') flags += 'i';
+        return new RegExp(pattern, flags);
+      }
+
+      function updateSelectionCount() {
+        const count = window.GIASelectedResults.length;
+        const hasSelections = (count > 0);
+
+        selectionCountEl.textContent = 'Selected: ' + count;
+
+        saveSelectionsButtonEl.disabled = !hasSelections;
+        resetSelectionsButtonEl.disabled = !hasSelections;
+
+        if (hasSelections) {
+          selectionBarEl.classList.add('ready');
+        } else {
+          selectionBarEl.classList.remove('ready');
+        }
+      }
+
+      function getBlockBounds(fullText, hitIndex) {
+        const timestampRegex = /^(\d{2}:\d{2}:\d{2})$/gm;
+        const starts = [];
+        let match;
+
+        while ((match = timestampRegex.exec(fullText)) !== null) {
+          starts.push(match.index);
+
+          if (match[0].length === 0) {
+            timestampRegex.lastIndex++;
+          }
+        }
+
+        if (starts.length === 0) {
+          return {
+            start: 0,
+            end: fullText.length
+          };
+        }
+
+        let blockStart = starts[0];
+        let blockEnd = fullText.length;
+
+        for (let i = 0; i < starts.length; i++) {
+          const start = starts[i];
+          const nextStart = (i + 1 < starts.length) ? starts[i + 1] : fullText.length;
+
+          if (hitIndex >= start && hitIndex < nextStart) {
+            blockStart = start;
+            blockEnd = nextStart;
+            break;
+          }
+        }
+
+        while (blockEnd > blockStart && /\s/.test(fullText.charAt(blockEnd - 1))) {
+          blockEnd--;
+        }
+
+        return {
+          start: blockStart,
+          end: blockEnd
+        };
+      }
+
+      function extractTimestamp(blockText, fullText, hitIndex) {
+        let m = blockText.match(/^\s*(\d{2}:\d{2}:\d{2})/m);
+        if (m) {
+          return m[1];
+        }
+
+        const before = fullText.substring(0, hitIndex);
+        const matches = before.match(/(\d{2}:\d{2}:\d{2})/g);
+
+        if (matches && matches.length > 0) {
+          return matches[matches.length - 1];
+        }
+
+        return 'UNKNOWN';
+      }
+
+      function getCurrentSelectedBlock() {
+        if (!window.GIACurrentOpenFile) {
+          return null;
+        }
+
+        if (window.GIACurrentHitIndex < 0 || window.GIACurrentHitIndex >= window.GIAHitMatches.length) {
+          return null;
+        }
+
+        const file = window.GIACurrentOpenFile;
+        const hit = window.GIAHitMatches[window.GIACurrentHitIndex];
+        const bounds = getBlockBounds(file.text, hit.index);
+        const blockText = file.text.substring(bounds.start, bounds.end).trim();
+        const filename = file.name.split('/').pop();
+        const timestamp = extractTimestamp(blockText, file.text, hit.index);
+
+        return {
+          query: window.lastSearchQuery || '',
+          filename: filename,
+          filePath: file.name,
+          reportUrl: file.url,
+          timestamp: timestamp,
+          hitNumberInFile: window.GIACurrentHitIndex + 1,
+          hitCountInFile: window.GIAHitMatches.length,
+          blockText: blockText,
+          blockStart: bounds.start
+        };
+      }
+
+      function getAdjacentBlock(offset) {
+        if (!window.GIACurrentOpenFile) {
+          return null;
+        }
+
+        if (window.GIACurrentHitIndex < 0 || window.GIACurrentHitIndex >= window.GIAHitMatches.length) {
+          return null;
+        }
+
+        if (offset !== -1 && offset !== 1) {
+          return null;
+        }
+
+        const file = window.GIACurrentOpenFile;
+        const hit = window.GIAHitMatches[window.GIACurrentHitIndex];
+        const fullText = file.text;
+        const timestampRegex = /^(\d{2}:\d{2}:\d{2})$/gm;
+        const starts = [];
+        let match;
+
+        while ((match = timestampRegex.exec(fullText)) !== null) {
+          starts.push(match.index);
+
+          if (match[0].length === 0) {
+            timestampRegex.lastIndex++;
+          }
+        }
+
+        if (starts.length === 0) {
+          return null;
+        }
+
+        let currentBlockIndex = -1;
+
+        for (let i = 0; i < starts.length; i++) {
+          const start = starts[i];
+          const nextStart = (i + 1 < starts.length) ? starts[i + 1] : fullText.length;
+
+          if (hit.index >= start && hit.index < nextStart) {
+            currentBlockIndex = i;
+            break;
+          }
+        }
+
+        if (currentBlockIndex === -1) {
+          return null;
+        }
+
+        const targetBlockIndex = currentBlockIndex + offset;
+
+        if (targetBlockIndex < 0 || targetBlockIndex >= starts.length) {
+          return null;
+        }
+
+        const start = starts[targetBlockIndex];
+        let end = (targetBlockIndex + 1 < starts.length) ? starts[targetBlockIndex + 1] : fullText.length;
+
+        while (end > start && /\s/.test(fullText.charAt(end - 1))) {
+          end--;
+        }
+
+        const blockText = fullText.substring(start, end).trim();
+
+        if (!blockText) {
+          return null;
+        }
+
+        const filename = file.name.split('/').pop();
+
+        return {
+          query: window.lastSearchQuery || '',
+          filename: filename,
+          filePath: file.name,
+          reportUrl: file.url,
+          timestamp: extractTimestamp(blockText, fullText, start),
+          hitNumberInFile: window.GIACurrentHitIndex + 1,
+          hitCountInFile: window.GIAHitMatches.length,
+          blockText: blockText,
+          blockStart: start
+        };
+      }
+
+      function isCurrentBlockSelected() {
+        const selected = getCurrentSelectedBlock();
+
+        if (!selected) {
+          return false;
+        }
+
+        return isDuplicateSelection(selected);
+      }
+
+      function updateSelectButtonState() {
+        if (window.GIAHitMatches.length === 0) {
+          viewerSelectButtonEl.disabled = true;
+          viewerSelectButtonEl.textContent = 'Select This Block';
+          return;
+        }
+
+        if (isCurrentBlockSelected()) {
+          viewerSelectButtonEl.disabled = true;
+          viewerSelectButtonEl.textContent = 'Already Selected';
+        } else {
+          viewerSelectButtonEl.disabled = false;
+          viewerSelectButtonEl.textContent = 'Select This Block';
+        }
+      }
+
+      function isDuplicateSelection(newItem) {
+        for (let i = 0; i < window.GIASelectedResults.length; i++) {
+          const item = window.GIASelectedResults[i];
+          if (item.filename === newItem.filename && item.blockStart === newItem.blockStart) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function flashAddedMessage(buttonEl) {
+        const baseTitle = viewerTitleEl.textContent.split('   ')[0];
+        const originalButtonText = buttonEl.textContent;
+        const originalDisabled = buttonEl.disabled;
+
+        viewerTitleEl.textContent = baseTitle + '   Added (' + window.GIASelectedResults.length + ')';
+
+        buttonEl.textContent = 'Added';
+        buttonEl.disabled = true;
+
+        setTimeout(function () {
+          buttonEl.textContent = originalButtonText;
+          buttonEl.disabled = originalDisabled;
+          updateCurrentHit();
+        }, 900);
+      }
+
+      function selectCurrentBlock() {
+        const selected = getCurrentSelectedBlock();
+
+        if (!selected) {
+          return;
+        }
+
+        if (isDuplicateSelection(selected)) {
+          return;
+        }
+
+        window.GIASelectedResults.push(selected);
+        updateSelectionCount();
+        flashAddedMessage(viewerSelectButtonEl);
+      }
+
+      function selectAdjacentBlock(offset) {
+        const selected = getAdjacentBlock(offset);
+        let buttonEl = null;
+
+        if (offset === -1) {
+          buttonEl = viewerSelectPrevBlockButtonEl;
+        } else if (offset === 1) {
+          buttonEl = viewerSelectNextBlockButtonEl;
+        }
+
+        if (!selected) {
+          return;
+        }
+
+        if (isDuplicateSelection(selected)) {
+          return;
+        }
+
+        window.GIASelectedResults.push(selected);
+        updateSelectionCount();
+
+        if (buttonEl) {
+          flashAddedMessage(buttonEl);
+        }
+      }
+
+      function downloadTextFile(filename, text) {
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(function () {
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }
+
+      function saveSelections() {
+        if (window.GIASelectedResults.length === 0) {
+          return;
+        }
+
+        const nowObj = new Date();
+        const nowIso = nowObj.toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+        function pad2(n) {
+          return String(n).padStart(2, '0');
+        }
+
+        const nowStamp =
+          nowObj.getUTCFullYear().toString() +
+          pad2(nowObj.getUTCMonth() + 1) +
+          pad2(nowObj.getUTCDate()) +
+          '.' +
+          pad2(nowObj.getUTCHours()) +
+          pad2(nowObj.getUTCMinutes()) +
+          pad2(nowObj.getUTCSeconds());
+
+        const lines = [];
+        const includeMetadata = includeMetadataCheckboxEl.checked;
+
+        if (includeMetadata) {
+        lines.push('Generated: ' + nowIso);
+        lines.push('Search query: ' + (window.lastSearchQuery || ''));
+        lines.push('Match/Case: ' + matchTypeEl.value + '/' + caseTypeEl.value);
+        lines.push('Files searched: ' + window.GIASearchArchive.files.length);
+        lines.push('Tool version: ' + TOOL_VERSION);
+        /* lines.push('Max rows: ' + maxRowsEl.value); */
+        /* lines.push('Total selections: ' + window.GIASelectedResults.length); */
+        lines.push('');
+        }
+
+        const sortedSelections = window.GIASelectedResults.slice().sort(function (a, b) {
+          const fileCompare = a.filename.localeCompare(b.filename);
+          if (fileCompare !== 0) {
+            return fileCompare;
+          }
+
+          return a.blockStart - b.blockStart;
+        });
+
+        for (let i = 0; i < sortedSelections.length; i++) {
+          const item = sortedSelections[i];
+
+          lines.push('============================================================');
+          lines.push('File: ' + item.filename);
+          lines.push(item.blockText);
+          lines.push('');
+        }
+
+        const safeQuery = (window.lastSearchQuery || 'search')
+          .replace(/[^A-Za-z0-9_-]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+
+        const outName = 'GIA_Insight_' + (safeQuery || 'search') + '_' + nowStamp + '.txt';
+        downloadTextFile(outName, lines.join('\n'));
+      }
+
+      function resetSelections() {
+        window.GIASelectedResults = [];
+        updateSelectionCount();
+        updateSelectButtonState();
+      }
+
+      function advancedNeedsServer() {
+        const rows = document.querySelectorAll('#advancedRows .adv-row');
+
+        for (const row of rows) {
+          if (row.data && typeof row.data === 'function') {
+            if (row.data('not')) return true;
+            if (row.data('groupStart')) return true;
+            if (row.data('groupEnd')) return true;
+          }
+
+          const activeOpBtn = row.querySelector('.op-btn.active');
+          if (activeOpBtn) return true;
+        }
+
+        return false;
+      }
+
+      function updateStatusBar() {
+        const defaultLabel = getDefaultSearchModeLabel();
+
+        const hasResults =
+          Array.isArray(window.GIASearchResults) &&
+          window.GIASearchResults.length > 0;
+
+        const chain = Array.isArray(window.GIAReSearchChain)
+          ? window.GIAReSearchChain
+          : [];
+
+        const hasPriorRefinement =
+          (Array.isArray(window.GIAReSearchHistory) && window.GIAReSearchHistory.length > 0) ||
+          chain.length > 1;
+
+        if (hasResults) {
+          let displayChain = chain;
+
+          if (chain.length > 3) {
+            displayChain = ['...', ...chain.slice(-3)];
+          }
+
+          const chainText = displayChain.map(function (q) {
+            return '"' + q + '"';
+          }).join(' -> ');
+
+          if (hasPriorRefinement) {
+            statusEl.textContent =
+              'ReSearching ' + chainText +
+              ' - ' + window.GIASearchResults.length + ' files active.';
+              // + ' Default Enter: ' + defaultLabel + '.';
+          } else {
+            const firstQuery = chain.length > 0 ? chain[0] : (window.lastSearchQuery || '');
+            statusEl.textContent =
+              'Results for "' + firstQuery + '"' +
+              ' - ' + window.GIASearchResults.length + ' files found.';
+              // + ' Default Enter: ' + defaultLabel + '.';
+          }
+        } else {
+          statusEl.textContent =
+            'Archive loaded: ' + window.GIASearchArchive.files.length + ' files ready.';
+            // + ' Default Enter: ' + defaultLabel + '.';
+        }
+      }
+
+      function updateCurrentHit() {
+        const filename = window.GIACurrentOpenFile
+          ? window.GIACurrentOpenFile.name.split('/').pop()
+          : '';
+
+        for (let i = 0; i < window.GIAHitElements.length; i++) {
+          window.GIAHitElements[i].style.background =
+            (i === window.GIACurrentHitIndex)
+              ? 'rgb(204,102,0)'
+              : 'rgb(204,204,0)';
+
+          window.GIAHitElements[i].style.color = '#000';
+        }
+
+        if (
+          window.GIACurrentHitIndex >= 0 &&
+          window.GIAHitElements[window.GIACurrentHitIndex]
+        ) {
+          window.GIAHitElements[window.GIACurrentHitIndex].scrollIntoView({ block: 'center' });
+        }
+
+        const fileIndex = window.GIACurrentResultIndex >= 0
+          ? window.GIACurrentResultIndex + 1
+          : 0;
+
+        const fileTotal = Array.isArray(window.GIASearchResults)
+          ? window.GIASearchResults.length
+          : 0;
+
+        const hitIndex = window.GIACurrentHitIndex >= 0
+          ? window.GIACurrentHitIndex + 1
+          : 0;
+
+        const hitTotal = Array.isArray(window.GIAHitElements)
+          ? window.GIAHitElements.length
+          : 0;
+
+        if (window.GIAHitElements.length > 0) {
+          viewerTitleEl.textContent =
+            filename +
+            '   (File ' + fileIndex + ' of ' + fileTotal + ')' +
+            '   (Hit ' + hitIndex + ' of ' + hitTotal + ')';
+
+          viewerPrevHitButtonEl.disabled = false;
+          viewerNextHitButtonEl.disabled = false;
+        } else {
+          viewerTitleEl.textContent =
+            filename +
+            '   (File ' + fileIndex + ' of ' + fileTotal + ')' +
+            '   (Hit 0 of 0)';
+
+          viewerPrevHitButtonEl.disabled = true;
+          viewerNextHitButtonEl.disabled = true;
+        }
+
+        updateSelectButtonState();
+      }
+
+      function openViewer(file, payload) {
+        if (typeof payload === 'string') {
+          payload = {
+            query: payload,
+            matchType: matchTypeEl ? matchTypeEl.value : 'whole',
+            caseSensitive: caseTypeEl ? (caseTypeEl.value === 'sensitive') : false
+          };
+        }
+
+        const filename = file.name.split('/').pop();
+
+        const matchType = payload.matchType || 'whole';
+        const caseSensitive = !!payload.caseSensitive;
+        const caseType = caseSensitive ? 'sensitive' : 'insensitive';
+
+        window.GIACurrentOpenFile = file;
+        viewerTitleEl.textContent = filename + '   ';
+
+        const terms = [];
+        const seen = new Set();
+
+        if (payload.rows && Array.isArray(payload.rows)) {
+          payload.rows.forEach(function (row) {
+            const term = (row.term || '').trim();
+            if (!term) return;
+
+            const key = caseSensitive ? term : term.toLowerCase();
+            if (seen.has(key)) return;
+
+            seen.add(key);
+            terms.push(term);
+          });
+        }
+
+        if (terms.length === 0 && payload.query) {
+          const term = String(payload.query).trim();
+          if (term) {
+            const key = caseSensitive ? term : term.toLowerCase();
+            if (!seen.has(key)) {
+              seen.add(key);
+              terms.push(term);
+            }
+          }
+        }
+
+        if (terms.length === 0) {
+          viewerBodyEl.textContent = file.text;
+          window.GIAHitElements = [];
+          window.GIAHitMatches = [];
+          window.GIACurrentHitIndex = -1;
+          viewerOverlayEl.style.display = 'block';
+          viewerPrevHitButtonEl.disabled = true;
+          viewerNextHitButtonEl.disabled = true;
+          updateSelectButtonState();
+          viewerPrevButtonEl.disabled = (window.GIACurrentResultIndex <= 0);
+          viewerNextButtonEl.disabled = (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
+          return;
+        }
+
+        const escapedTerms = terms
+          .slice()
+          .sort(function (a, b) { return b.length - a.length; })
+          .map(escapeRegex);
+
+        let pattern;
+        if (matchType === 'whole' ) {
+          pattern = '\\b(?:' + escapedTerms.join('|') + ')\\b';
+        } else {
+          pattern = '(?:' + escapedTerms.join('|') + ')';
+        }
+
+        const flags = caseSensitive ? 'g' : 'gi';
+        const regex = new RegExp(pattern, flags);
+
+        let html = '';
+        let lastIndex = 0;
+        let match;
+        let hitCount = 0;
+
+        window.GIAHitMatches = [];
+
+        while ((match = regex.exec(file.text)) !== null) {
+          window.GIAHitMatches.push({
+            index: match.index,
+            text: match[0]
+          });
+
+          html += escapeHtml(file.text.substring(lastIndex, match.index));
+          html += '<span class="viewerHit">' + escapeHtml(match[0]) + '</span>';
+          lastIndex = match.index + match[0].length;
+          hitCount++;
+
+          if (match[0].length === 0) {
+            regex.lastIndex++;
+          }
+        }
+
+        html += escapeHtml(file.text.substring(lastIndex));
+
+        if (hitCount > 0) {
+          viewerBodyEl.innerHTML = html;
+          window.GIAHitElements = Array.from(viewerBodyEl.querySelectorAll('.viewerHit'));
+          window.GIACurrentHitIndex = 0;
+        } else {
+          viewerBodyEl.textContent = file.text;
+          window.GIAHitElements = [];
+          window.GIAHitMatches = [];
+          window.GIACurrentHitIndex = -1;
+        }
+
+        viewerOverlayEl.style.display = 'block';
+
+        if (window.GIAHitElements.length > 0) {
+          updateCurrentHit();
+        } else {
+          viewerBodyEl.scrollTop = 0;
+          viewerPrevHitButtonEl.disabled = true;
+          viewerNextHitButtonEl.disabled = true;
+        }
+
+        updateSelectButtonState();
+        viewerPrevButtonEl.disabled = (window.GIACurrentResultIndex <= 0);
+        viewerNextButtonEl.disabled = (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
+      }
+
+      function getSearchSourceFiles() {
+        if (
+          window.GIAReSearchMode &&
+          Array.isArray(window.GIAFullSearchResults) &&
+          window.GIAFullSearchResults.length > 0
+        ) {
+          return window.GIAFullSearchResults;
+        }
+
+        return window.GIASearchArchive.files;
+      }
+
+      function runSearch(query, options) {
+        window.lastSearchQuery = query;
+        options = options || {};
+
+        const matchType = options.matchType || matchTypeEl.value;
+        const caseType = options.caseType || caseTypeEl.value;
+        const sortOrder = options.sortOrder || sortOrderEl.value;
+        const maxRows = options.maxRows || parseInt(maxRowsEl.value, 10);
+
+        window.lastSearchOptions = {
+          matchType: matchType,
+          caseType: caseType,
+          sortOrder: sortOrder,
+          maxRows: maxRows
+        };
+
+        const fileMatchRegex = getSearchRegex(query, matchType, caseType, false);
+        const countRegex = getSearchRegex(query, matchType, caseType, true);
+
+        const priorResults = Array.isArray(window.GIASearchResults)
+          ? window.GIASearchResults.slice()
+          : [];
+
+        const priorChain = Array.isArray(window.GIAReSearchChain)
+          ? window.GIAReSearchChain.slice()
+          : [];
+
+        let totalFileMatches = 0;
+        let matches = [];
+
+        const sourceFiles = options.sourceFiles || getSearchSourceFiles();
+        window.GIASearchBaseFiles = sourceFiles.slice();
+
+        console.log('runSearch query =', query);
+        console.log('runSearch sourceFiles.length =', sourceFiles.length);
+        console.log('runSearch GIAFullSearchResults.length =', Array.isArray(window.GIAFullSearchResults) ? window.GIAFullSearchResults.length : 'NO');
+        console.log('runSearch GIASearchResults.length =', Array.isArray(window.GIASearchResults) ? window.GIASearchResults.length : 'NO');
+        console.log('runSearch options.sourceFiles =', !!options.sourceFiles);
+
+        for (const file of sourceFiles) {
+          if (fileMatchRegex.test(file.text)) {
+            matches.push(file);
+            totalFileMatches++;
+          }
+        }
+
+        console.log('runSearch totalFileMatches =', totalFileMatches);
+        console.log('runSearch matches.length before slice =', matches.length);
+        console.log('runSearch maxRows =', maxRows);
+
+        resultsEl.style.display = 'block';
+
+        if (matches.length === 0) {
+          const isReSearch = window.GIAReSearchMode && priorResults.length > 0;
+
+          if (isReSearch) {
+            // Preserve prior state in history so Back works
+            window.GIAReSearchHistory.push({
+              results: priorResults,
+              fullResults: window.GIAFullSearchResults.slice(),
+              baseFiles: window.GIASearchBaseFiles.slice(),
+              chain: priorChain.slice(),
+              lastSearchOptions: Object.assign({}, window.lastSearchOptions || {})
+            });
+
+              console.log('runSearch matches.length after slice =', matches.length);
+
+            // Update chain to reflect failed attempt
+            if (!Array.isArray(window.GIAReSearchChain)) {
+              window.GIAReSearchChain = [];
+            }
+
+            if (
+              window.GIAReSearchChain.length === 0 ||
+              window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== query
+            ) {
+              window.GIAReSearchChain.push(query);
+            }
+
+            window.lastSearchQuery = query;
+
+            // Clear visible results ONLY (not logical state)
+            resultsEl.style.display = 'block';
+            resultsEl.textContent = 'No matches found.';
+
+            window.GIASearchResults = [];
+
+            updateStatusBar();
+            updateReSearchState();
+            return;
+          }
+
+          // Fresh Find/Search → normal behavior
+          resultsEl.textContent = 'No matches found.';
+          window.GIASearchResults = [];
+          clearButtonEl.style.display = 'none';
+          selectionBarEl.classList.remove('ready');
+
+          updateStatusBar();
+          updateReSearchState();
+          return;
+        }
+
+        matches.sort(function(a, b) {
+          const aName = a.name.split('/').pop();
+          const bName = b.name.split('/').pop();
+
+          if (sortOrder === 'oldest') {
+            if (a.year !== b.year) return a.year - b.year;
+            return aName.localeCompare(bName);
+          } else {
+            if (a.year !== b.year) return b.year - a.year;
+            return bName.localeCompare(aName);
+          }
+        });
+
+        if (window.GIAReSearchMode && priorResults.length > 0) {
+          window.GIAReSearchHistory.push({
+            results: priorResults,
+            fullResults: Array.isArray(window.GIAFullSearchResults)
+              ? window.GIAFullSearchResults.slice()
+              : [],
+            baseFiles: Array.isArray(window.GIASearchBaseFiles)
+              ? window.GIASearchBaseFiles.slice()
+              : [],
+            chain: priorChain,
+            lastSearchOptions: Object.assign({}, window.lastSearchOptions || {})
+          });
+        }
+
+        window.GIAFullSearchResults = matches.slice();
+        matches = matches.slice(0, maxRows);
+        window.GIASearchResults = matches;
+
+        matches = matches.slice(0, maxRows);
+        window.GIASearchResults = matches;
+        resetViewerState()
+
+        if (!Array.isArray(window.GIAReSearchChain)) {
+          window.GIAReSearchChain = [];
+        }
+
+        if (!window.GIAReSearchMode) {
+          window.GIAReSearchMode = true;
+          window.GIAReSearchChain = [query];
+        } else if (
+          window.GIAReSearchChain.length === 0 ||
+          window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== query
+        ) {
+          window.GIAReSearchChain.push(query);
+        }
+
+        updateStatusBar();
+
+        let html = '<div>Found in ' + totalFileMatches + ' file(s)';
+        if (totalFileMatches > matches.length) {
+          html += ' (showing first ' + matches.length + ')';
+        }
+
+        html += ':</div>';
+        html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
+        html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
+
+        for (let i = 0; i < matches.length; i++) {
+          const file = matches[i];
+          const filename = file.name.split('/').pop();
+          const hits = file.text.match(countRegex);
+          const count = hits ? hits.length : 0;
+
+          html += '<tr>';
+          html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
+          html += '<td><a href="#" class="resultLink" data-result-index="' + i + '">' + filename + '</a></td>';
+          html += '</tr>';
+        }
+
+        html += '</table>';
+        resultsEl.innerHTML = html;
+
+        const resultLinks = resultsEl.querySelectorAll('.resultLink');
+
+        for (const link of resultLinks) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const resultIndex = parseInt(this.getAttribute('data-result-index'), 10);
+            const file = window.GIASearchResults[resultIndex];
+
+            window.GIACurrentResultIndex = resultIndex;
+            openViewer(file, query);
+          });
+        }
+
+        clearButtonEl.style.display = 'inline-block';
+        searchInputEl.focus();
+        searchInputEl.value = '';
+        updateReSearchState();
+      }
+
+      function buildAdvancedPayload() {
+        const termInputs = document.querySelectorAll('#advancedRows .term-input');
+      
+        const rows = [];
+      
+        function isOn(el) {
+          if (!el) return false;
+          if (el.type === 'checkbox') return !!el.checked;
+          return el.classList.contains('active') ||
+                 el.classList.contains('selected') ||
+                 el.getAttribute('aria-pressed') === 'true' ||
+                 el.getAttribute('data-active') === 'true';
+        }
+      
+        function getRowOp(rowEl) {
+          if (!rowEl) return 'AND';
+      
+          const opSelect = rowEl.querySelector('.op-select');
+          if (opSelect && opSelect.value) {
+            const op = opSelect.value.trim().toUpperCase();
+            return (op === 'AND' || op === 'OR') ? op : 'AND';
+          }
+      
+          const activeOpBtn = rowEl.querySelector(
+            '.op-btn.active, .op-btn.selected, .op-btn[aria-pressed="true"], .op-btn[data-active="true"]'
+          );
+      
+          if (activeOpBtn) {
+            const op = (activeOpBtn.textContent || '').trim().toUpperCase();
+            return (op === 'AND' || op === 'OR') ? op : 'AND';
+          }
+      
+          return 'AND';
+        }
+      
+        termInputs.forEach(function (termInput, index) {
+          const rowEl =
+            termInput.closest('.advanced-row, .advancedRow, .adv-row, .row') ||
+            termInput.parentElement;
+      
+          const term = (termInput.value || '').trim();
+          if (!term) return;
+      
+          const prevTermInput = index > 0 ? termInputs[index - 1] : null;
+          const prevRowEl = prevTermInput
+            ? (prevTermInput.closest('.advanced-row, .advancedRow, .adv-row, .row') || prevTermInput.parentElement)
+            : null;
+      
+          const notCheckbox = rowEl ? rowEl.querySelector('.not-checkbox') : null;
+          const notToggle = rowEl ? rowEl.querySelector('.not-toggle') : null;
+          const groupStartCheckbox = rowEl ? rowEl.querySelector('.group-start') : null;
+          const groupEndCheckbox = rowEl ? rowEl.querySelector('.group-end') : null;
+      
+          rows.push({
+            term: term,
+            op: index === 0 ? null : getRowOp(prevRowEl),
+            not: isOn(notCheckbox) || isOn(notToggle),
+            groupStart: isOn(groupStartCheckbox),
+            groupEnd: isOn(groupEndCheckbox)
+          });
+        });
+      
+        /* return {
+          caseSensitive: document.getElementById('caseSensitiveCheckbox')?.checked || false,
+          maxResults: parseInt(document.getElementById('maxResultsInput')?.value || '100', 10),
+          matchMode: document.getElementById('matchModeSelect')?.value || 'line',
+          matchType: document.getElementById('matchTypeSelect')?.value || 'whole',
+          rows: rows
+        }; */
+        return {
+          caseSensitive: caseSensitiveCheckboxEl.checked || false,
+          maxResults: parseInt(advancedMaxRowsEl.value || '50', 10),
+          matchMode: 'line',
+          matchType: advancedMatchTypeEl.value || 'substring',
+          rows: rows
+        };
+      }
+
+      findButtonEl.addEventListener('click', function () {
+        const query = searchInputEl.value.trim();
+        if (!query) {
+          searchInputEl.focus();
+          return;
+        }
+
+        runFindSearch(query);
+      });
+
+      researchButtonEl.addEventListener('click', function () {
+        const query = searchInputEl.value.trim();
+        if (!query) {
+          searchInputEl.focus();
+          return;
+        }
+
+        window.lastSearchQuery = query;
+        runSearch(query);
+      });
+
+      backButtonEl.addEventListener('click', function () {
+        if (
+          !Array.isArray(window.GIAReSearchHistory) ||
+          window.GIAReSearchHistory.length === 0
+        ) {
+          return;
+        }
+
+        const prev = window.GIAReSearchHistory.pop();
+
+        window.GIASearchResults = Array.isArray(prev.results)
+          ? prev.results.slice()
+          : [];
+
+        window.GIAFullSearchResults = Array.isArray(prev.fullResults)
+          ? prev.fullResults.slice()
+          : window.GIASearchResults.slice();
+
+        window.GIASearchBaseFiles = Array.isArray(prev.baseFiles)
+          ? prev.baseFiles.slice()
+          : [];
+
+        window.GIAReSearchChain = Array.isArray(prev.chain)
+          ? prev.chain.slice()
+          : [];
+
+        window.lastSearchOptions = Object.assign({}, prev.lastSearchOptions || {});
+
+        window.lastSearchQuery =
+          window.GIAReSearchChain.length > 0
+            ? window.GIAReSearchChain[window.GIAReSearchChain.length - 1]
+            : '';
+
+        resetViewerState();
+
+        if (window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+          resultsEl.style.display = 'block';
+          clearButtonEl.style.display = 'inline-block';
+        } else {
+          resultsEl.style.display = 'none';
+          resultsEl.innerHTML = '';
+          clearButtonEl.style.display = 'none';
+        }
+
+        updateStatusBar();
+        updateReSearchState();
+        searchInputEl.focus();
+        searchInputEl.select();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && viewerOverlayEl.style.display !== 'none') {
+          viewerOverlayEl.style.display = 'none';
+        }
+      });
+
+      viewerCloseButtonEl.addEventListener('click', function () {
+        viewerOverlayEl.style.display = 'none';
+      });
+
+      viewerOverlayEl.addEventListener('click', function (e) {
+        if (e.target === viewerOverlayEl) {
+          viewerOverlayEl.style.display = 'none';
+        }
+      });
+
+      viewerPrevButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentResultIndex <= 0) {
+          return;
+        }
+
+        window.GIACurrentResultIndex--;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+      });
+
+      viewerNextButtonEl.addEventListener('click', function () {
+        if (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1) {
+          return;
+        }
+
+        window.GIACurrentResultIndex++;
+        const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        openViewer(file, window.lastSearchQuery);
+      });
+
+      viewerPrevHitButtonEl.addEventListener('click', function () {
+        moveToPreviousHit();
+      });
+
+      viewerNextHitButtonEl.addEventListener('click', function () {
+        moveToNextHit();
+      });
+
+      viewerSelectButtonEl.addEventListener('click', function () {
+        selectCurrentBlock();
+      });
+
+      saveSelectionsButtonEl.addEventListener('click', function () {
+        saveSelections();
+      });
+
+      resetSelectionsButtonEl.addEventListener('click', function () {
+        resetSelections();
+      });
+
+      viewerSelectPrevBlockButtonEl.addEventListener('click', function () {
+        selectAdjacentBlock(-1);
+      });
+
+      viewerSelectNextBlockButtonEl.addEventListener('click', function () {
+        selectAdjacentBlock(1);
+      });
+
+      searchFormEl.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const query = searchInputEl.value.trim();
+        if (!query) return;
+
+        window.lastSearchQuery = query;
+
+        if (window.GIADefaultSearchMode === 'research') {
+          runSearch(query);
+          return;
+        }
+
+        runFindSearch(query);
+      });
+
+      sortOrderEl.addEventListener('change', function () {
+        advancedSortOrderEl.value = sortOrderEl.value;
+
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      });
+
+      advancedSortOrderEl.addEventListener('change', function () {
+        sortOrderEl.value = advancedSortOrderEl.value;
+
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      });
+
+      maxRowsEl.addEventListener('change', function () {
+        advancedMaxRowsEl.value = maxRowsEl.value;
+
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      });
+
+      advancedMaxRowsEl.addEventListener('change', function () {
+        maxRowsEl.value = advancedMaxRowsEl.value;
+
+        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
+          rerenderCurrentResults();
+        }
+      });
+
+      matchTypeEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery, {
+            sourceFiles: window.GIASearchBaseFiles.slice()
+          });
+        }
+      });
+
+      caseTypeEl.addEventListener('change', function () {
+        if (window.lastSearchQuery) {
+          runSearch(window.lastSearchQuery, {
+            sourceFiles: window.GIASearchBaseFiles.slice()
+          });
+        }
+      });
+
+      async function runAdvancedSearchServer(payload, options) {
+        try {
+          console.log("runAdvancedSearchServer payload =", payload);
+          console.log("runAdvancedSearchServer options =", options);
+      
+          const res = await fetch("https://lance-exteriors-app.onrender.com/gia-search", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+      
+          const data = await res.json();
+      
+          console.log("RESULTS:", data);
+      
+          resultsEl.style.display = 'block';
+          const priorResults = Array.isArray(window.GIASearchResults)
+              ? window.GIASearchResults.slice()
+             : [];
+
+          const priorChain = Array.isArray(window.GIAReSearchChain)
+             ? window.GIAReSearchChain.slice()
+             : [];
+      
+          if (!data.results || data.results.length === 0) {
+            resultsEl.textContent = 'No matches found.';
+            window.GIASearchResults = [];
+            clearButtonEl.style.display = 'none';
+            selectionBarEl.classList.remove('ready');
+
+            updateStatusBar();
+            updateReSearchState();
+
+            return;
+          }
+      
+          const groupedByFile = {};
+      
+          for (const row of data.results) {
+            if (!groupedByFile[row.file]) {
+              const fullFile = window.GIASearchArchive.files.find(function(file) {
+                return file.name === row.file;
+              });
+      
+              groupedByFile[row.file] = {
+                name: row.file,
+                text: fullFile ? fullFile.text : '',
+                year: fullFile ? fullFile.year : parseInt(row.file.match(/\b(\d{4})\b/)?.[1] || '0', 10),
+                serverHits: []
+              };
+            }
+      
+            groupedByFile[row.file].serverHits.push({
+              lineNumber: row.lineNumber,
+              text: row.text
+            });
+          }
+      
+          let matches = Object.values(groupedByFile);
+      
+          matches.sort(function(a, b) {
+            const aName = a.name.split('/').pop();
+            const bName = b.name.split('/').pop();
+      
+            if (options.sortOrder === 'oldest') {
+              if (a.year !== b.year) return a.year - b.year;
+              return aName.localeCompare(bName);
+            } else {
+              if (a.year !== b.year) return b.year - a.year;
+              return bName.localeCompare(aName);
+            }
+          });
+      
+          window.GIAFullSearchResults = matches.slice();
+          matches = matches.slice(0, payload.maxResults);
+          window.GIASearchResults = matches;
+          resetViewerState();
+
+          if (window.GIAReSearchMode && priorResults.length > 0) {
+            window.GIAReSearchHistory.push({
+              results: priorResults,
+              fullResults: Array.isArray(window.GIAFullSearchResults)
+                ? window.GIAFullSearchResults.slice()
+                : [],
+              baseFiles: Array.isArray(window.GIASearchBaseFiles)
+                ? window.GIASearchBaseFiles.slice()
+                : [],
+              chain: priorChain,
+              lastSearchOptions: Object.assign({}, window.lastSearchOptions || {})
+            });
+          }
+
+          const chainLabel = payload.rows
+            .map(function (row) { return (row.term || '').trim(); })
+            .filter(Boolean)
+            .join(' ');
+
+          if (!Array.isArray(window.GIAReSearchChain)) {
+            window.GIAReSearchChain = [];
+          }
+
+          window.GIAReSearchMode = true;
+
+          if (chainLabel) {
+            if (
+              window.GIAReSearchChain.length === 0 ||
+              window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainLabel
+            ) {
+              window.GIAReSearchChain.push(chainLabel);
+            }
+          }
+
+          window.lastSearchQuery = chainLabel;
+          updateStatusBar();
+          updateReSearchState();
+
+          let html = '<div>Found in ' + matches.length + ' file(s)</div>';
+          html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
+          html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
+      
+          for (let i = 0; i < matches.length; i++) {
+            const file = matches[i];
+            const filename = file.name.split('/').pop();
+            const count = file.serverHits.length;
+      
+            html += '<tr>';
+            html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
+            html += '<td><a href="#" class="resultLink" data-result-index="' + i + '">' + filename + '</a></td>';
+            html += '</tr>';
+          }
+      
+          html += '</table>';
+          resultsEl.innerHTML = html;
+      
+          const resultLinks = resultsEl.querySelectorAll('.resultLink');
+      
+          for (const link of resultLinks) {
+            link.addEventListener('click', function (e) {
+              e.preventDefault();
+      
+              const resultIndex = parseInt(this.getAttribute('data-result-index'), 10);
+              const file = window.GIASearchResults[resultIndex];
+      
+              window.GIACurrentResultIndex = resultIndex;
+              openViewer(file, payload);
+            });
+          }
+      
+          clearButtonEl.style.display = 'inline-block';
+        } catch (err) {
+          console.error("runAdvancedSearchServer ERROR:", err);
+          resultsEl.style.display = 'block';
+          resultsEl.textContent = 'Search error. Check console.';
+        }
+      }
+
+      async function loadSearchArchive() {
+        try {
+          statusEl.textContent = 'Fetching search.zip...';
+
+          const response = await fetch(ZIP_URL, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status + ' while fetching ' + ZIP_URL);
+          }
+
+          statusEl.textContent = 'Reading zip into memory...';
+          const zipBuffer = await response.arrayBuffer();
+
+          statusEl.textContent = 'Inflating archive...';
+          const zip = await JSZip.loadAsync(zipBuffer);
+
+          const files = [];
+          const entries = Object.keys(zip.files);
+
+          for (const name of entries) {
+            const entry = zip.files[name];
+            if (entry.dir) {
+              continue;
+            }
+
+            const rawText = await entry.async('string');
+            const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const year = parseInt(name.match(/\d{4}/)[0], 10);
+
+            const htmlName = name
+              .replace('_WSR.txt', '_GIA_Report.html')
+              .replace('.txt', '_GIA_Report.html');
+
+            const url = '/GIA-Reports/docs/' + htmlName;
+
+            files.push({
+              name: name,
+              url: url,
+              text: text,
+              year: year
+            });
+          }
+
+          window.GIASearchArchive.loaded = true;
+          window.GIASearchArchive.files = files;
+
+          statusEl.textContent = 'Archive loaded: ' + files.length + ' file(s) ready.';
+          searchRowEl.classList.add('ready');
+          updateSelectionCount();
+          searchInputEl.focus();
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Failed to load search archive: ' + err.message;
+        }
+      }
+
+      clearButtonEl.addEventListener('click', function () {
+        searchInputEl.value = '';
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        this.style.display = 'none';
+        selectionBarEl.classList.remove('ready');
+
+        window.GIASearchResults = [];
+        window.GIAFullSearchResults = [];
+        window.GIASearchBaseFiles = [];
+        window.GIAReSearchMode = false;
+        window.GIAReSearchChain = [];
+        window.GIAReSearchHistory = [];
+        window.lastSearchOptions = {};
+        window.lastSearchQuery = '';
+        resetViewerState();
+        resetAdvancedRows();
+        closeAdvancedPanel();
+
+        updateStatusBar();
+        updateReSearchState();
+
+        searchInputEl.focus();
+      });
+
+//
+// USE THIS FOR TESTING
+//
+      btnAdvancedSearchEl.addEventListener('click', function () {
+        console.log('HELLO FROM btnAdvancedSearchEl.');
+      
+        const payload = buildAdvancedPayload();
+      
+        console.log('RETURNED FROM buildAdvancedPayload().');
+        console.log('payload =', payload);
+        console.log('payload.rows =', payload.rows);
+        console.log('payload.rows.length =', payload.rows ? payload.rows.length : 'NO rows PROPERTY');
+      
+        if (!payload.rows || payload.rows.length === 0) {
+          return;
+        }
+      
+        const pretty = JSON.stringify(payload, null, 2);
+      
+        console.log("SENDING JSON:\n" + pretty);
+        console.log("COPY WITH:");
+        console.log("copy(JSON.stringify(window.lastAdvancedPayload, null, 2))");
+      
+        window.lastAdvancedPayload = payload;
+
+        // ===== DECISION: CLIENT vs SERVER =====
+        const needsServer = payload.rows.some(row =>
+          row.not === true ||
+          row.groupStart === true ||
+          row.groupEnd === true ||
+          (row.op && (row.op === 'AND' || row.op === 'OR'))
+        );
+
+        console.log('needsServer =', needsServer);
+
+        if (!needsServer) {
+          console.log('CLIENT SEARCH PATH (simple ReSearch / Advanced).');
+
+          const simpleQuery = (payload.rows[0].term || '').trim();
+
+          console.log('simpleQuery =', simpleQuery);
+
+          if (!simpleQuery) {
+            console.log('EMPTY QUERY - aborting.');
+            return;
+          }
+
+          //closeAdvancedPanel();
+
+          runSearch(simpleQuery, {
+            matchType: payload.matchType === 'whole' ? 'whole' : 'substring',
+            caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
+            sortOrder: advancedSortOrderEl.value,
+            maxRows: parseInt(advancedMaxRowsEl.value, 10) || 50
+          });
+
+          return;
+        }
+
+        console.log('SERVER SEARCH PATH (advanced logic detected).');
+
+        runAdvancedSearchServer(payload, {
+          sortOrder: advancedSortOrderEl.value,
+          maxRows: parseInt(advancedMaxRowsEl.value, 10) || 50
+        });
+      });
+
+      function enterAdvancedMode() {
+        searchInputEl.value = '';
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        clearButtonEl.style.display = 'none';
+        researchButtonEl.style.display = 'none';
+        backButtonEl.style.display = 'none';
+
+        viewerOverlayEl.style.display = 'none';
+        selectionBarEl.classList.remove('ready');
+
+        window.GIASearchResults = [];
+        window.GIAFullSearchResults = [];
+        window.GIASearchBaseFiles = [];
+        window.GIAReSearchMode = false;
+        window.GIAReSearchChain = [];
+        window.GIAReSearchHistory = [];
+        window.GIASelectedResults = [];
+        window.lastSearchOptions = {};
+        window.lastSearchQuery = '';
+
+        resetViewerState();
+        updateSelectionCount();
+        resetAdvancedRows();
+        openAdvancedPanel();
+
+        statusEl.textContent =
+          'Advanced Search Mode: ' + window.GIASearchArchive.files.length + ' file(s) ready.';
+      }
+
+      btnAdvancedToggleEl.addEventListener('click', function () {
+        const isOpen =
+          advancedPanelEl.classList.contains('advanced-panel-open') ||
+          advancedPanelEl.classList.contains('advanced-panel-enter');
+
+        if (isOpen) {
+          closeAdvancedPanel();
+          updateStatusBar();
+          return;
+        }
+
+        enterAdvancedMode();
+      });
+
+      btnAdvancedClearEl.addEventListener('click', function () {
+        resetAdvancedRows();
+      });
+
+      btnAdvancedCloseEl.addEventListener('click', function () {
+        closeAdvancedPanel();
+      });
+
+      function cycleTheme() {
+        applyThemeByIndex(currentThemeIndex + 1);
+      }
+
+      function cycleThemeBackward() {
+        applyThemeByIndex(currentThemeIndex - 1);
+      }
+
+      let currentThemeIndex = parseInt(localStorage.getItem(LS_SEARCH_THEME_INDEX) || '0', 10);
+
+      if (
+        isNaN(currentThemeIndex) ||
+        currentThemeIndex < 0 ||
+        currentThemeIndex >= searchThemes.length
+      ) {
+        currentThemeIndex = 0;
+      }
+
+      themePrevButtonEl.addEventListener('click', cycleThemeBackward);
+      themeToggleButtonEl.addEventListener('click', cycleTheme);
+      themeNextButtonEl.addEventListener('click', cycleTheme);
+      themeResetButtonEl.addEventListener('click', function () {
+        applyThemeByIndex(12);
+      });
+
+      viewerThemeToggleButtonEl.addEventListener('click', cycleTheme);
+
+      applyThemeByIndex(currentThemeIndex);
+
+      function createAdvancedRow() {
+        const row = $(`
+          <div class="adv-row" style="margin-bottom:6px;">
+            <button type="button" class="not-toggle">[ ] NOT</button>
+            <button type="button" class="group-start">(</button>
+            <input type="text" class="term-input" style="width:260px;">
+            <button type="button" class="group-end">)</button>
+            <button type="button" class="op-btn" data-op="AND" disabled>AND</button>
+            <button type="button" class="op-btn" data-op="OR" disabled>OR</button>
+          </div>
+        `);
+      
+        row.data('not', false);
+        row.data('groupStart', false);
+        row.data('groupEnd', false);
+        row.data('op', null);
+      
+        function setParenVisual($btn, isActive) {
+          $btn.toggleClass('active', isActive);
+          $btn.css({
+            opacity: isActive ? '1' : '0.72',
+            filter: isActive ? 'brightness(1.55)' : 'none',
+            boxShadow: isActive ? 'inset 0 0 0 2px rgba(255,255,255,0.45)' : 'none',
+            transform: isActive ? 'translateY(-1px)' : 'none'
+          });
+        }
+      
+        row.find('.term-input').on('input', function () {
+          const hasText = $(this).val().trim() !== '';
+          row.find('.op-btn').prop('disabled', !hasText);
+        });
+      
+        row.find('.not-toggle').on('click', function () {
+          const newVal = !row.data('not');
+          row.data('not', newVal);
+          $(this).toggleClass('active', newVal);
+          $(this).text(newVal ? '[x] NOT' : '[ ] NOT');
+        });
+      
+        row.find('.group-start').on('click', function () {
+          const newVal = !row.data('groupStart');
+          row.data('groupStart', newVal);
+          setParenVisual($(this), newVal);
+        });
+      
+        row.find('.group-end').on('click', function () {
+          const newVal = !row.data('groupEnd');
+          row.data('groupEnd', newVal);
+          setParenVisual($(this), newVal);
+        });
+      
+        row.find('.op-btn').on('click', function () {
+          const op = $(this).data('op');
+          row.data('op', op);
+          row.find('.op-btn').removeClass('active');
+          $(this).addClass('active');
+      
+          const rows = $('#advancedRows .adv-row');
+          const isLast = row.is(rows.last());
+      
+          if (isLast) {
+            $('#advancedRows').append(createAdvancedRow());
+          }
+        });
+
+        row.find('.term-input').on('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            btnAdvancedSearchEl.click();
+          }
+        });
+      
+        return row;
+      }
+
+      function openAdvancedPanel() {
+        syncAdvancedControlsFromMain();
+
+        advancedPanelEl.classList.remove('advanced-panel-hidden');
+        advancedPanelEl.classList.add('advanced-panel-enter');
+
+        requestAnimationFrame(function () {
+          advancedPanelEl.classList.remove('advanced-panel-enter');
+          advancedPanelEl.classList.add('advanced-panel-open');
+        });
+
+        setBasicSearchEnabled(false);
+
+        setTimeout(() => {
+          const input = document.querySelector('#advancedRows .term-input');
+          if (input) {
+            input.focus();
+            input.select(); // optional: highlights existing text
+          }
+        }, 0);
+      }
+
+      function closeAdvancedPanel() {
+        advancedPanelEl.classList.remove('advanced-panel-open');
+        advancedPanelEl.classList.add('advanced-panel-enter');
+
+        setBasicSearchEnabled(true);
+
+        setTimeout(function () {
+          advancedPanelEl.classList.remove('advanced-panel-enter');
+          advancedPanelEl.classList.add('advanced-panel-hidden');
+        }, 180);
+      }
+
+      function resetAdvancedRows() {
+        $('#advancedRows').empty().append(createAdvancedRow());
+      }
+
+      resetAdvancedRows();
+      loadSearchArchive();
+      updateDefaultSearchModeUI();
+      updateStatusBar();
+
+      function setBasicSearchEnabled(isEnabled) {
+        searchInputEl.disabled = !isEnabled;
+        findButtonEl.disabled = !isEnabled;
+        matchTypeEl.disabled = !isEnabled;
+        caseTypeEl.disabled = !isEnabled;
+        sortOrderEl.disabled = !isEnabled;
+        maxRowsEl.disabled = !isEnabled;
+        btnAdvancedToggleEl.disabled = !isEnabled;
+      }
+
+        /*
+      document.addEventListener('keydown', function (e) {
+        if (viewerOverlayEl.style.display !== 'block') return;
+
+        const tag = document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        if (!window.GIAHitElements || window.GIAHitElements.length === 0) return;
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          moveToPreviousHit();
+          return;
+        }
+
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          moveToNextHit();
+          return;
+        }
+
+      });
+        */
+
+      document.addEventListener('keydown', function (e) {
+        if (viewerOverlayEl.style.display !== 'block') return;
+
+        const tag = document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        if (!window.GIAHitElements || window.GIAHitElements.length === 0) return;
+
+        // left arrow key
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+
+          // Move within file
+          if (window.GIACurrentHitIndex > 0) {
+            window.GIACurrentHitIndex--;
+            updateCurrentHit();
+            return;
+          }
+
+          /* Move to previous file (NO wrap)
+          if (window.GIACurrentResultIndex <= 0) {
+            return; // hard stop at beginning
+          }
+          */
+
+          // Move to previous file OR wrap to last
+          let didWrap = false;
+
+          if (window.GIACurrentResultIndex <= 0) {
+            window.GIACurrentResultIndex = window.GIASearchResults.length - 1;
+            didWrap = true;
+          } else {
+            window.GIACurrentResultIndex--;
+          }
+
+          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+          openViewer(file, window.lastSearchQuery);
+
+          if (window.GIAHitElements.length > 0) {
+            window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
+            updateCurrentHit();
+
+            if (didWrap) {
+              flashWrap('backward');
+            }
+          }
+
+          return;
+        }
+          
+        // right arrow key
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+
+          // Move within file
+          if (window.GIACurrentHitIndex < window.GIAHitElements.length - 1) {
+            window.GIACurrentHitIndex++;
+            updateCurrentHit();
+            return;
+          }
+
+          // Move to next file OR wrap to first
+          let didWrap = false;
+
+          if (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1) {
+            // WRAP to first file
+            window.GIACurrentResultIndex = 0;
+            didWrap = true;
+          } else {
+            window.GIACurrentResultIndex++;
+          }
+
+          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+          openViewer(file, window.lastSearchQuery);
+
+          if (window.GIAHitElements.length > 0) {
+            window.GIACurrentHitIndex = 0;
+            updateCurrentHit();
+
+            if (didWrap) {
+              flashWrap('forward');
+            }
+          }
+
+          return;
+        }
+      });
+
+      window.runSearch = runSearch;
+
+    })();
+  </script>
+</body>
+</html>
