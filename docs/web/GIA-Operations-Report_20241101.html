@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Nov-01</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.history.back()">Back&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Nov-01 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2024-Nov-01
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=DgMq5QNXR80" class="watch-link-btn" id="watchLink" data-video-url="https://youtube.com/watch?v=DgMq5QNXR80" target="_blank" rel="noopener">
+            Watch
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-11-01-GIA-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens by addressing the Deep State&#x27;s expectations around Halloween and the closing of the Lions Gate alignment — the last day when Source, Anti-Source, and Neutral Source align. Three times in Earth&#x27;s history humanity approached a Golden Age transition only to be pulled back by inorganic beings with preset traps, the last being the War in Atlantis approximately 250,000 years ago. The Deep State believed the New Moon of November 1st would trigger another such reversal. Kim discloses that residual connections to the being known as Kali Ma were found and eliminated in China, the Middle East, and the United States — with thanks to the Enforcer — before ceremonies could begin. Nothing materialized.<br>
+<br>
+The debt call advanced to mints, currency printers including De La Rue, bond issuers, and government Treasury operations. The U.S. government was down to days of cash by end of day, as were the EU and Russia. Intelligence agencies worldwide received debt calls, with militaries expected next. Compromise calls from Trump lawyers and various agencies were declined. Kim notes her political line vote — which ratifies the only recognized executive authority — must be cast within the next day.<br>
+<br>
+Kim raises the Ways and Means Committee as a private NGO that could potentially fund Social Security, Medicare, and public education directly, bypassing the federal government entirely. She closes by confirming the Golden Age transition is sealed for at least 2,000 years, and provides brief updates on the C.A.R.E. Marketplace launch and New Earth Innovations products expected within two weeks.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000000">00:00:00 - Teaser</a></li>
+<li><a href="#t-000054">00:00:54 - Halloween ceremonies worldwide fail</a></li>
+<li><a href="#t-000331">00:03:31 - Three historical Golden Age transition attempts</a></li>
+<li><a href="#t-000503">00:05:03 - Lions Gate final alignment day</a></li>
+<li><a href="#t-000656">00:06:56 - Deep State disappointment</a></li>
+<li><a href="#t-000812">00:08:12 - U.S. government down to days of cash</a></li>
+<li><a href="#t-000917">00:09:17 - Compromise calls from Trump lawyers and agencies declined</a></li>
+<li><a href="#t-001101">00:11:01 - Political line vote pending</a></li>
+<li><a href="#t-001231">00:12:31 - Ways and Means Committee disclosed as private NGO controlling Social Security, Medicare, public education.</a></li>
+<li><a href="#t-001437">00:14:37 - Postal bank grandfathered license</a></li>
+<li><a href="#t-001632">00:16:32 - Golden Age transition sealed for 2,000 years</a></li>
+<li><a href="#t-001805">00:18:05 - C.A.R.E. Marketplace launch update</a></li>
+<li><a href="#t-002013">00:20:13 - Closing remarks.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-Nov-01 GIA Report</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Today is the 1st of November, 2024. Coming up in today&#x27;s Global Intelligence Agency operations report: The Secret Space Program convinced everyone that yesterday, the 31st of October, also known as Halloween in some countries, would be the day things turn around for them. Was there any truth to the story? The last time this happened was almost 2,000 years ago. And the debt call continues, with another hit to governments worldwide. Just how long will they be able to survive? And more offers come pouring in, pending the upcoming election in the U.S., as the operatives fight over the color of the curtains - while the house is burning down.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000054">00:00:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, it&#x27;s the 1st of November 2024. Boy did this year go by pretty fast. And this is the Global Intelligence Agency Operations Report. So I guess we should get right to it. It&#x27;s been a busy couple of days, you know. Yesterday being Halloween in some countries, also this morning early Eastern Time being the new moon, has led these people to go nuts yet again. [chuckling] Rumors are swirling that there&#x27;s going to be a lot of attacks in the Middle East, mainly Iran, Israel, you know, all the same people. Starting after the 5th, I think it&#x27;s on the 6th of November.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I wonder how they can time when people are going to be attacking one another. That&#x27;s because, well, that&#x27;s when the big payday is, I guess. Apparently today was another payday according to them because they&#x27;re all - as we&#x27;re talking here, it is approaching 5:00 p.m. Eastern Standard Time - and they are going a little nuts right now. But that&#x27;s to be expected. Things didn&#x27;t turn out the way they thought they were going to.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As for the crazy people, yes, there were a lot of attempted ceremonies last night. Weird crystal people humming and hawing in different places around the world you&#x27;re very familiar with. Lots in London, several throughout Italy, and you could imagine that little tiny country in Italy, Vatican, also known as the Holy See or the Vatican. And they were very, very busy also in the Philippines and some strange islands and some odd places, as well as in China. Middle East, yes, somewhat, they were also doing their ceremonies. And it turns out that nothing happened.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I know you&#x27;re shocked and surprised. I know I was shocked and surprised. Not really because there were a few little bits and pieces of alien technology and some things that almost kind of started something, but all smoke and no fire really, for the last 24 hours. So what were they expecting? Why was today such a big day for them? There&#x27;s a lot of talk on the Q circles about everything happening on the first and the second and the third and the fourth, and of course the fifth. And according to the Q people, the gateway is opening on the 5th, and all these wonderful things are going to happen according to them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000331">00:03:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, there might&#x27;ve been an expectation based on something that happened repeatedly. Matter of fact, it actually happened three times in history where we had managed as humanity - and not only as humanity, as Others as well, because we had a lot of help, as we did this time - to flip ourselves over into a Neutral Age, which is what would have been next. This is the first time it&#x27;s the Golden Age. And every time we had managed to do that - three different times through history - something happened. It was preset; we still had a lot of Lower Astral, let&#x27;s say inorganic life beings at the time, and they managed to set a lot of traps in order to flip us back. The last time in Earth&#x27;s history that this happened was around 250,000 years ago, and we&#x27;ve talked about this. This is what people call &quot;The War in Atlantis,&quot; or we basically call it the time when the Red Queen was in charge of this planet and she almost wasn&#x27;t, and then in came her and all her friends and fought against not only us humans but also against a lot of beings from the Light side of the Universe at that time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000503">00:05:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they had a thought, I guess, because it&#x27;s a New Moon. There are also some other...it is also the last day - I did tell you a few months back that during the Lions Gate back in August this year, August 8th, that the Lions Gate was going to last a lot longer this year, longer than normal. And Lions Gate is a time of year - well, we call it Lions Gate, but it&#x27;s a time of year where Source, Anti-Source, and Neutral Source would align with each other. Well, yesterday would have been the last day of the alignment, hence the reason why they thought - because there was no flip during this time of that alignment - they thought that it would definitely happen on the last day, and something about the New Moon being involved in that is what the chatter was. I&#x27;m not really sure how they think.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000602">00:06:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they were under the impression that this was actually going to take place today. By today. No later than the start time of the New Moon early this morning, eastern standard time. Nonetheless, there were a few little things that needed to be cleaned up. There were a few connections to the being that we called the Kali Ma, who no longer exists, however, left us some fun gifts should we ever get this far. And that was in China.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There was another one in the Middle East. And the last one was actually in the States. So those things were cleaned up yesterday early before they even got started - we got lucky, let&#x27;s put it that way, that we did find those things. So thanks to everyone that helped, including the Enforcer, and making sure that those things were cleaned up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000656">00:06:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And last night they were sadly disappointed. And today, of course, true to form, they write checks that they cannot cash. And next, what happens? Well, you know, yelling, screaming, fighting, and we thought we would help them out a little bit while this yelling and screaming and fighting and panicking was going on and initiate the next layer of the debt call.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And, you know, you do kick your enemy when they&#x27;re down - it had to happen. And what happened today is that we actually made it down to, say, the mints. The mints are the ones here in the States that issue the coinage. They issue coinage in many other countries as well, as well as the currency printers, such as De La Rue and others, and also bond issuers, such as AB Corp., and the governments that would issue bonds and government bonds, government Treasury notes - those aren&#x27;t really the government. Those bonds are not really the government anyway. Lots of old Fed notes and those types of things. So the clawback was real.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000812">00:08:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Up until this morning - before the debt call - it appeared that the United States government had about three weeks of cash left, and then there was no place left to look. That&#x27;s what they&#x27;re saying anyway, and based on the numbers, that&#x27;s what&#x27;s happening. There are some severe threats to people they think actually have some cash and have produced cash for them within the last year, and some of those threats are going to, for example, the Kuwaiti royalty. I know that they&#x27;ve been threatened very heavily to continue to provide cash for the Secret Space Force. Also, the royal family in Bahrain has also been hit up for cash. I think Qatar is pretty well out, Saudi is out, China is beyond out. The European Union had a few weeks left as well as Russia. However, with the recent debt call that happened by the end of the day, they went from a few weeks to a few days.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000917">00:09:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What are they going to do? I don&#x27;t know. That sounds like it&#x27;s a &quot;you issue&quot; and not really our issue at this moment in time. So more offers and compromise came in before this untenuous situation on a Friday afternoon started to take place. There were some calls that we got from some people that we had done some transactions with in the past, within the U.S. Treasury. And those parties would like to know if there&#x27;s any way we can compromise; why am I so unyielding when it comes to what&#x27;s going on with the government? And it sounds to me that you might have been put up to this by some others, and I&#x27;m sure they were, because we also received a few calls today - Mr. Melville did - from the Trump lawyers again. And some other agencies. Oh, because those agencies also had a debt call today. Every intelligence agency in the world did. And the militaries are probably next, so that could cause a big problem for everyone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001026">00:10:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But, you know, all good things come to an end. Nothing too good or too bad lasts too long, as my grandmother used to say. And I feel the same way for these people. I think they&#x27;re just used to getting a lot of their own way. It seems like they&#x27;re used to... not really compromising - they&#x27;re used to telling people a line of EBS, and everybody buys it, and then they just do whatever they want. Well, that doesn&#x27;t work here anymore, and we need to get what we want - and I&#x27;m not seeing that happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001101">00:11:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I have not officially voted yet on the political line. I have - I guess the deadline deadline would be by three days before the election. So I have until tomorrow to make that call and on what we&#x27;re going to do there. Not like they&#x27;re going to listen to me anyway, but that&#x27;s the only thing that would be ratified, and that would be the only recognized party by our side of who would actually be able to give orders based on the Executive Branch of the United States.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001140">00:11:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as Congress and those people are concerned, again, we&#x27;d just be talking to the same operatives we&#x27;ve been talking to before, and I don&#x27;t really see that going anywhere, and my comment to these people was, &quot;What does the U.S. government, federal government, do?&quot; You know, what do they do? Does anybody really know what they do? I mean, I kind of ignored them pretty much for most of my adult life until I got into this position, and I really didn&#x27;t pay any attention to what federal governments anywhere in the world actually did. It didn&#x27;t really matter to me because it didn&#x27;t affect my life any one way or another. So I didn&#x27;t really care. You know, there&#x27;s some state laws that were important - driving laws and things like that you pay attention to. But other than that, I don&#x27;t really see what they&#x27;re doing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001231">00:12:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, we have Social Security, but that actually comes from the Ways and Means Committee, believe it or not, which is not a government entity. I know they portray themselves to be, and nobody ever talks about them. Nobody in the alt media or in the government really ever mentions the United States Ways and Means Committee. They are responsible for all of your human health services. They&#x27;re responsible for your state-provided Medicare, your social security. They do have a lot of dealings with the Department of Education as well. Pretty much anything that services citizens comes out of the Ways and Means Committee.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001315">00:13:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the Ways and Means Committee has been silent in all of this. Haven&#x27;t heard a word from these people. I wonder why. You know, they&#x27;re a private entity. They are technically an NGO, a government service agency. And none of those people ever talk. Probably because they&#x27;re connected to the Ways and Means Committee in the UK, which works underneath the Crown Corporation. That could be it. Don&#x27;t know. But it would be helpful, you know, if we could hear from these people at some point in the near future. Maybe they have a brain; maybe they don&#x27;t have operatives; maybe that&#x27;s why we don&#x27;t hear from them, and maybe they don&#x27;t care who is in office or not in office. But we could actually work with them directly to make sure social security payments are paid, things like state-provided health care continue, Medicare continues, other things that actually provide services such as free public education, and all of those things with that private corporation and completely ignore the government, really. I know that the payments used to go to the Treasury Department, but they don&#x27;t actually need to because they actually have all the licenses to be their own entity to make transfers through to the government.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001437">00:14:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we have tried this before with other groups, such as the post office. And of course, we told the wrong person, the Orange Guy, on a diplomatic line about the post office and the postal bank and how it used to be used years ago and how it has a grandfathered license, but that really didn&#x27;t go anywhere. All they tried to do was take it over and destroy it because, well, they&#x27;re Duck Dynasty, and what do you expect?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001505">00:15:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But something has got to give, and that person that is going to give this time is not me. So we have things that we want, we have things that we need, not only here in the United States, but all over the world that we expect to happen. And we&#x27;re not getting that from those people, so we might as well order it from somebody else. There has to be somebody else that we can order those things and request from for programs and funding and, you know, forget the farm loan associations and all that kind of stuff.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We could do it better and do it differently, where we&#x27;re not putting farmers into debt. And I&#x27;ve talked to a few farmers about that, and they think it&#x27;s a pretty good idea. So I do have my own ideas and thoughts about possible ways of doing things. As for what we can expect next week, you know, it&#x27;s who knows. Right now it&#x27;s complete and total chaos, and no one is making any sense with what they&#x27;re saying. So your guess is as good as mine. Is there another day, ending in Y, where these people think there&#x27;s another alignment? I don&#x27;t know. But that gate is closed now, meaning, did we lose our connection to Source? No, we did not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001632">00:16:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But as far as any kind of major changes are concerned, that time for them has passed. For approximately the next 2,000 years, we won&#x27;t see another change like this. But I&#x27;m sure they&#x27;ll probably be willing to wait, and I&#x27;m sure they&#x27;re going to take the governments with them, and they can all wait for 2,000 years for something else to happen. Meanwhile, on our end of it, we pretty much sealed the deal on the Golden Age completely, with no going back for at least the next 2,000 years. [laughing] And hopefully by then there&#x27;ll be nothing left to even semi-occur on that day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001711">00:17:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I guess you would say it&#x27;s kind of good news for this week. You know, it ended positively. Halloween wasn&#x27;t as bad as I thought it was going to be, at least for myself. Usually that&#x27;s a day of torture, but not this year. I guess they were busy trying to raise some alien person to help them turn back time. And it wasn&#x27;t Cher, so don&#x27;t get any ideas there. But other than that, really not a whole lot else has happened; that was a lot; that was enough unto itself in the last couple of days for me anyway. And hopefully we&#x27;ll be moving forward on our own. We&#x27;re still continuing to run test transfers and clean up whatever&#x27;s left, unfortunately. And it&#x27;s very frustrating for me and I&#x27;m sure it&#x27;s frustrating for all of you as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001805">00:18:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We also have the Marketplace launch coming up. We are finishing things up. I should hear more on that this afternoon. So probably, I&#x27;m thinking we&#x27;re probably going to be a few more days away. I don&#x27;t know how long yet. I&#x27;ll update you on that on Monday as to the launch of the marketplace. Definitely going to be in November; I just don&#x27;t know which day. I know we&#x27;ve been testing shipping and vendors and all kinds of stuff on the other end and trying to break it so that you don&#x27;t break it, meaning we want to find all the flaws before a final launch.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But the coding team seems very confident. Things are going very well. Our design looks very nice. Everybody&#x27;s done a great job, so thank you everybody that worked on that. From what I understand, we also have some new things coming out for New Earth Innovations in the next two weeks. I know we expect to see a magnesium cream for sleep coming out within the next couple of weeks. We also expect to see lip repair, lip service, and lip balm coming out. I know we have some other cellulite creams and joint formulas and a few other things that are in the works that we should be launching within the next two weeks, definitely. Want to try to get all that stuff out before the holidays, we hope. That way you have plenty of time, depending on where you are in the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001941">00:19:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, lots of things going on within our group here. We are continuing to move on, not only on our work front, but also on the other front as well. I just wanted to let you know we didn&#x27;t forget about anything and that it&#x27;s November 1st today, and hopefully that launch will be very soon. I&#x27;ve got my fingers crossed there too. But everybody&#x27;s very hard at work on our side for all of you, and hopefully it&#x27;ll be a quiet weekend once everybody gets done yelling at each other this afternoon. [chuckling]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002013">00:20:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note I hope everybody has a wonderful Friday, and I will see you on Monday.</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=DgMq5QNXR80" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">
+                UNN on YouTube
+            </a>
+
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+            <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+                <source id="audioDockSource" src="" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId) {
+        if (!videoId) return "";
+        /* Start on click (user gesture) - autoplay is OK here */
+        return "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var videoIsOpen = !!(frame && frame.src);
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+
+        if (videoIsOpen && !audioIsOpen) {
+            if (!confirm("Close the YouTube player?")) return;
+        }
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function openAudioDock() {
+                  var src = getInlineAudioSource();
+                  if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+                  if (videoFrame) videoFrame.src = "";
+                  if (videoBox) videoBox.hidden = true;
+                  document.body.classList.remove("video-collapsed");
+
+                  audioDockSource.src = src;
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = false;
+                  dock.hidden = false;
+
+                  document.body.classList.add("has-video-dock");
+                  document.body.classList.remove("video-collapsed");
+                  document.body.classList.add("audio-dock-active");
+
+                  var expandBtn = $("videoExpand");
+                  var collapseBtn = $("videoCollapse");
+                  if (expandBtn) expandBtn.hidden = true;
+                  if (collapseBtn) collapseBtn.hidden = false;
+
+                  if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+                  if (audioBox) audioBox.hidden = true;
+
+                  updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+</body>
+</html>
