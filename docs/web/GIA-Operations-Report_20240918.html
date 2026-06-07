@@ -890,6 +890,20 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                   return !!url && url.indexOf("watch?v=") !== -1;
           }
 
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
           function getInlineAudioSource() {
                   if (!audioBox) return "";
                   var srcEl = audioBox.querySelector("source");
@@ -910,7 +924,28 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
                   document.body.classList.remove("video-collapsed");
 
                   audioDockSource.src = src;
+                  
+
+                  var startSeconds = 0;
+
+                  if (watchLink) {
+                            var watchUrl = watchLink.getAttribute("data-video-url") || watchLink.href;
+                            startSeconds = getStartSeconds(watchUrl);
+                          }
+
                   audioDockElement.load();
+
+                  audioDockElement.addEventListener("loadedmetadata", function jumpOnce() {
+                            audioDockElement.removeEventListener("loadedmetadata", jumpOnce);
+
+                            if (startSeconds > 0 &&
+                                audioDockElement.duration &&
+                                startSeconds < audioDockElement.duration) {
+                                      audioDockElement.currentTime = startSeconds;
+                                    }
+
+                            audioDockElement.play();
+                          });
 
                   audioDockPlayer.hidden = false;
                   dock.hidden = false;
