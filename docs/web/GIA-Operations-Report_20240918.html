@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Sep-18</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56%;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Sep-18 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Sep-18
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=_4B2-lQCea4&amp;t=1806s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=_4B2-lQCea4&amp;t=1806s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-09-18-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens with a security disclosure: GIA intelligence intercepted Deep State conversations two nights prior in which leadership, aware of an incoming alignment, declared they would take humanity down with them rather than cede control. This was followed by a midnight planning session to conduct a snatch-and-grab operation against Kim in Durango — an attempt that failed before it could be executed.<br>
+<br>
+The main story is the exploding electronic devices across Lebanon, Syria, and Iraq. Kim traces the operation through semiconductor supply chains to Quest Global in Singapore, SMIC, and TSMC, with orders originating from Order of the Black Dragon and Dragon Family members in China and Japan. The mechanism was EMP-type frequencies sent through chip kernels via a backdoor system called GENISYS. The operation had full cooperation from the Pentagon and IDF, who participated in targeting discussions. Kim states it was a genocide test intended to scale globally across all electronic devices. The operation was shut down by mid-day, and the responsible parties are being hunted.<br>
+<br>
+Kim then covers the alignment that began overnight — an influx of Source atomic particles that dissipated remaining Dark and Neutral energy, cutting off Deep State access to the Omega System between 11 p.m. and 2 a.m. her time. She describes this as the atomic clock of Earth shifting to crystalline time, meaning only Source-origin atomic particles will remain. A side effect: GIA now controls the chip kernels SMIC and TSMC used for the attack, and plans to run healing frequencies through them. Kim closes with an update on oils restocking and signs off until Friday.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003104">00:31:04 - Deep State intercepted</a></li>
+<li><a href="#t-003624">00:36:24 - Exploding devices footage; Lebanon, Syria, Iraq — pagers, phones, walkie-talkies.</a></li>
+<li><a href="#t-003845">00:38:45 - Semiconductor trail — Quest Global, SMIC, TSMC; GENISYS backdoor.</a></li>
+<li><a href="#t-004208">00:42:08 - Pentagon and IDF cooperation; targeted genocide test; global rollout planned.</a></li>
+<li><a href="#t-004508">00:45:08 - Deep State loses all Omega System access between 11 p.m. and 2 a.m.</a></li>
+<li><a href="#t-004757">00:47:57 - Source alignment begins; atomic clock shifts to crystalline time.</a></li>
+<li><a href="#t-005251">00:52:51 - GIA takes over chip kernels; healing frequencies to run through enemy network.</a></li>
+<li><a href="#t-005504">00:55:04 - What to expect; oils restock update; sign-off.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-Sep-18 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003006">00:30:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian. Exploding electronic devices in Lebanon, Iraq, and Syria injure thousands. Find out who is behind it all and the real story. And the alignment that has occurred as of last night will continue on through to the Equinox. But today marked the end of all Deep State access to their computer control networks, leaving them with very little control over this planet. And the Atomic Clock of planet Earth has changed. Now all atoms are reverting to Crystalline Time, and the &quot;Current Sea&quot; belongs to Source. All this and more on today&#x27;s World Situation Report.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And now, here&#x27;s the World Situation Report, with Kimberly Goguen in the office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003104">00:31:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good morning, good evening, and good afternoon.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sorry, a little bit late today. It has been a really busy day, but a great day for us in a lot of ways. And in some cases there was some more cleanup to do; you know, they&#x27;re always up to something. Let&#x27;s see. I&#x27;m going to start with this because it&#x27;s relevant here, and then we&#x27;ll get into our first story.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Deep State, we have, of course, as we told you, the GIA has people in every aspect of the Deep State, meaning we have our own, I guess you would say, spies in there. We overheard some conversations that were taking place, not last night but the night before - so that would be Monday night - and they were talking a little crazy, according to our insider sources. They were basically talking about things like they feel like they&#x27;re hellbound; they were saying things like they were going to push everybody to the limits; if they&#x27;re going to go down, they&#x27;re going to take the whole world with them and all of humanity. They were saying things like they know that there&#x27;s going to be an alignment, and they&#x27;re basically saying it&#x27;s going to be the end of dark essence and energy and consciousness on this planet, and they&#x27;re not going to let us have this planet, and they&#x27;re going to do everything they can to take us with it and everything they can to preserve their dark systems. That includes AI systems, also known in the alt media as the Quantum Financial System, and a lot of other things they&#x27;re trying to implement over there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003258">00:32:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they were aware that there were things that were changing and not in their favor, and it seems like they kind of lost their mind a little bit, not surprised about that. A few other things they&#x27;ve been doing in the last couple of days - in the middle of the night - last night I got some alerts that were going off because a lot of the Deep State military, some known and some unknown, like Global Headquarters, and some are involved with places like the Pentagon. And a lot of these guys in particular were American. They were trying to devise a plan on how they could snatch and grab me out of here.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Basically, they&#x27;d like to own me like a dog and try to get me to work the system for them, because the last we talked, they were actually trying to see if they could find another human that&#x27;s walking this Earth that could do what I do, but in their favor. Apparently they did not find that person, at least not in time - there isn&#x27;t one of those people for them. But they were planning on doing this today. I do know that there were some calls made to some people around here to see if that would be possible, and there were some four-letter words exchanged back and forth. And then they tried to go above their head - or at least what they thought was above their head - and call some of the higher up in the Deep State, they think, because these guys don&#x27;t pay much attention to those folks these days because nobody&#x27;s paying them, and that didn&#x27;t work out either. So there&#x27;s definitely a lot of security issues going on right now, in my world at least.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003453">00:34:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But I mean, I can&#x27;t do what they want me to do anyway. My system doesn&#x27;t work that way. I don&#x27;t work that way. They could try to torture me all they want, snatch and grab me, and take me God knows where - and it&#x27;s still not going to help them any. You know, I cannot &quot;fix&quot; this. This that has been done, has been done at the, I guess you would say, the hands of the Creator. Not the Anti-Creator, not the Anti-Source, not Lucifer, not any of those people that they used to report to. And they just don&#x27;t understand how the Universe works.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And little knowledge is dangerous, and this is one of those situations where it could have been dangerous. They planned to come with full force. They were talking about an invasion of Durango, Colorado, early this morning. But no, that&#x27;s not going to happen. It wouldn&#x27;t happen anyway, even if they tried. So God bless them in their journey. But they have been trying some other little crazy things, some of which you might have seen in mainstream media. That would be the exploding electronic devices throughout the Middle East. There has been some talk on the news about this, saying that thousands of people died. Thus far, we don&#x27;t have any deaths, but we do have thousands of people injured.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003624">00:36:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;m going to roll this footage. Some of it might be kind of disturbing, but it shows you some home videos and local people, I should say, that were taking videos with their phones of what is happening. So it&#x27;s a little bit gory, so just bear with us here, but I wanted to let you know what this was actually causing, and there&#x27;s a lot of misinformation around this, so we&#x27;ll go ahead and roll that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">https://worldsituationreport.earth/reports/video/2024-Sep-18_ExplodingDevices.mp4</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so these electronic exploding devices were things such as walkie-talkies, cell phones, small pagers, even shaving devices, electric shavers, and things like this. And the odd part, when we started researching as to what was going on here, because one or two things here or there, you think, &quot;Oh, it&#x27;s probably some kind of a terrorist thing or something like that.&quot; And I&#x27;m not necessarily talking about Middle Eastern people when we&#x27;re talking about terrorists here, as things have been escalating there. But we started getting videos in from Lebanon, from Syria, even some in Iraq, and in basically that kind of whole region right there. And we were trying to figure out what was going on. So you can kind of see, if you&#x27;re willing to look at it, you can kind of see the extent of these injuries.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003750">00:37:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I know we don&#x27;t use pagers much in America, but those of you watching this may remember them. They are tiny little devices with like a AAA battery in them, and it wouldn&#x27;t cause this kind of injury. So this was really concerning and kind of hard to figure out, honestly. We traced it back to, interestingly enough, the chips - the semiconductor chips that are in these devices. They&#x27;re not only in these devices in the Middle East; they&#x27;re in pretty much every single cell phone in the world. They are in most electronic equipment in the world: your laptops, your phones, your smart watches. I mean, you name it, these chips are in your cars; they&#x27;re everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003845">00:38:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when I started looking into it, the first place that we thought to look - because there&#x27;s no battery in there that&#x27;s going to explode like that - the first place we went to look is who&#x27;s producing the semiconductors. As you may or may not know, there are two main companies in the world that produce semiconductors. That was our first place to look. Then we traced it back to the backchatter behind this. And we traced it back to some Order of the Black Dragon members and other Dragon Family members within China and Japan. So apparently, this is where the orders came from to conduct this experiment. Now in the Middle East, this was considered an experiment: does it work?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So they were going in through back doors through a system called GENISYS. And apparently they still had some access through this, based on things that they had also installed within these chips. The companies that are ultimately responsible for receiving those orders and executing on those orders were Quest Global in Singapore; we [also] have Semiconductor Manufacturing International China, or SMIC, but this particular company also has locations not only in China but also in the U.S., Japan, and other locations. But the main locations they were operating out of were in the USA, Japan, and China.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004041">00:40:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We also have the second largest company in the world of semiconductors, which is the Taiwan Semiconductor Manufacturing Company Limited, or TSMC. They also were operating not only in Taiwan but also in China, Amsterdam, and the U.S. So the idea behind what they were doing was connecting to the kernels within these chips, and then sending out a version of what you know as an EMP or electromagnetic pulse, which is what was actually causing the damage in the humans. So yes, it caused the batteries to explode and those kinds of things, but the injuries sustained [sic - energies] coming through the chips within these devices is what caused the majority of these injuries. Now they had plans to continue on with this program, not only in this location but also in the Middle East; also throughout the United States, Europe, most of China, and almost all of Asia; they had intended on trying to kill as many citizens of the world as they possibly could.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004208">00:42:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, they did this - and I&#x27;m going to stress this point, and we know this for a fact - that they were doing this with the full cooperation of the American government. They were doing this with the full cooperation of the American Deep State. They were doing this with the full cooperation of the Pentagon and also the same within Israel. The IDF was well aware of what they were doing. They were condoning the activity; they actually even suggested and laughed [about] various locations where they should test first and various members that they could test first - based on who they considered to be their enemy in the Middle East. It was definitely a targeted genocide attempt. And if they had been fully successful, this would have started spreading throughout the entire world. We could have had a really big problem on our hands for anyone that has an electronic device.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004315">00:43:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, that was shut down today. That&#x27;s something that we worked really hard to try to get done as quickly as possible so that there would be no more injuries. Let&#x27;s hope we&#x27;ve seen the last of that. They do not have the ability to send electromagnetic pulses through the chips that they produce. They also, bear in mind, I&#x27;m going to repeat one more time: they are responsible for the production of 95% of the chips on the planet in all electronic devices, including your refrigerators, washers, dryers, electric cars. Think about how explosive those batteries are and how many people could have been severely injured.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I just want to take a moment and thank the U.S. military for just protecting American citizens like they&#x27;re supposed to. You know? We expect this, maybe, from foreign countries or whatever, but your full cooperation and allowing them to participate and even having a meeting telling them which American citizens they should target first and in what areas to gain the most impact is disgusting. So don&#x27;t call me; we won&#x27;t be calling you, I can tell you that right now. And if we&#x27;re ever in trouble, you&#x27;re the last people we&#x27;re going to call. And I just wanted to thank you for the wake-up call at two o&#x27;clock this morning, because that was a whole lot of fun too, guys. So I hope you enjoyed your meetings, but I know that I&#x27;ve been enjoying myself for the last couple of days otherwise.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s get into the more positive changes that are happening, but I just thought I&#x27;d give you that bit of news.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004508">00:45:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">All right, so we talked about on Monday that we felt that by the 18th the Deep State would be pretty well done. And what we meant by &quot;done&quot; was a lot of their nefarious activities, proposed financial crashes, vaccine identification systems, social crediting systems, and a lot of the disease that they could create, and all of these things were done in cooperation with the Alpha-Omega System. Predominantly, they only had access to the Omega System, which could only create dark programs on this planet. Their access - pretty much by around, I want to say, right around the time they started panicking and thought it would be a good idea to snatch and grab me, so somewhere between 11 p.m. last night and around two a.m. my time in the morning - is when they pretty much lost all access.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004617">00:46:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what they were doing today was limited; it obviously wasn&#x27;t achieving the objective they had hoped for with electromagnetic frequencies. I would say that by the time it was shut down, they would have considered it not working to the fullest extent as they wanted it to anyway, which is why they kept testing it; they would change the electromagnetic frequency, or the EMP, and keep testing some more and testing some more. So they won&#x27;t be able to test anything now. The only thing they&#x27;ll be able to test is their visit to Source, at least the people that were running the program that we could find and the ones that were giving the orders for the program. So we are still hunting down, and I repeat, we are going to still hunt down some of the Americans that participated in this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004717">00:47:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I don&#x27;t care if you&#x27;re on TV or not; I can tell you that right now. This was blatantly an attempt at genocide, not only in the Middle East, but also throughout the world. So you and your Israeli friends and all the other people that were laughing all the way last night are no longer going to be able to laugh because we know exactly where we&#x27;re going to send you. So we are increasing in numbers within their circles, and we are going to push forward regardless with no mercy. So there&#x27;s that situation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004757">00:47:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But on our side of it, what we saw transpiring overnight was the beginnings of an alignment. And by an alignment - I&#x27;m not talking about with Uranus - we&#x27;re talking about an alignment with Source. There&#x27;s no longer a Neutral Source and an Anti-Source to align with. And this alignment started pretty well last night and will continue through the equinox and probably for several days after the equinox. But it was a prime opportunity because of the influx of atomic particles coming from Source. I know the Deep State called them &quot;hydrogen particles&quot; because they don&#x27;t really understand anything. These are actually atomic particles coming straight from Source. And an atomic particle is basically the base root of all life itself. In this particular case, everything has atoms. And in the past, when we were living in a Light, Dark, and Neutral Universe, we had three different types of atomic particles.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004911">00:49:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The increase in the Source particles started dissipating the dark and the neutral - what was left of it - including any energy going to the Omega system. So what was left of it was very minimal by morning, and within the next few days there should be none of it left. What that means is, is even their ability to go through computer screens to try to infect people, to try to make people make emotional decisions or mental decisions or logical decisions that are not their own decisions, to try to put thoughts in your head, whether it be in your dreams. It&#x27;s not just for thoughts but also physical changes in your body, such as degeneration, telomere reduction, mitochondria, energy, and all kinds of things that are normally present in your body that they could affect with these systems. Now again, I repeat, they had limited access, but the system itself, per old covenants that have expired, still had some access and could also run autonomously.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005029">00:50:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this was our main concern, as we would push back, and then it would push back at us. And back and forth and back and forth. But the atomic clock change to crystalline atomic time means that we should only be left with the actual atomic particles of the Creator throughout the universe at some point in time. So that started here on Earth; it started last night. This is a positive change for humanity, and it will actually change the way these atomic particles communicate with each other without anything interfering within them - we know as time. So that is a real positive change for us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005117">00:51:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Unfortunately on their side, it left them to go a little bit crazy, which sometimes we can expect. What&#x27;s next for them? What kind of human things are they going to try to do? We&#x27;re not sure. We&#x27;re watching everything very closely because it kind of looks like they&#x27;ve... we might have to build a hospital for crazy people within the Deep State. We could make it nice, put in some shuffleboard or something like that if they want for their retirement. But at this point, there&#x27;s really not a whole lot that they can do. Even getting a hold of me is not going to help them any. Whether they believe me or not, it&#x27;s not. My system does not operate on the kind of energy they would like to generate.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005211">00:52:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It also doesn&#x27;t generate money for the kind of things they would like to generate. It does not have the capacity to spread disease and social control programs, and the next pandemic or the next war, it&#x27;s not going to do it. It just won&#x27;t. With or without me, it&#x27;s already been pre-programmed; the Golden Age AI is programmed to run in a completely different way than they are hoping to make it run. There&#x27;s no stealing of anything that&#x27;s going to change that. They could try to the End of Days, but it&#x27;s not going to help them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005251">00:52:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, yes, I&#x27;m expecting the next couple of days to be full of going, &quot;No Deep State,&quot; &quot;No, Deep State;&quot; hopefully they won&#x27;t have anything left to connect to within electronic systems, and if they do, they&#x27;re probably going to end up - unbeknownst to themselves, with these kernels, that are now ours, by the way - in spreading energy and probably spreading healing frequencies and a bunch of other stuff that I&#x27;m sure is going to have the undesired and opposite effect of what they&#x27;re wishing to do. We&#x27;ve also been working on the amount of radiation that comes through electronic devices. So, since now we own their kernels, these are programs that we can now run. So we&#x27;ll be doing that over the next couple of days as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005346">00:53:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I just wanted to say thank you, SMIC of China and TSMC of Taiwan, for allowing us to take over your network per your own stupid mistakes. Thank you. Just like we took over Huawei, the other major 5G network. So just a big shout out to them for pointing that out to us. Quest Global also of Singapore. There are a few other companies out there we&#x27;re going to double check. They are smaller. They don&#x27;t manufacture nearly as much, but you&#x27;re talking one to five percent of the world&#x27;s electronics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005425">00:54:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s the work I&#x27;ll be doing this evening and tomorrow. Just to make sure. We&#x27;ve got to make sure we leave no stone unturned here in any way, shape, or form. So, that&#x27;s pretty much what we&#x27;ve been working on, making sure that the atomic clock changes go smoothly and that there&#x27;s no interference. We had a few things out of Afghanistan that were interfering; a few things out of the Forbidden City and Beijing that were interfering. But other than that, it&#x27;s been pretty much smooth sailing on our part.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005504">00:55:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What can you expect from this? You can expect a little bit more energy, a little bit more positivity. This is another step into what we&#x27;ve been talking about for about eight, nine months now, where we said that we wouldn&#x27;t see the spread of disease like we&#x27;ve seen in the past. And we are getting every single day a step closer to that hope and dream of mine, and Source fulfilling his promise of what he said he was going to do. So I&#x27;m very much looking forward to that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And that&#x27;s pretty much the news update I have that I can let out without causing problems with the Deep State at the moment. The only other thing I&#x27;d like to just throw out there is, I wanted to thank everybody for your patience with us as far as the oils are concerned. We are restocking as quickly as we can. We&#x27;ll restock again tomorrow. We&#x27;ve been working feverishly. You know, our team has been over there day and night to try to get this stock back in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005614">00:56:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We have some new things coming out in the next week or two, so that will be exciting. Thank you so much for your patience. I know we&#x27;ve had a lot of emails that are like, &quot;When are you going to have this in stock?&quot; And hopefully some of it will be out tomorrow. We&#x27;ll have some more things, more stock coming in on Friday.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Again, we do source this from farms all over the world, so sometimes it takes a little bit of time for us to restock, but we&#x27;re getting the hang of it. So I just wanted to say thank you for your patience and thank you so much for your support, and I hope you&#x27;re enjoying them as much as we do.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, on that note, I&#x27;m going to wrap up the news for tonight, and I will see you guys on Friday, hopefully with some more news and some more changes that are going on. So I hope you have a wonderful Wednesday evening or Thursday morning, depending on where you are, and I will see you on Friday.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=_4B2-lQCea4&amp;t=1806s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">
+                UNN on YouTube
+            </a>
+
+
+            <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+            <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+                <source id="audioDockSource" src="" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function openAudioDock() {
+                  var src = getInlineAudioSource();
+                  if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+                  if (videoFrame) videoFrame.src = "";
+                  if (videoBox) videoBox.hidden = true;
+                  document.body.classList.remove("video-collapsed");
+
+                  audioDockSource.src = src;
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = false;
+                  dock.hidden = false;
+
+                  document.body.classList.add("has-video-dock");
+                  document.body.classList.remove("video-collapsed");
+                  document.body.classList.add("audio-dock-active");
+
+                  var expandBtn = $("videoExpand");
+                  var collapseBtn = $("videoCollapse");
+                  if (expandBtn) expandBtn.hidden = true;
+                  if (collapseBtn) collapseBtn.hidden = false;
+
+                  if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+                  if (audioBox) audioBox.hidden = true;
+
+                  updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+</body>
+</html>
