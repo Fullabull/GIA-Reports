@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2025-Jan-31</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2025-Jan-31 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Essentia Foundation Faggin
+        <br>2025-Jan-31
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href="https://youtube.com/watch?v=xnwbQa4B3kw"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=xnwbQa4B3kw"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Hans and Federico Faggin explore consciousness as the fundamental ontological reality, arguing that classical matter is only a representational interface of deeper quantum fields that possess identity, free will, and self-knowing. Faggin recounts a profound awakening experience at Lake Tahoe in 1990 in which he felt an expanded awareness and overwhelming love and white light, describing a state in which his consciousness existed both within and beyond the body while he was simultaneously the observer and the observed. This experience became pivotal in shaping his later work. He presents a new framework that introduces Quantum Information Panpsychism and the concept of the ‘seity’, describing beings as conscious quantum fields that arise when One, the fundamental consciousness, knows itself through infinitely many perspectives. Ontology, he argues, resides in the quantum fields themselves, not in particles, which are merely classical echoes of transient field events. In his broader framework, these fields reside in the domain physics formalizes as Hilbert space — a space of all possible states — which closely parallels what metaphysical traditions call the Causal Plane, the blueprint realm where potential meaning and intention precede physical manifestation. The discussion spans near-death experiences, the limitations of classical AI, the quantum foundations of life, the role of cooperation over competition, and how shared resonance between conscious beings can generate higher-level seities through unified internal states.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000555">00:05:55 - Faggin describes his awakening experience at Lake Tahoe in 1990 where love and white scintillating light expand outward from his body, revealing his consciousness both inside and outside the body, uniting observer and observed.</a></li>
+<li><a href="#t-001200">00:12:00 - Consciousness is fundamental; the body and brain only provide limited information channels, while qualia exist in the quantum fields.</a></li>
+<li><a href="#t-001700">00:17:00 - AI is purely classical and cannot possess consciousness because it lacks access to coherent quantum states.</a></li>
+<li><a href="#t-003500">00:35:00 - Seities are conscious quantum fields with identity and free will, created when One knows itself from different perspectives.</a></li>
+<li><a href="#t-005400">00:54:00 - Out-of-body experiences and near-death experiences reveal that consciousness does not reside in the body.</a></li>
+<li><a href="#t-005750">00:57:50 - One creates part-whole seities by knowing itself in different directions, forming a hierarchy of conscious beings.</a></li>
+<li><a href="#t-010200">01:02:00 - Identity is the perspective One had when creating a seity; each seity is a unique viewpoint of universal consciousness.</a></li>
+<li><a href="#t-010700">01:07:00 - Death is like a drone losing signal; awareness shifts from the avatar to the wider reality it always inhabited.</a></li>
+<li><a href="#t-011129">01:11:29 - The combination problem disappears under quantum panpsychism; combining quantum states naturally produces new conscious wholes.</a></li>
+<li><a href="#t-011440">01:14:40 - Space expands because One continually knows more about itself; cosmic inflation reflects consciousness expanding its memory.</a></li>
+<li><a href="#t-011630">01:16:30 - Purpose arises from following the intrinsic direction of one’s seity; Faggin feels aligned because insights come to him unbidden.</a></li>
+<li><a href="#t-011822">01:18:22 - Resonance between two conscious beings can generate a new higher-level seity without destroying the originals.</a></li>
+<li><a href="#t-011855">01:18:55 - Classical AI deals only with bits; true meaning comes from the inner quantum life of conscious fields.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">Introduction:</div>
+<div class="line">-------------</div>
+<div class="line">Interview by Hans Busstra, Essentia Foundation</div>
+<div class="line">Copyright 2024-2025 by Essentia Foundation. All rights reserved.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">On Jan 31, 2025, CPU inventor and physicist Federico Faggin had a conversation with Hans Busstra that is opening eyes and changing minds about the true nature of reality. Below is a transcript of this amazing and enlightening interview. Federico (together with Prof. Giacomo Mauro D&#x27;Ariano) proposes that consciousness is not an emergent property of the brain, but a fundamental aspect of reality itself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">----------------------------------------------------------------------------</div>
+<div class="line">Watch the interview here: https://www.youtube.com/watch?v=0FUFewGHLLg</div>
+<div class="line">----------------------------------------------------------------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Table of Contents:</div>
+<div class="line">------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">00:00:00 Intro</div>
+<div class="line">00:03:20 Federico&#x27;s Personal Experience</div>
+<div class="line">00:09:03 The New Theory: Biology vs Computers</div>
+<div class="line">00:21:05 What is a Particle?</div>
+<div class="line">00:22:11 The Quantum vs the Classical World</div>
+<div class="line">00:33:48 Can We Explain Quantum Mechanics in a Materialist Worldview?</div>
+<div class="line">00:36:48 Free Will an Illusion? Why Do We Ask This Question?</div>
+<div class="line">00:40:32 Joining Science and Spirituality</div>
+<div class="line">00:45:19 Reflections on Donald Hoffmann&#x27;s Theory</div>
+<div class="line">00:47:40 Will You Prove This?</div>
+<div class="line">00:51:04 Will AI Be Better Than Us?</div>
+<div class="line">00:54:10 Where Could This Theory Lead Us?</div>
+<div class="line">00:57:34 If We Are All One, How Does Separation Work?</div>
+<div class="line">1:03:10 What Happens When We Die?</div>
+<div class="line">1:11:26 How Quantum Information Panpsychism Is Fundamentally Different Than Classical Panpsychism</div>
+<div class="line">1:13:07 Is There an End-Point to the Universe?</div>
+<div class="line">1:13:55 Why Is Space Expanding Exponentially?</div>
+<div class="line">1:15:41 Resonance and Purpose</div>
+<div class="blank">&nbsp;</div>
+<div class="line">---------------------------------------------</div>
+<div class="line">Before You Begin - A Few Helpful Definitions:</div>
+<div class="line">---------------------------------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Epigenetics</div>
+<div class="line">-----------</div>
+<div class="line">Epigenetics is the study of how your environment and behaviors can affect how your genes work without changing the underlying DNA sequence.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Ontology (Faggin&#x27;s meaning)</div>
+<div class="line">---------------------------</div>
+<div class="line">Ontology: what is fundamentally real in a system; the level where things truly exist. It answers the question, &quot;What is the stuff of reality made of at the deepest level?&quot; And in this interview, physics ontology = fields, not particles. Particles aren&#x27;t &quot;things.&quot; Particles are temporary ripples or excitations in an underlying field, and the field is the thing that actually exists.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">When he says, &quot;Ontology is in the field - it&#x27;s not in the particles.&quot; he means: The field is the fundamental reality. The particle is just a transient state of that field. What you &quot;see&quot; as a particle is just a classical-scale effect of a tiny quantum-field event.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Why this matters in his argument: Because free will, choice, and consciousness (as he describes them) operate at the level of fields - not cells, not molecules, and not particles.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Seity</div>
+<div class="line">-----------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Seity is originally an English word meaning: selfhood; that which has identity; the fact of being oneself. Federico uses &quot;seity&quot; to mean a self-conscious quantum being.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">---------------------</div>
+<div class="line">Concepts and Theories:</div>
+<div class="line">---------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The concepts below are discussed or mentioned in this interview. None of them are particularly difficult - and understanding each of these at a conceptual level can make listening to this interview a more rewarding experience. These are basic principles underlying quantum mechanics.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">-------------------------------</div>
+<div class="line">Einstein&#x27;s Theory of Relativity (the important parts)</div>
+<div class="line">-------------------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">1. Nothing can travel faster than light. This caps how fast information can move in our &quot;classical&quot; world - which is why quantum behavior looks so impossible.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">2. Time is not absolute: observers moving relative to each other experience time differently. This fact affects the question of &quot;what is information?&quot; in a big way.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">3. Space and time are one structure. Spacetime is a single unified backdrop, not two separate things. This matters because Faggin &amp; D&#x27;Ariano argue that consciousness doesn&#x27;t live inside spacetime - it creates or selects events in it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">4. Energy and mass are forms of information. Einstein&#x27;s equation said simply that energy and matter are interchangeable. For Faggin, this is the stepping stone to: &quot;Information is the fundamental layer beneath physics.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">-----------------------------------</div>
+<div class="line">Three Quantum Rules You Can&#x27;t Cheat</div>
+<div class="line">-----------------------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">1. Holevo&#x27;s Theorem: You can&#x27;t extract all the information a quantum bit holds. Measurement collapses it, and only a tiny amount of classical information comes out.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">2. No-Cloning Theorem: You can&#x27;t copy an unknown quantum state. Trying to duplicate it destroys the very information you want to preserve.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">3. No-Deleting Theorem: You can&#x27;t erase a quantum state. If it exists, the information has to go somewhere - it can&#x27;t just vanish.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">-------------</div>
+<div class="line">Hilbert Space</div>
+<div class="line">-------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hilbert Space is a place of pure potential, where a quantum state exists before it becomes physical. It is more than just math - it&#x27;s a real layer of being, where all possible states of a system live at once, and where choices are still open. It aligns well with the Causal Plane: both are where structure, intention, and possibility exist before collapsing into form, experience, or action.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">----------------------</div>
+<div class="line">Schrodinger&#x27;s Equation</div>
+<div class="line">----------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Schrodinger&#x27;s equation tells you how a wavefunction changes - the wavefunction being the thing that contains all the possible states the quantum system could be in. But it doesn&#x27;t tell you which outcome you&#x27;ll get - it just tells you how all the possibilities evolve together until you look. It does this assuming standard conditions (without taking into account how time changes with speed - that is handled by Dirac&#x27;s equation (below)).</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So Schrodinger&#x27;s equation is saying, &quot;Here are all the possible futures - evolving smoothly, beautifully, mathematically - until someone observes the system. Then boom: one of them becomes the actual reality.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Schrodinger&#x27;s Cat</div>
+<div class="line">-----------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">To show how weird this whole subject is, Schrodinger imagined a cat in a sealed box with a quantum trigger. If the quantum event happens, the cat dies. If it doesn&#x27;t, the cat lives.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Quantum logic says: before you look, the system (represented by the cat) isn&#x27;t &quot;alive or dead.&quot; It&#x27;s literally in a superposition: alive-and-dead at the same time, because both possibilities exist in the wavefunction. But as soon as you open the box, you force the system to choose one definite outcome - this is collapse.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The point isn&#x27;t about the cat. The cat just emphasizes the definitive consequences of quantum reality, when applied to everyday objects.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">-----------------</div>
+<div class="line">Dirac&#x27;s Equation</div>
+<div class="line">-----------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Dirac&#x27;s equation describes how an electron behaves when it must obey both quantum rules (expressed by Schrodinger&#x27;s equation) and Einstein&#x27;s relativity. If Schrodinger&#x27;s equation describes a slow electron, Dirac&#x27;s equation describes a fast electron - one moving close to the speed of light.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And when Dirac combined those two realities, the math automatically predicted a new and shocking third reality: antimatter. Physicists saw this as a surprising new type of particle. But Dirac had unintentionally exposed something much bigger than a particle - his equation revealed the &quot;mirror side&quot; of creation; the Dark Universe.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">----------------------------------------------------------------------------</div>
+<div class="line">----------------------------------------------------------------------------</div>
+<div class="line">INTERVIEW:</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Imagine that you control a drone. The drone looks at that reality where it is, sends me information and I get the conscious experience of what the drone is seeing. That conscious experience is not in my body - it&#x27;s in my consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000020">00:00:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: A scientific theory that basically states that our body is operated like a drone from a conscious quantum field, which would mean that experience - &quot;qualia&quot; - is not in your head.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000031">00:00:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The qualia do not exist in the body, they exist in the field.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000035">00:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: People will find this a crazy idea.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000038">00:00:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It is crazy - but it is much closer to the truth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000044">00:00:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Federico Faggin invented the first CPU, the touchpad, and worked on the first neural nets, which gave him the hope of creating conscious AI.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000053">00:00:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It took me 30 years to figure out that mathematics is created by consciousness, and therefore I cannot explain consciousness with mathematics. People - many physicists - think that there is emerging, emergent properties in the purely classical world. It cannot be! Emergentism requires quantumness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000116">00:01:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Like some other renowned physicists, Faggin is convinced that consciousness cannot be a classical phenomenon and has to be quantum. But his theory of quantum consciousness goes beyond any theories on the table.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000128">00:01:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: We have to go way beyond Schrodinger&#x27;s equation. We have to go into Dirac&#x27;s equation, but even beyond that, we have to go to quantum fields and quantum information. And quantum information goes beyond the concepts of quantum fields. In fact, the only physicist that has been able to show that quantum physics derives from quantum information is an Italian physicist, Giacomo Mauro D&#x27;Ariano. He showed that you can derive all the equations of quantum physics from quantum bits.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000201">00:02:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Federico Faggin reached out to Mauro D&#x27;Ariano and together they published a paper, and Federico wrote this book. [&quot;IRREDUCIBLE - Consciousness, Life, Computers, and Human Nature&quot;] If they are right, not only will they have an accurate theory of consciousness, they will also solve the mystery of the interpretation of quantum mechanics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000218">00:02:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Quantum information is the representation of inner experience and the collapse of the wave function is the representation of my, of the free will. What more do you want?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000228">00:02:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: That&#x27;s crazy, that&#x27;s crazy. Let&#x27;s try and really understand this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000233">00:02:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Welcome to the Essentia Foundation YouTube channel. Thanks for watching and may I ask you to like and subscribe as it really helps us to grow our channel. Now, this interview was recorded when Federico visited the Netherlands to present his new book Irreducible. A link to the book and scientific papers are in the description below. And in his book, Federico describes how a deeply personal experience led him to start investigating consciousness. Therefore, I found it interesting to start our conversation with this personal experience. Of course, after that we go into the theory itself. In the chapter marks below [see bottom of this document] you can see the topics we discussed. Now, without further ado, here is Silicon Hero and Consciousness Pioneer, Federico Faggin.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000320">00:03:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Federico, can you tell us about a pivotal moment in your life, namely the experience you had at Lake Tahoe - do I pronounce that correctly? During your Christmas holidays of 1990.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000333">00:03:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah. I wasn&#x27;t happy, you know, and I had reached everything that the world says that if you do all this stuff you should be happy - and I wasn&#x27;t. I realized that I was faking being happy because I needed to, because I was running a company, I had to be enthusiastic and everything else - but I was dying inside. So what&#x27;s going on? What&#x27;s wrong with this picture?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So consciousness then became center stage in my life. Understanding that this consciousness is somehow also connected with feeling desperate inside. So what&#x27;s going on? So I wanted to understand what consciousness is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000418">00:04:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And I wanted to understand it for my own sake - not to do something about it, not to monetize, not to make a new technology - because before, it was all about doing something, you know? And now, all of a sudden, I turn my attention inside because of this suffering. And it was in this climate that I had this extraordinary experience of consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000442">00:04:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Now I can go to this Tahoe night, you know, in 1990 during the Christmas holidays. We had a home up in Tahoe, which is Lake Tahoe, it&#x27;s a beautiful lake, 2,500 meters and mountains and the skiing is great. And so one night I woke up, midnight, you know, I was thirsty. Went to get a glass of water, and went back to bed. And was just waiting to go back to sleep, and thinking nothing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000520">00:05:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And all of a sudden, out of the chest, pow! Just, you know, just energy was coming out of my chest. But it was love. And it was love that I&#x27;ve never felt before. It was love that was coming from me. How can love come from me? I mean, you know, it was unthinkable that love could come from me. And it was 10,000 times more powerful than any love that I&#x27;d felt before. I mean, in fact, I&#x27;d never felt that love because it was unconditional love. Now I have a name for it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000555">00:05:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It was love, period. Yes, it was coming from me, but it was love. And it was light, it was a white light, scintillating. It was, you know, like sparkles, and it was coming out. And then it explodes and it&#x27;s everywhere, but... it&#x27;s everywhere, but my consciousness is there too. So not only my consciousness is within me, but it&#x27;s also outside of me. And all of a sudden I realize: I am that. So I am the observer and the observed simultaneously. But I retained my point of view; I retained my identity - I was still the same kid of five-years-old or three-years-old kid, that I was then, and that I am now. And so that identity... so the only thing of me that remained was that point of view.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000654">00:06:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And then I realized, &quot;Oh my God, this stuff is the stuff of which everything is made! Everything comes from this stuff. And my body was hot, it was vibrating. Like, the cells of my body were resonating with this thing, this... you know... of course the emotions, the feelings was love, joy, and peace. Because this stuff felt like: that&#x27;s me. I&#x27;m at home - this is me. So I&#x27;m finally home. This is home! So it was all mixed up, so you cannot separate this stuff, you know? Love, joy, and peace.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000735">00:07:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And then the mind was aligned, saying, &quot;This is the stuff of [which] everything is made.&quot; So I&#x27;m everything, but also the observer of everything. So I&#x27;m a point of view of One, with which One knows itself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now this is the centerpiece of this new theory of consciousness that we may talk later about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000759">00:07:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, beautiful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000800">00:08:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I mean, I was a physicalist. I thought, basically, a materialist. Because I study physics, and everybody knows the consciousness comes from matter, perhaps - we don&#x27;t know how, but it has to come from matter - where else can it come from? So, I mean, that was the mindset that I was [in]. So all of a sudden, how can... No! This is before matter, somehow. So this must be the beginning of it. So that changed it, and that started me in a completely different... I went orthogonal in terms of my personal development and thinking while I was running Synaptics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000841">00:08:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So that was fine, but I spent, from that point on, 30 to 40 percent of my time trying to understand what happened. And studying, doing meditation, you know, figuring, you know, anything that I could understand to understand what happened. But that picture actually is the end... now I can explain - with this new theory of consciousness - I can explain exactly what happened, and exactly why that is correct. See, every single one of us is a field that is both the observer, the observed, and the actor. Every one of us is a field, and this field does not exist in space and time. Spacetime exists within these fields that we are. It is us [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000936">00:09:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So this changes the paradigm, right? But we need a change of paradigm because otherwise, if we are machines - like scientism is telling us - we are going to be taken over by the machines, the artificial intelligence that people will control, powerful people will control. And through those machines they can control us if we don&#x27;t change our mind of who we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001007">00:10:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: It will become a sort of self-fulfilling prophecy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001009">00:10:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It will become a self-fulfilling prophecy because we have not done the personal work to understand who we are. And we are not machines. The body is a machine, but it&#x27;s a machine that is infinitely more complex than the computers, because it is a quantum and classical machine - it&#x27;s not a machine like a computer. Just to, you know - it&#x27;s simple to understand it: every cell of my body is a part-whole [fractal] of the body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001037">00:10:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: What do I mean by that? Every cell of my body has the genome of the egg that created the entire organism. So every part of my body has the potential knowledge of the whole. In this case the whole is just the body. So we are holographic. We are holographic - we are made of parts. We have 50 trillion cells. Each has the potential knowledge of the whole organism. So a cell, which is a part, can change within its own life by taking advantage of the potential knowledge of the whole. That&#x27;s why epigenetics exists. Twenty years ago, if you said &quot;epigenetics,&quot; you would have been put into the corner as a crazy guy. Okay, now we know that epigenetics exists. Why? Because every part is a part-whole.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001139">00:11:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So we as human beings, we are fields, which are part-whole of One - the totality of what exists. Same pattern repeated to different scales.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001153">00:11:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Very nice. We are going deeper right now. And I think it&#x27;s good for people to understand this comes from the architect of the first microprocessor. If we have that cell, that &quot;part-whole,&quot; as you mentioned, and we have a modern-day microprocessor that many people attribute sort of the same intelligence (or complexity) to, because that&#x27;s the idea, right? Because it&#x27;s just so many connections - so much computing power - so many people think we will achieve sort of cell-like, and then, of course, organism-like intelligence. Can you just, on the ground level, make that comparison: the cell versus the microprocessor?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001232">00:12:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah. A microprocessor is made of switches. On, off, on, off, on, off. What does a switch know about the whole, the whole computer? Nothing. It doesn&#x27;t know anything. All that it could possibly know is that it&#x27;s open or closed. But it can do nothing else. Every cell of my body is connected to the whole through these quantum fields, because a cell is a quantum-classical thing - it&#x27;s not a classical thing. It has been studied as biochemistry by biologists.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001323">00:13:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It&#x27;s an informational system of a kind that we have still to understand the foundation. It&#x27;s quantum and classical. Quantum and classical - nobody understands how life works. It goes way beyond what we understand. We think it&#x27;s a mechanism. And that&#x27;s because those cells remain connected with the fields because they&#x27;re made of particles - and quantum physics is telling us that particles are not objects. Particles are states of a field. They cannot be taken away from the fields. They are not separable from the fields. They are like a wave of the sea, cannot be taken out of the sea.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001407">00:14:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: But what many people, I think - and this we really need to clarify, I think. Okay, in a cell we have proteins bumping around, which are, in the end, complex molecules. In a computer we have electrons that are also particles. What exactly makes the molecules (the particles within the cell) quantum-classical, and a computer purely classical? Because I&#x27;d say, &quot;Okay, aren&#x27;t there quantum effects as well in computers that connect them to that field you were talking about?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001436">00:14:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, but the quantum effects are incoherent and they cancel out. So the quantumness is cancelled out. The &quot;bit&quot; is the average of quantum phenomena. They cancel out, and then therefore is a... first of all, the bit is not a physical thing - it&#x27;s an abstraction that we have created. What is &quot;zero&quot; and what is &quot;one&quot; we have determined. And as long as within the system the zero and the one are the simplest possible symbols that can be recognized as zero and one - that&#x27;s all that is needed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001514">00:15:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So if you maintain that coherence - but it&#x27;s a classical coherence because the zero and the one are classical information that can be reproduced - a quantum bit cannot be reproduced. A quantum bit, when you measure the quantum bit, you get zero or one in the direction in which you measure it. But you have to set the direction. Because if you don&#x27;t know the direction, whichever, any direction that you choose you will find zero or one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001544">00:15:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The Holevo&#x27;s Theorem says that the maximum information that you can get from a quantum bit is a classical bit. The quantum bit cannot be known. The No-Cloning Theorem says that you cannot clone even a quantum bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001600">00:16:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, once we want to know the quantum state, it will collapse in a state which is a zero or one, and we are in a classical world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001607">00:16:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, and we are in classical. So quantum information cannot be reproduced. Quantum information cannot be reproduced, [but] classical information can be reproduced.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We are quantum fields - what we feel within can be represented by quantum information. But what we feel goes beyond the representation. The representation is mathematics, it&#x27;s the map. What we feel is the [actual] territory, what we feel is only within the quantum field. That&#x27;s how we know the meaning - it&#x27;s within us, within the field - it&#x27;s not in the information. Physics - the information in physics has no meaning. And the problem with the current world view is that if you start with this type of information, then there is no meaning. You cannot [should not] conclude that the Universe is without meaning and purpose just because you have started that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001716">00:17:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But in fact, if you start with quantum information... People cannot explain why you cannot copy quantum information. &quot;Why can I not copy quantum information?&quot; Then the new theory says, &quot;Consciousness and free will are foundational and cannot be explained with anything simpler.&quot; And if you start with that, then you can explain why quantum physics must be the way it is. Exactly the opposite. Again, you know, the silicon-gate technology turning around the problem. You go from here to there instead of going from there to here. And there is collapse of the wave function, which is free will&#x27;s decision of the field, of the various fields that are interacting and creating this thing that emerges from these fields. The particle is not separable from the field. It&#x27;s integral to the fields. Then they forget about it. Then they think of the particle as a little ball. The people that study biology think that the cell is classical. It is NOT classical.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001825">00:18:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, they think of the rule of large numbers, right? Because quantum effects are on a sort of subatomic particle level and it filters out, it cancels out and then we have the classical world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001834">00:18:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: No, they don&#x27;t cancel out inside the cell, they work together to create these structures that they don&#x27;t even understand that is going on right now. They don&#x27;t understand how the cell works as a totality. You know, we are instructed not to understand, and we are going through with blinders. We don&#x27;t understand. I mean, there is, for example, about 10 years ago, or so, a few physicists and biologists, but people with a strong knowledge of physics started saying, &quot;Hey, you know, life - there must be something quantum in life.&quot; &quot;Oh, forget it. Not possible!&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And they were ostracized and, you know, eventually, there is a very small cadre of &quot;quantum biologists&quot; they&#x27;re called now - people that are trying to understand life as a quantum phenomenon. They are still ostracized. But at least now they have some money to do research.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001936">00:19:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But for 10 years it was like, you know, everybody knows that... You know, these dogmas of the orthodoxy of science are impeding us to really make progress. And it&#x27;s time to stop this. But there is a strong desire for this orthodoxy to keep this materialist and reductionist framework that has shown that it&#x27;s no longer valid. Everybody knows! I mean, people that really think - but they don&#x27;t want that. Because it&#x27;s power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002016">00:20:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And how... but if we go back, I really like when you talk about this, because I think that&#x27;s the real nuts and bolts. We go into the eukaryotic cell and we see the proteins, we have the DNA, we have all the action going on in a cell, which is tremendously complex. But we think we can reduce it to first principles because we know what those molecules do to each other, and then it&#x27;s just a rule of large numbers which will give us sort of the action of the cell and will build up to the organism. But you are saying that, on that level, quantum effects are playing a role which make action within the cell indeterministic? And even a free-will decision?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002052">00:20:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Absolutely. But the free will decision is not in the cell, it&#x27;s in the fields that control the cell.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">See, I was mentioning before, right, that a particle, like an electron, doesn&#x27;t exist separate from the fields. It&#x27;s a state of the field. From physics&#x27; point of view, ontology is in the field - it&#x27;s not in the particles. Because the particles are integral to the field, so they come and they go. If a particle existed, it wouldn&#x27;t disappear, right? But an electron can appear and disappear, because it is a state of a field that appears and disappears. There is nothing more. There is no particle. But physicists, the particle physicists say, &quot;But I see the particles.&quot; No, you don&#x27;t see the particles. You see the effect of the state of the field on this classical world, and then you see something, but that is not a particle. It is the effect of something that was amplified - a huge number of times - to give you what you call a &quot;particle.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002206">00:22:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And to clarify this for people, when we talk about &quot;quantum&quot; and &quot;classical.&quot; The classical world is the world of matter that we know that seems to behave deterministically. And the quantum world of course is a world of probabilities, right? Of multiple states being possible at once. And how exactly do they relate if you say &quot;quantum-classical?&quot; So what bit of our body is classical? Of course, my body doesn&#x27;t evaporate while I&#x27;m sitting here, so that would make it classical? But my thoughts are quantum?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002238">00:22:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yes, okay. So, first of all, there is no clear boundary between classical and quantum. In other words, we again want to put things into boxes. That&#x27;s the first mistake. There are no separate boxes. One is holistic. The reality - deeper reality - is holistic. Means it&#x27;s not made of separable parts. And it&#x27;s not made of separable concepts - which is even deeper. So even &quot;true or false&quot; is an approximation of reality, valid under certain conditions. Like one and zero are valid for a certain temperature and pressure of the computer. If you change the temperature it doesn&#x27;t work anymore, because that distinction can no longer be valid in a world where there is a continuity, where everything is connected with everything else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002338">00:23:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But we don&#x27;t want that world because you cannot control that world. So the problem now is a problem of power and control. Behind this desire to have a deterministic and reductionistic world - which is the materialist philosophy - which it&#x27;s time to abandon that. Because quantum physics already is saying that that doesn&#x27;t work. You know, according to quantum physics, the Universe is holistic, it&#x27;s not made of separable parts. Everything is connected. Everything is connected from the inside. But according to most physicists, there is no inside. They think that all that exists is actually what you can measure. But that is not possible. Nobody can understand why quantum computers work because their actual operation cannot occur in spacetime. It must occur in what is called Hilbert Space. But Hilbert Space is supposed to be a mathematical abstraction, so how can you do operations in an abstract space of mathematics? You see, it&#x27;s incoherent.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002451">00:24:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But nobody wants to think deeply about this stuff because nobody has ever [been] taught how to think deeply about stuff. They want to solve the problem; give me the equations and I&#x27;ll solve the equations. But the equations are created by consciousness. It is consciousness that creates mathematics, not mathematics that creates consciousness. It took me 30 years to figure out that mathematics is created by consciousness and therefore I cannot explain consciousness with mathematics and I realized that I was trying to do the same because I was taught that way. I had to turn it around. Again, turn it around! [Hearty chuckle.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002533">00:25:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And we can only touch, let&#x27;s say, but we can touch at the outer surface of consciousness with mathematics; it&#x27;s our own understanding of ourselves. So would the Schrodinger&#x27;s wave function, which describes the state of a quantum system - is that touching on the outside of consciousness? Is that as close as we can get with mathematics?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002555">00:25:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Of course, of course. In fact we have to go way beyond Schrodinger&#x27;s equation. We have to go into Dirac&#x27;s equation, but even beyond that we have to go to quantum fields. And quantum information. And quantum information goes beyond the concepts of quantum fields. In fact, the only physicist that&#x27;s been able to show that quantum physics derives from quantum information is an Italian physicist, Giacomo Mauro D&#x27;Ariano, University of Pavia. And it took him 15, 20 years to do that. And he showed that you can derive all the equations of quantum physics from quantum bits.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002639">00:26:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So you remember probably about John Wheeler, you know, &quot;it from bit.&quot; Yeah, he had the original intuition that information had to be more profound, deeper than matter. It from bit. So the bit was deeper, but he should have said &quot;it from qubit [quantum bit],&quot; but never mind because the deeper information is quantum information. And D&#x27;Ariano and his collaborators prove that you can derive quantum physics from quantum information. So quantum information now becomes the ontology based on D&#x27;Ariano&#x27;s work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002722">00:27:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: What would be a way for people to understand what quantum information really is?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002727">00:27:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It&#x27;s basically, instead of having bits, you know, arrangements of bits, you have arrangements of quantum bits. A quantum bit, imagine a quantum bit as one of an infinite possibilities that can be represented as a point on the surface of a sphere. So you have a sphere, every point on the surface of the sphere, which would correspond to a direction in 3D, is one of the possible states. So a qubit implies an infinity of states, but when you make a measurement, all you can find is zero or one. So you cannot... when you make a measurement, you disturb this quantum bit - you basically disturb it in the direction in which you make the measurement - and you get zero or one. And that&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002820">00:28:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: In any direction that you measure, you get zero or one, but you don&#x27;t get zero or one repeatedly, you get it with some probability. So the quantum physics doesn&#x27;t tell you what the next state is. It only can tell you the probability of all the possible states that you can measure. So in the case of a quantum bit, it tells you, if you&#x27;re measuring in this direction [pointing forward], it tells you the probability that you get a zero or a one, but it doesn&#x27;t tell you that you get a zero or one. So the fundamental difference between quantum physics and classical physics is that quantum physics is indeterminate, meaning it doesn&#x27;t tell you. It only can tell you probability. But not the probability of what you will measure, no - the probability of all the possible things you can measure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002911">00:29:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Okay, and to go from this probability field to what you will measure, there is no physics. There is the collapse of the wave function. It&#x27;s just a way of saying that we don&#x27;t know. Basically, you have an interaction between the fields and an instrument that does a measurement, and somehow in this interaction you get one state. But that state that you get, you can only know the probability, and you don&#x27;t know how you get that state. Not only that, but we know that that state is random, but also that randomness is not algorithmic. It&#x27;s beyond algorithms - and that&#x27;s the rub. That&#x27;s where free will is. In the theory with D&#x27;Ariano, we say free will is what is happening... what we call collapse of the wave function is a free-will decision of the field of whatever particle you&#x27;re measuring.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003021">00:30:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And that&#x27;s interesting, because I always thought that because the rule of large numbers (when we do quantum measurements over and over 1000 times), then we get again a probabilistic - or sorry, a deterministic - world, because you then just get a wave function that will give you certainty.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003036">00:30:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But inside the cell, you only get one, you do one thing at a time, you don&#x27;t repeat the things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003045">00:30:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, now I get it. (Federico: You get it.) That&#x27;s crazy. That&#x27;s crazy. Let&#x27;s try and really understand this. Okay, classical information is information we can share because it&#x27;s like a written word that we can kind of show around. I cannot show around what I&#x27;m feeling right now to all of you. So the moment I speak a word, I&#x27;ve made a feeling I had, I&#x27;ve turned it into classical information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003107">00:31:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: That&#x27;s right. You take something which is private, that cannot be reproduced, can only be represented by quantum information. But the representation is not what you feel. The representation of reality is not reality. A theory of reality is not reality. Okay? So what you feel, only you &quot;field&quot; - not your body - you: &quot;field&quot; - can actually know. And you know inside. And what you can say about what you feel is a small part of what you feel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003140">00:31:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Holevo&#x27;s Theorem: one bit per quantum bit. And the quantum bits are entangled, so they have states in common, whereas the bits don&#x27;t have states in common - it&#x27;s zero or one - there is nothing else. But quantum bits may have states in common, meaning that the two probabilities are connected. And to show this connection, you have to describe the quantum state in Hilbert Space, which is an n-dimensional space with complex dimensions, where the dimensions are complex numbers, you know. It&#x27;s just enough to give you a headache, right? But that&#x27;s what you need. You cannot represent them in this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003221">00:32:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So what does it mean? That there is a deeper reality where the feelings and the fields exist, the meaning of information exists, and from that world, you have this world that is a classical world where you can get classical information and we think that the only world that exists is this world, but this world we have constructed with our bodies.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003251">00:32:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And as a way to look at it - I think you have this metaphor in [your previous book,] &quot;Silicon.&quot; Would it be like consciousness being the fields? Writing a book, and the book itself is our spacetime dimension, our body sitting here. Or a film, recording a film and showing it, the film shown on the screen of perception...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003310">00:33:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, but the book emerges into this three-dimensional reality, but the writer of the book is in a deeper, vaster reality - not in the book.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003322">00:33:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And my body here is a sentence in that book.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003325">00:33:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The body is a symbol. It&#x27;s a symbol of a complexity which is unfathomable, for now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003330">00:33:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Okay, people will find this a crazy idea.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003333">00:33:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It is crazy, but it is much closer to the truth than what you get from the scientism.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003342">00:33:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, because that I wanted to ask. It&#x27;s crazy, but quantum theory is crazy. So if we have the other explanation, if we don&#x27;t want to go to consciousness, if we say, &quot;No - it&#x27;s still matter all the way down.&quot; How then, where do we then end up with in interpreting quantum mechanics? Then we have to go to, like, many worlds? Or how do you...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003403">00:34:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: There is no interpretation that anybody can agree on. For 100 years - this problem has been discussed for 100 years - and there is no interpretation whatsoever about quantum physics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003417">00:34:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Couldn&#x27;t we say there&#x27;s a Multiverse with everything possible being possible in other dimensions?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003422">00:34:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, but it doesn&#x27;t explain anything. What is it explaining? When I say consciousness and free will must be taken as foundational as a postulate. Okay? But why do I say that? Because postulates ought to be self-evident. The condition to accept the postulate is self-evident. Why is it self-evident? Because you and I are conscious. You and I know that we have limited but we have free will. Limited, but we have it. So we know already that. How can you explain free will and consciousness with something that doesn&#x27;t have either? You cannot explain it. How can you explain consciousness with math when it&#x27;s consciousness that created math? When can you explain free will with something that doesn&#x27;t have free will?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003515">00:35:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: You see, it&#x27;s foolish to think that you can explain more with less. And today we talk about emergent properties, you know, we explain everything with emergentism. What does it mean, &quot;emergentism?&quot; How can you get more with less? You cannot. You can get less from more. You can get determinism from indeterminism. You can get unconsciousness from consciousness, not the other way around. And that&#x27;s so simple and so common sense.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003547">00:35:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But science doesn&#x27;t want to go there. Why? Scientism doesn&#x27;t want to go there. Why? Because you lose your power. Because if I know the equations, I know more than you. And that&#x27;s not acceptable, because nobody knows the equations. Because there are no equations that describe free will. Free will is an act that no laws can tell what the free will can give you. And people want to predict the future - their safety is in the prediction of the future. Their sense of power is in prediction of the future. You cannot predict the future, because it&#x27;s based on free will. Nobody wants to go there right now. But that&#x27;s the only way to go, to be safe from this idea that we are machines and that artificial intelligence will best us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003640">00:36:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Your postulate of free will: you experience free will. Isn&#x27;t that just an illusion? I mean, does free will truly exist? Or is it something we think we have?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003653">00:36:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Why do you... people that say this, you have to ask them: Why do you insist that there is no free will? What do you get by insisting there is no free will? Think deeply about that. What do you get by thinking that there is no free will? That you do not have any free will. Why do you want that? And if you answer that question, they have to answer that question. But if they answer that question, they will find out more about themselves and eventually they will have to agree that they have a hidden desire to control. To have power. Because they know the equations - they know more than you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003739">00:37:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: That&#x27;s the point. I mean, I was there. I was, you know, I had taken the same courses. I learned the same physics. And if I did not have this experience that told me that I&#x27;m more, I couldn&#x27;t be here saying these things. But now I can, you know, with this experience I was able to invert our understanding and point the way to a different way to understand. So you know, if it&#x27;s bullshit, it will be found to be bullshit. But don&#x27;t say there is bullshit just because you don&#x27;t want to even think about it. And that&#x27;s the problem today. People, the first time they hear the wrong word from them they shut off, and they don&#x27;t even want to think about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003827">00:38:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But actually the reason why we know is because we&#x27;re conscious. The reason why we know is because we&#x27;re conscious. Because consciousness is what allows us to know. Computers don&#x27;t know. It&#x27;s foolish to think that computers understand - they don&#x27;t understand. There is no meaning in the bits. The meaning can only be quantum, can only be something that exists in the field. It doesn&#x27;t even exist in quantum information. Quantum information can only represent what we know as meaning. You see, mathematics stops there for now. But there is a new math to be developed to go from qualia. Qualia, which is sensations and feelings that can be represented by quantum information - quantum information cannot represent the meaning - they represent the qualia. That&#x27;s all they can do - which is how we feel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003927">00:39:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But qualia is the beginning of the inner journey. Qualia are the bringers of meaning, and we look for meaning. First comprehension, and then meaning. Comprehension gets you to meaning. Meaning is the essence of comprehension. Meaning is what you get after you &quot;got it.&quot; You know, &quot;I got it.&quot; &quot;I understand it now.&quot; That&#x27;s, you know, that&#x27;s beyond comprehension. Your comprehension is a path to meaning and meaning is the ontology. The ontology is in the meaning and the experience and what we feel and what we know from within, not outside.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004005">00:40:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: If you say meaning is the ontology, so meaning is what ultimately exists in our Universe?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004011">00:40:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, yeah. But in order to make it more understandable, I started with a postulate. I started this all basic re-framing with a postulate - because I&#x27;m joining science and spirituality. I&#x27;m joining the outer and the inner. Science is about the outer world, but meaning, experience, consciousness, free will are about the inner world. And right now they are separate. There are the spiritual people that think this exists, but the physicists, you know, the scientists say, &quot;That doesn&#x27;t mean [anything].&quot; These guys look at those guys, say, &quot;Matter doesn&#x27;t care,&quot; you know? So there is this separation now between science and spirituality. This way of thinking brings them together. They integrate them. They don&#x27;t juxtapose them, they integrate - they become one. They become one. So how do we start?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004112">00:41:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So if we want to start like a new theory, I start with a postulate. Because you have to. Because you can never start with something that is true because you have shown it to be true, you have to start with postulate. Even in math you start with postulates that are taken to be true, and they have to be self-evident.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004131">00:41:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: It&#x27;s your ground assumption.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004132">00:41:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Ground assumption. But that ground assumption has to be self-evident. The ground assumptions of quantum physics, they are so self-evident that you have to study 10 years before you say, oh yeah, they are evident. Not self-evident - they are evident - after 10 years. So they don&#x27;t pass the test of &quot;self-evident&quot; to me. Okay, now I&#x27;m going to tell you a postulate that is self-evident. One - the totality of what exists... One, the totality of what exists, has three properties. It is dynamic: dynamic means it&#x27;s never the same instant after instant. It is holistic: means it&#x27;s not made of separable parts. And so far I have described the Universe, as described by quantum physics. Yeah, that&#x27;s all these three - is all there exists - dynamic, holistic. I add one more thing, one more quality: One wants to know itself. One wants to know itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004235">00:42:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Now this comes from perennial philosophy. &quot;Know thyself&quot; was in the Delphi Temple, you know, it was part of the Greek, some of the Greek philosophers, but the Vedas were saying the same thing. All the basic experiences of the people that went deeper into the understanding of reality came to the same general conclusion: that there is One that has those properties and they want [it wants] to know itself. If I look within myself, what did I want to know when I was suffering? Who am I? Why am I here? Why am I suffering? That&#x27;s &quot;what does it mean?&quot; Yeah, I want to know myself. So we all want to know ourselves. We all deep down - then we forget about it because we can do nothing about it. So we try to solve the problem by going outside ourselves and then we lose ourselves, like I did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004334">00:43:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And so, if we start there, is it self-evident? It is self-evident to me. And if you think a little bit, it&#x27;s self-evident to you - that is what you want, okay? So &quot;wanting&quot; means free will. Because if you are a machine, what do you want as a machine? The next state of the machine is already defined by the algorithm. How do you want? It doesn&#x27;t make any sense. I don&#x27;t want anything. But the question doesn&#x27;t even make... There are no questions to a machine. There are only answers to a machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004414">00:44:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And to know itself, One must be conscious, because consciousness is what allows One to know itself. So I have defined free will and consciousness. And why are those self-evident? Because you are conscious and you have free will and I&#x27;m conscious and I have free will. So more self-evident than that, what is there?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004436">00:44:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And if I start there, I can explain quantum physics by that postulate. I can explain what physicists in 100 years have not understood. Quantum information is the representation of inner experience and the collapse of the wave function is the representation of the free will. What more do you want?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004500">00:45:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: I think it&#x27;s a great theory. Because in bridging, as you say, science and spirituality, the two are thought very distinct and very separate, right? Because... well, it makes me think. I interviewed Donald Hoffman - whom you know, right? I think your foundation supports his work, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004517">00:45:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah. For about five years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004520">00:45:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And he said something that stuck with me. He said that all these spiritual traditions, that in a sense are saying what you are saying - that consciousness is fundamental, One wants to know itself, and then we have all the incarnation stories of the gods who incarnate etc., so we know those stories. But the fact that they&#x27;ve always remained so elusive, so mystical, he said, is nothing to be proud of. We should be, like, more concrete. We have also our rational faculty, we have science, so we now need to approach this with our sort of scientific mindset. So is that what you&#x27;re trying to do here?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004554">00:45:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: What is more concrete than what I just said?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004556">00:45:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah. And can it lead? ...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004559">00:45:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I mean, now, if you start here, we can show that science - not science - quantum physics, out of which everything else emerges... in fact, quantum information - because the quantum state that is a representation of our experience is what then eventually determines the outer world, okay? So I show that by starting with the, oh, something that is kind of haha, you know, but it doesn&#x27;t get you anywhere, actually needs the physics that exists. And now from there we go - we already solved the other problems, I&#x27;m not changing anything of physics - I&#x27;m reinterpreting completely what physics has been talking about. What do you want more? Don wants to explain consciousness with mathematics, and you cannot do that, because consciousness creates mathematics. I wanted to do the same thing for many years and then I found out that I was wrong. That it is consciousness that explains math and therefore you go from consciousness to math. You cannot go from math to consciousness, because where does math come from otherwise? Who created math? God? Well, come on. How does math exist? It&#x27;s our creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004732">00:47:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: In the human mind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004733">00:47:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: You bet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004734">00:47:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Federico, you have, it was your intuition that led to your inventions that have changed the world. I think it&#x27;s fair to say that, or helped change the world. Now you have this grand intuition - your theory about consciousness. How can this also lead to technology or to something tangible? Can we test it? Is it falsifiable?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004801">00:48:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Of course it is. In fact the next step for me is to, now that I have a theory which is absolutely perfect, meaning, it can be falsified. It can make predictions. And you can test the prediction.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004815">00:48:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Can you name one?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004817">00:48:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Oh yes. I can predict that trees are conscious. And I can make experiments to show that trees are conscious, okay? And trees have no brain. So consciousness - that is supposed to be coming off our brain - it comes off a tree that has no brain! Look at that! What do you think of that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004840">00:48:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: It&#x27;s amazing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004840">00:48:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004841">00:48:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Is this being done? I mean, are you now...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004843">00:48:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I will do that. I will do that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004843">00:48:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004844">00:48:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I cannot tell you how because I, you know, I have to prove it. And don&#x27;t worry about it. I will do that. [Hearty and prolonged laughter.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004904">00:49:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Alright, okay, and trees are, yeah. But you actually have a method - a scientific method - of testing this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004911">00:49:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yes, I will not discuss it any further. I will say, you know, would you agree with me that if I do that, I have disproved that consciousness is a product of the human brain or of the animal brain?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004926">00:49:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Definitely.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004927">00:49:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Is that good? All right, I will do that. That&#x27;s a deal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004933">00:49:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And you have proven that it takes cells, right? That we are sort of on a cellular level.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004938">00:49:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Absolutely. Absolutely. Absolutely. I will prove that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004943">00:49:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, you&#x27;re sure of that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004945">00:49:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Absolutely. Take me to task. I&#x27;ll get it. I can guarantee you that I will get it. The something that people say... they cannot say anything - they will not have any objection anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005000">00:50:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: See, entanglement, it took over 30 years to prove that entanglement exists after the first experiment showed it exists. Because people didn&#x27;t, scientists didn&#x27;t want entanglement. Einstein didn&#x27;t want entanglement. So everybody, you know, Einstein - how can Einstein be wrong? So for 50 years you couldn&#x27;t do the experiments, okay? Finally, when you could do experiments, the first experiment that proved that - Alain Aspect got the Nobel Prize three years ago, four years ago. Anyway, he did that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005029">00:50:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Then, &quot;Oh, you did wrong.&quot; &quot;You can&#x27;t do blah, blah, blah.&quot; It took more than 30 years after that to cancel all the objections. You know, show that the objections were not valid. And finally everybody now has to accept that there is entanglement - but nobody can explain it. Entanglement is what connects everything from the inside. It&#x27;s what allows the world to be holistic - which is already what quantum physics is saying!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005057">00:50:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Are you predicting, many people think of AI, sort of an invention that you were at the birth of, right? With your work on neural networks?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005107">00:51:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, back in the 80s, the second part of the 80s, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005111">00:51:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: People now think that AI will cause a paradigm shift. What&#x27;s your response to that? Do you think that AI...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005117">00:51:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: No. Only this theory will cause a paradigm shift. And not because it&#x27;s a theory that I developed, but only by changing the understanding of who we are can change a paradigm. In fact, the paradigm ends with AI. This paradigm of scientism ends with AI. Because AI is saying machines will be better than us - which is crazy. Why does anybody want AI - despite that - why does anybody want AI to be better than us? But AI cannot be better than us. Because creativity is non-algorithmic. It&#x27;s not changing things randomly. And besides, even if AI gives you a good idea, AI doesn&#x27;t know that it is a good idea - you recognize the good idea of AI.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005206">00:52:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: It still needs your consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005207">00:52:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: With your consciousness, with your understanding, with your comprehension. And that&#x27;s why AI can help us. And I applaud what has happened to AI - but not the way that AI bests us, and not the way AI unfortunately will be used to monetize us. That&#x27;s not acceptable.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005226">00:52:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: I agree, I agree. I think you would also fully agree to that quote by Nikola Tesla, right? He has this famous saying that the moment science will start studying consciousness, more will be achieved in a decade than in the whole history of science.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005239">00:52:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Absolutely, because we change the way we are. You know, thoughts are more important than stuff, right? I mean, from the inside you get the outside - not vice versa. And science doesn&#x27;t recognize the existence of the inside - because consciousness is phenomena of the brain. The brain makes decisions that inform your consciousness. We don&#x27;t know what it is, but it doesn&#x27;t have any causal power, so who cares. Once we people are convinced that we are conscious, that we are fields - that when the body dies we don&#x27;t die. I mean that&#x27;s good news, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005320">00:53:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I mean, people want you to discharge your consciousness and experience in the computer and live forever for Christ&#x27;s sake. I mean, you know about transhumanism. I mean, why do we need to do that? Besides, you need to have a lot of money to pay for a billion years of electricity to keep you alive in a computer. So this is only a good recipe for very rich people, right? To live forever on a computer. The computer sucks energy, right? So to make you live forever, you have to have a lot of money before you die to give to people, that tell you that you continue to die. Are you sure that you will continue to die [live] in a computer? You know, 1000 years later?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005402">00:54:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: I fully agree. Where could this lead to, if that Tesla quote is true? If we would fully dedicate ourselves in trying to understand consciousness with your theory, even build technology with it, where could we be in a decade? I mean, could we break out of spacetime? Could we sort of live forever? What are your thoughts?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005421">00:54:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Once you understand that consciousness is beyond matter - beyond this space and time - we already know that we can explore this world by going out of body with our consciousness. Millions of people that go out of body explore other realities. Consciousness is the tool for knowing - infinitely more powerful than any instrument that we have ever built. We build billions of dollars of instruments to find out what the particles are doing, but consciousness is far far richer. So we basically, then we can begin to explore the Universe - the invisible Universe. The invisible Universe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005505">00:55:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: What mystics and sages and religions have been doing for thousands of years - but also a bit in a way that sometimes led to the waging of wars - because people use it for politics. Can we transcend that then? What is the ultimate dream you have for society?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005530">00:55:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: When you understand who you are, you know that the only way to work together is cooperation, not competition. Today, there is only competition. Today, the purpose of life is the survival of the fittest. Is there anything worse than that as a purpose of life? Besides, if you ask me, how do you define fitness? The only definition that I would give you is - oh, &quot;fitter&quot; is the one that survives. So what kind of a law is that? The survival of the what survives. I mean, it&#x27;s tautology. It&#x27;s not even informative.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005614">00:56:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So, we believe... but that definition of life is so wrong because it basically impedes you [your ability] to be cooperative, impedes us [our ability] to work together to understand. But once you have a direct experience of who you are - when you are the observer and the observed - you know directly who you are. And when you know that, you know that only cooperation is the game. We have to work together. That&#x27;s the only way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005648">00:56:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So competition will die off, just by that experience. I cannot be competitive after that experience. It&#x27;s impossible. You know, competition is this - not the competition - the competition that is allowed is that competition that allows me - not me to win, [but allows] me to be better than I was the day before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005710">00:57:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: That&#x27;s the only competition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005712">00:57:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: If one wants to know itself and it&#x27;s only one, then also...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005716">00:57:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: You&#x27;re competing with yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005717">00:57:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: ... one is competing with one, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005719">00:57:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But that&#x27;s not competition. That is actually the urge for self-development, to be more than you were.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005728">00:57:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: If we have One on the Ultimate Level in the quantum fields - in the unified field, right? How then do we have, how do we get to the many? How do we get to sort of - still on a quantum level - you talk about seities, right? How does One get to different or gazillions of seities?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005750">00:57:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, so... so, if we start from that principle, that postulate, then One wants to know itself, right? So the moment that One knows itself, he [i.e., One] has to know completely itself, because it&#x27;s not made of parts. He cannot know a part of itself, he has to know the totality of itself. But to know itself, he has to, you know, he had a flash - and it cannot happen in different times, it has to happen in an instant that knows itself, in its own totality. In that instant, it creates a part-whole of itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005833">00:58:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Just like mitosis, right? The splitting of cells.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005835">00:58:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Absolutely. That&#x27;s where life takes form. Life is the reproduction of One. It&#x27;s so fundamental that it is the reproduction of One. One, knowing itself, creates another one - part-whole though - because it creates many, so it cannot be the totality, so it cannot copy itself. But it creates what he saw, what he got, what he understood itself to be. That&#x27;s the identity of the field that One has created.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005905">00:59:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: It&#x27;s not a copy you say, but it is a part-whole?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005908">00:59:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: One is looking at itself in one direction. And One has infinite directions in which it can know itself. The next time that it looks at itself in a different direction, it&#x27;s another part-whole, it&#x27;s another monad - Leibniz got it right. Leibniz was the only philosopher, scientist, mathematician, technologist... I mean, he had an incredible mind, he got it right. He understood that, but it was before quantum physics, it was way before we could make sense of it. But he got it right. And I call him... before I knew of - because I didn&#x27;t study philosophy - I got into what philosophers have been saying by inner experiences, and then thinking about it. Trying to understand them scientifically and understand them rationally. And I found that many people have said the same things, that &quot;I came up through this process, through this inner process.&quot; Not by reading books and repeating what I read.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010011">01:00:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: So the seity, that is sort of...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010014">01:00:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The seity is what I call a field that is conscious and has free will and wants to know itself. I call them seities to distinguish them from the quantum fields - which don&#x27;t have consciousness, free will, and don&#x27;t want to know themselves. But they have all the characteristics of the quantum fields in terms of what you can explain of them based on physics. But I go beyond that, because their inner life is beyond physics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010040">01:00:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: So physics can only explain qualia, which is the entry point to the inner world. But from qualia to meaning - as I said, there is comprehension, then meaning - it&#x27;s all new physics. And new physics can only go up to a certain point, and then you have to leave even physics. It&#x27;s got to go to what we now call metaphysics, but it&#x27;s what can only be known from the inside. But it will take centuries to go through.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010111">01:01:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But the key thing, though: it shows that physics now is incomplete, because it doesn&#x27;t even allow the inner world to exist. And the reason why they struggled for 80 years to unify quantum physics and general relativity is because the fundamental concepts of time, space, matter, and energy are wrong. They&#x27;re almost right, but they&#x27;re not so close to the truth that they allow you to bridge together, to bring together into a unified physical field what is now two separate - you know, one is a set of fields and the other one is the spacetime and gravity.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010156">01:01:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And if we say the seity is...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010159">01:01:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The seity is who we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010200">01:02:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, exactly, it&#x27;s who we are, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010202">01:02:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: It&#x27;s a quantum field with this characteristic, but an identity. The identity is, the identity, my identity is how One has seen itself when it created me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010216">01:02:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, exactly, you&#x27;re like a frame in a certain moment of the Universe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010221">01:02:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, imagine, you know, it&#x27;s a beautiful way to understand this. Imagine that you have a multi-dimensional thing, okay? It&#x27;s a multi-dimensional object. Multi-dimensional meaning in n, where n is potentially infinite dimensions. How can you know this object?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010241">01:02:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: You can know this object by looking at this object through all the dimensions that are orthogonal that allow you to look at this object. Each look you see something, and then the next look you look, so you&#x27;re doing a tomography of an n-dimensional thing. So it&#x27;s One doing a tomography on itself. You see?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010302">01:03:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah. And what happens, I mean for people to understand, what happens when we die?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010309">01:03:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: We don&#x27;t go anywhere because we never were in the body. It&#x27;s the body that dies. We don&#x27;t die [laughing].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010317">01:03:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: But something changes, right? Because the seity...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010320">01:03:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Of course, the seity that... See, a portion of the seity, called ego, is the portion of the seity that thinks to be the body. And so it looks at the information that the body provides about what? About this other world seen through the body. So our senses, our brain, take information from here [outer world], but just a small part of information, I mean just visual, the visual thing that we see. You know, it&#x27;s this narrow band, right? I mean, if I had cellphones instead of eyes, I would actually now be able to listen in to the 30,000 conversations that are going on that are here [pointing ahead], here [pointing up], here [up-right], here [right], here [down] - they&#x27;re all here. (Yeah...) And I could see them; I could hear them; I could do this. But I only see this band, there is no communication in this band, there is other stuff, and we see this world - we construct it with the body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010424">01:04:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The output of the body, which is in the cells, is quantum. That quantum output is what the fields perceive as color, shapes, sounds, and so on. The qualia do not exist in the body; they exist in the field. And the qualia are representable with quantum state. Quantum state is how the quantum field transforms/translates this information in the cells. Which is, I call it &quot;live information.&quot; It&#x27;s a type of information that has not been studied at all - not even imagined at all, which is in between quantum information and classical information. It is the stuff that makes the cell work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010511">01:05:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Because if you take an electron, take an electron. An electron is matter, energy, and information. Can you separate these three in an electron? These are elementary particles. There you go. So they are connected.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010530">01:05:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And it&#x27;s like, in the cells there&#x27;s no distinction between hardware and software, right? They&#x27;re like totally mingled.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010535">01:05:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: That&#x27;s right. In a computer they are separated because a computer is a deterministic, reductionistic structure. (Yeah.) Not a cell. Not the deeper aspect of reality.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010547">01:05:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: But basically you&#x27;re saying, the moment I die, everything &quot;consciousness&quot; remains - just this narrow-banded, avatar-like, VR headset that expands like...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010558">01:05:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah. Well, basically, I kind of say in the book &quot;Irreducible,&quot; I explain this by saying, imagine that you control a drone. We are a body that controls a drone that is in Afghanistan, watching around, and it&#x27;s semi-autonomous, so I don&#x27;t have to worry about, you know, I only have to express where I want it to go, so high-level language, say &quot;move right&quot; or whatever, &quot;drop the bomb&quot; or whatever, because that&#x27;s what we do with drones these days [chuckle]. But anyway, so now the drone looks at that reality where it is, sends me information, and I get the conscious experience of what the drone is seeing. That conscious experience is not in my body - it&#x27;s in my consciousness. And based on that, and based on my free will, I tell the drone what to do. The drone doesn&#x27;t know anything. (Hmmm.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010700">01:07:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Now take this image. Oh, and when somebody shoots it down - you were so focused on that drone that you only saw what the drone was seeing because you were piloting it and you were concentrating. Then when the drone doesn&#x27;t send you any signal, you look around and you say, &quot;Oh my God, there is another world here.&quot; You see? (Yeah.) That&#x27;s the same thing with the ego. When the body dies, it doesn&#x27;t look at the signals of the body anymore. And it looks around and says, &quot;Oh shit. Wow, look at this!&quot; [Laughing]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010734">01:07:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And is it then, I mean, is it then... are we sitting there then - seity&#x27;s level, quantum - saying, &quot;Okay, let&#x27;s go in again. Here&#x27;s another headset, try this one on.&quot; And whoop, there we are again in a baby.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010744">01:07:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Perhaps, but I cannot tell you what happens afterwards. But certainly there are lots of near-death experiences that are actually giving you evidence of what I&#x27;m saying. People that arrive at the hospital, heart doesn&#x27;t beat, brain doesn&#x27;t have any electrical signals - they are clinically dead. They&#x27;re not dead clearly, if they are resuscitated, but for all practical purposes they are dead. Okay? And they have an experience in the hospital: they see themselves on the operating table. They later tell what&#x27;s going on while the brain has no electrical signal - the brain is not functioning. So how can you be outside of the body looking down at your body in the operating table? That cannot be explained, right? But of course, now people say, the scientists say, &quot;It&#x27;s a fantasy, come on. I mean, it&#x27;s impossible.&quot; So that&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010842">01:08:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: But that&#x27;s what they do. Then they move outside of the, you know, they move in a different environment, they meet people, you know, their parents that were dead, and friends that were dead. In some cases they meet a friend that they didn&#x27;t know was dead. Then when they woke up, they find out that he died the day before and they didn&#x27;t know and they met this person in that vast reality. They have an experience of expansion, of love and joy and peace, and then somebody tells them, &quot;You have to go back. Because you haven&#x27;t done what you came to this world to do.&quot; [Chuckle.] And then they wake up in the post-operating room.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010920">01:09:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: But in that drone metaphor - I&#x27;m trying to understand this - I&#x27;ve always... what I find hard to understand, okay? So, if my body is this drone or avatar, or just a headset, then say the moment it dies, what headset are you putting on, to have like just hover around in this in-between space? Is that another headset? Or another...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010941">01:09:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: That&#x27;s a good question. I mean I&#x27;m asking that question, and there may be - in fact, it&#x27;s likely that there is another body. I mean people that have studied this thing talk about an astral body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010952">01:09:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Exactly, stuff like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010954">01:09:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Or etheric body, and you know. So clearly, there is another body. If this is true, and I believe it&#x27;s true - I actually went out of body too, so I know that it&#x27;s not imagination. You know that you&#x27;re a body, like when this energy came out of me. It was energy; it was physical, it was not my imagination - it was physical, like a hydrant. How can I make it up?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011021">01:10:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: So there are lots of levels to get to One. There are many in...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011026">01:10:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Oh my goodness. Oh my goodness. I mean, the quantum field of electrons is, in this theory, conscious, and has free will. And it knows itself. Look at the... and then, what are the electrons doing?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011043">01:10:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: The electrons are the symbols that the quantum field uses to communicate with other fields. All the electrons in the Universe. How many electrons are in the Universe? 10 to the 82, 83, 85? I don&#x27;t know, but numbers that are unimaginable - just the field of electrons. And all these electrons are its communication to the other fields to know itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011107">01:11:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: How many quantum fields are there or can there be?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011109">01:11:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: 17.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011110">01:11:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah. I&#x27;m asking because people... you also call it &quot;QIP&quot;, right? Quantum Information Panpsychism. (Federico: Yeah.) And panpsychism is, of course, I know your version of it is different, but it&#x27;s sort of being criticized for the fact that you have the combination problem, right? Why...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011129">01:11:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Oh! But there is no combination problem! The combination problem is only in classical panpsychism. People never have a theory... Nobody had a theory of QUANTUM panpsychism. The combination problem is not a problem in quantum panpsychism. When you combine states, quantum states, you create a new state which is more than the sum of the parts.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011155">01:11:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: You can do that infinitely, you can keep on doing that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011158">01:11:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: You can keep on going! You can keep on going - of course you can. So we have solved that problem. And people that say that, they don&#x27;t understand what they&#x27;re saying, or they don&#x27;t understand what we have developed - this theory. The combination problem is solved completely. (Yeah.) It&#x27;s classical panpsychism that doesn&#x27;t solve the problem - because in classical physics, the whole is only the sum of the parts. You cannot create a whole that is more than the sum of the parts. And this is why I was criticizing &quot;emergentism&quot; before, because many physicists think that there is emergence, emergent properties in the purely classical world. It cannot be. Emergentism requires quantumness. And they don&#x27;t realize - because there is no boundary between classical and quantum - and so there is a seeping. From quantum, you go to classical, and then they call it emergent property, as if it came from the classical. No, it comes - EVERY CREATION comes from the quantum world. From the inner world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011301">01:13:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Is there an end point to the Universe in the sense that, can One... No, you already said that; the moment it knows itself it splits off again in another part-whole, so this will keep on going forever?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011313">01:13:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: In this theory, yes. But who knows, right? But certainly, there cannot be any end. And the reason is that - and you know that yourself - the more you know, the more there is to know. Because to know more, you make connections, new connections. And as you make new connections, you open up other possibilities. So, pfft! It is an explosive thing. And again, purely this is hypothetical, but I think it has possible legs: Why is space expanding faster than light? At the edges. Because basically, space is like a balloon that inflates and this is the very inflation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011405">01:14:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Now, the inflation was the early part of the Universe - it is not called inflation. This is just the consequence of having found that the Universe is expanding exponentially at the horizon. Which can only be explained if the Universe is growing, then the space is growing from within. Okay? In my model, space is the memory of the self-knowing of One.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011440">01:14:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: And because One knows ever more about itself, space must inflate - must grow exponentially. And you know that quantum states only exist within a very narrow present. So in order to remember your experience, you must put it into long-term memory. That&#x27;s our theory also, it&#x27;s telling that very clearly. So now, this present enriches itself of all the past that you have experienced. But when you want to experience that past, you can only experience that in the present. So experience can only exist in the present.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011531">01:15:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Here you and Bernardo can shake hands as well. Okay, so free will is fundamental. Consciousness is. And the Universe wants to know itself. But does it also create a consciousness, a seity, that has a sort of purpose? Do you think you were born with a certain purpose?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011552">01:15:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: I think so. I think so. And the reason why I am at peace with myself, and happy about my life, what I do, is because I know that I&#x27;m doing what I came here to do. I know it, because how can I... I wake up with new ideas. Why??? But they&#x27;re all connected... all this stuff that I&#x27;m talking to you about. It&#x27;s like my mind keeps on running around, finding where there are holes, and the understanding is not complete or whatever. You know, why am I doing that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011630">01:16:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Hmm. It&#x27;s beautiful, and what it sort of rings with me is that the Universe then somehow is thinking to itself, &quot;Okay, let&#x27;s look to me.&quot; Because it&#x27;s One from this different perspective - and let&#x27;s really do that; let&#x27;s become Federico; let&#x27;s become Hans. And really look at ourselves from that perspective.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011648">01:16:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: From that perspective. And then you and I can know each other, can enter into resonance by communicating - because I cannot directly give you what I know and what I feel, right? And likewise for you. So we have to communicate, and that communication brings an inner resonance. And if we keep on doing that, after a while - if we can create the same state internally - you and I. From that unity of state (that&#x27;s like the quantum superposition), then you get a new entity. But that new entity does not destroy who we are. Basically we can create another seity like us. Like One creates, because we have the same properties of One, right? Except with one point of view instead of the multiplicity of points of view of One. So I can create another seity like myself, but not copy myself. So when we reach that, you and I create another seity and the two join and they become one - which is with the two points of view joined. The two points of view, mine and yours, you know, that now become a new combined point of view, that now has its own life. And it proceeds to know itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011814">01:18:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And what that takes, what that takes is like truly connecting, you said, becoming into resonance, which is something different than just exchanging classical information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011822">01:18:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Yeah, that&#x27;s right, that resonance is a new quantum state. We are building a new quantum state, which is a common understanding. That common understanding creates a new seity, of a higher level. So we create a hierarchy of seities. So we are a very high level, but there are still many levels above us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011842">01:18:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: And this is where things can take off, because if we look at the world right now - at AI - we&#x27;re talking classical information. We&#x27;re shutting ourselves off behind screens, sharing classical information, which are bits. It&#x27;s not this information you&#x27;re talking about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011855">01:18:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: Not at all. Not at all. And besides, WE gave that knowledge to the computer - he [it] didn&#x27;t build it itself. I mean, we gave him the data. We exposed him to that information. Even if he&#x27;s, &quot;Oh, he learned everything by itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011911">01:19:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, sure. Tell me about it. It&#x27;s some bullshit. I mean, and yet it&#x27;s very useful. So I&#x27;m not, you know, I&#x27;m actually happy with... if AI was used properly, it could speed up our self-knowing and everything else very rapidly. But I&#x27;m afraid that if we don&#x27;t change, it will not be used in this form. (Yeah.) That&#x27;s all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011938">01:19:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Thank you so much, Federico.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011941">01:19:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Federico: My pleasure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011941">01:19:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hans: Yeah, it&#x27;s been a great talk. Amazing, amazing. Thank you so much. Thank you so much.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011947">01:19:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of interview.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=xnwbQa4B3kw" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+                  var src = getInlineAudioSource();
+                  if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+                  if (videoFrame) videoFrame.src = "";
+                  if (videoBox) videoBox.hidden = true;
+                  document.body.classList.remove("video-collapsed");
+
+                  if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+                  audioDockSource.src = src;
+                  audioDockElement.load();
+                  audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                      audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                      audioDockElement.play();
+                      var ppBtn = document.getElementById('audioBarPlayPause');
+                      if (ppBtn) ppBtn.textContent = '⏸';
+                  });
+
+                  audioDockElement.addEventListener("timeupdate", function () {
+                      var np = document.getElementById("nowPlayingText");
+                      if (!np) return;
+                      var cur = audioDockElement.currentTime;
+                      var dur = audioDockElement.duration || 0;
+                      np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+                  });
+
+                  audioDockPlayer.hidden = false;
+                  dock.hidden = false;
+
+                  document.body.classList.add("has-video-dock");
+                  document.body.classList.remove("video-collapsed");
+                  document.body.classList.add("audio-dock-active");
+
+                  var expandBtn = $("videoExpand");
+                  var collapseBtn = $("videoCollapse");
+
+                  if (expandBtn) expandBtn.hidden = true;
+                  if (collapseBtn) collapseBtn.hidden = false;
+
+                  if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+                  if (audioBox) audioBox.hidden = true;
+
+                  updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+</body>
+</html>
