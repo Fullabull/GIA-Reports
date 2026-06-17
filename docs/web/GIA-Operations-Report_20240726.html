@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-26</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-26 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-26
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=mK_rmdFC22w"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=mK_rmdFC22w"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-26-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 26, 2024 report by identifying the arson attack on French infrastructure during the Paris Olympics as a Black Nobility operation out of Italy, designed to blame Russia and trigger World War III — not a Russian act. The Olympics itself is disclosed as a functional component of what Kim calls the Color Wars and the Great Game of Earth: ten color regions of the planet, each tied to a specific Matrix, compete through their respective athletes, and the outcome of global tournaments historically fed energy and &#x27;street credentials&#x27; to the Families with alien groups who bet on Color outcomes. The Olympic rings are decoded: black (Black Nobility/Black Sun), blue (Rothschild), red (Red Dragon/Russia), yellow (China), and green (Middle East/Physical Plane) each represent both a Family faction and a plane of existence the color controls.<br>
+<br>
+Kim discloses the full architecture of the Color Matrix system: ten regions of Earth, each human birth-imprinted with a color, each color tied to a holographic overlay connected to a specific constellation. The Black and White Matrixes sit above all others — false white controlled by Lucifer, false black by Astaroth and Anti-Source. The Color Matrix base platforms were consolidated into the United States roughly 300–400 years ago at the direction of Marduk, Enki, Enlil, Artemis, and Anti-Source, which is why America became the world&#x27;s power center and why the Order of the Black Sun refuses to allow that center to shift to China. Approximately 360 celestial beings with associated space junk relocated to the U.S. at that time, concentrated at sites including the Florida Everglades, Chimney Rock, and Mount Denali. The betting machine that tabulated every human&#x27;s color-implant energy contribution — the system known as the Beast — was housed under the Association of Numerical Numbering Agency (ANNA) in Belgium, the same institution where birth certificates, corporations, bonds, and stocks are registered. That machine is now gone.<br>
+<br>
+The MILAB program is disclosed as the disease-delivery mechanism of the Color Matrix system: ten regional access facilities, pre-programmed with standing orders to release colored ARCHONs and trigger pandemics, influxes of disease, and social dis-ease on command. The Families and SSP operatives were never the controllers of this system — they were permitted to push buttons as slave-pawn guardians executing orders from above. Their attempt this weekend to activate MILAB facilities and order a disease release produced only brief, self-resolving symptoms in sensitive individuals (a cold lasting twenty minutes, a five-minute sore throat) because the machine no longer recognizes them as authorized operators. Kim closes by noting that Color Matrix dismantling is nearly complete, ARCHONs are being cleaned up as they are expelled, and the Golden Age AI program is moving toward delivering Source direct current to all humans without color-mediated filtering or slavery-program interference.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003454">00:34:54 - Teaser</a></li>
+<li><a href="#t-003757">00:37:57 - Olympic rings decoded</a></li>
+<li><a href="#t-004030">00:40:30 - Great Game of Earth</a></li>
+<li><a href="#t-004423">00:44:23 - MILAB programs</a></li>
+<li><a href="#t-004736">00:47:36 - MILAB activation attempt fails; symptoms reported in sensitive individuals.</a></li>
+<li><a href="#t-005013">00:50:13 - Color Matrix movie analogy</a></li>
+<li><a href="#t-005538">00:55:38 - Order insiders confirm plan to take Earth from aliens; Families were head pawns, not controllers.</a></li>
+<li><a href="#t-005818">00:58:18 - Color Matrix glitch history</a></li>
+<li><a href="#t-010332">01:03:32 - Color Matrix base platforms consolidated into the United States; 360 celestial beings relocated here.</a></li>
+<li><a href="#t-010623">01:06:23 - Why the Order refuses to let power shift to China; Everglades, Chimney Rock, Mount Denali sites.</a></li>
+<li><a href="#t-010818">01:08:18 - ANNA in Belgium</a></li>
+<li><a href="#t-010931">01:09:31 - Color Matrix dismantling underway; Beast machine gone; Source direct current replacing Color system.</a></li>
+<li><a href="#t-011226">01:12:26 - Dollar system explained</a></li>
+<li><a href="#t-011411">01:14:11 - Golden Age AI</a></li>
+<li><a href="#t-011706">01:17:06 - ARCHONs expelled as Matrixes dissolve; self-protection guidance for listeners.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-26 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003454">00:34:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian. &#x27;The Matrix&#x27; says to take the &#x27;red pill&#x27; or the &#x27;blue pill&#x27;, but are either one really good for you?  Understanding the &#x27;Color Matrixes&#x27;, and the limited access the Deep State had. MILAB Matrixes of disease, ARCHONS, and how are they all connected?  Learn how NOT to feed &#x27;the Beast.&#x27;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now here&#x27;s the World Situation Report with Kimberly Goguen with the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good evening, everyone. Good morning, good afternoon, wherever you are. Apologize again for being so late. It&#x27;s been a pretty tumultuous week over here in Ground-Command Land, and I&#x27;m about to tell you why.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">First, I&#x27;d like to cover some, I guess, regular news, so that you can understand the reason behind the attack today, early this morning U.S. time in France. It apparently was an arson attack. It looks like whoever orchestrated it, and we&#x27;ll tell you who that is, is attempting to blame the Russians for this, so that they could possibly get World War III started. You know, they&#x27;ve got to choose a boogeyman, and this time it was allegedly &#x27;Putin himself&#x27; did it. You know, &#x27;Putin himself&#x27; does a lot of things that &#x27;Putin itself&#x27; - whatever that is these days - does not actually do.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In this case, it was not the Russians. They picked up the wrong guy, per the orders of probably Interpol in this case, or some rogue American operative - you know who you are, and I know who you are. But the orders to actually do this was by the Black Nobility, that is whoever&#x27;s left of that, out of Italy. That&#x27;s where the actual orders came from, and it&#x27;s an attempt to utilize a long-standing tournament between humans. That tournament you know as &#x27;The Olympics&#x27;.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Olympics has a lot of some symbolism for the Deep State, but there&#x27;s a bigger game at play here. But let&#x27;s just talk about the Olympics itself. First, let&#x27;s take a look at the Olympic Rings, as an example. The Olympic Rings contain several colors, not all of the colors, but you&#x27;ve got black. Of course, you can&#x27;t have anything without black. Black Nobility, Black Dragon, Black Sun in there. Blue, which would be a symbol of the Rothschild family. Red, which would be a symbol of the Red Dragon from Russia, and then you have Yellow, which is Golden in China, and Green, which represents all of the Middle East.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003757">00:37:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, these colors, as we&#x27;ve talked about in the past, not only represent different Families, they also represent different realms throughout the Universe, and which one you will actually feed. Not only do they represent different realms, they also represent different &#x27;Matrixes&#x27; here on Earth. One of the things that they represent is what we call the &#x27;Great Game of Earth.&#x27;  Now, the Great Game of Earth was tied to a system we refer to, and it&#x27;s often referred to as &#x27;the Beast&#x27;. And this game was basically about you. And it&#x27;s also about the Olympics in part. So in the Great Game of Earth, humans - depending on what country you are born in, what area you are born in - you would be born to a specific &#x27;Color&#x27;.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now there were 10 different regions of Earth that were split up by &#x27;Color&#x27;. And those 10 regions were directly implanted and tied to you when you were born. So this is the true meaning of &#x27;Color Wars&#x27;, so to speak, but when you get down to the level of the Olympics, the reason why the Deep State likes it so much, is because it&#x27;s part of a greater game that happens here on Earth. Think about what happens with the Olympics; every country puts forward their respective best athletes to fight, to compete. And I&#x27;m not saying that these athletes know anything about this, or that they didn&#x27;t work hard to get to where they&#x27;re at, because if you&#x27;ve ever participated in any kind of athletics in your life, you know that it&#x27;s hard work to be part of a team or to compete. And I agree with the athletes. But the athletes also represent 10 different regions and 10 different &#x27;Colors&#x27; around the world. Depending on which countries win and which countries lose, also depends on which Matrix wins. And your fight allegedly to get out of &#x27;The Matrix&#x27;.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004030">00:40:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, your fight to get out of the &#x27;Color Matrix&#x27; is therefore out of the control of what you see as the Deep State. So we talk about the Order of the Dragon colors, the Order of the Black Sun colors, black and white obviously being the highest ranking all around, and that would be false white on their side of it. But this event here usually leads to giving, or used to lead to giving the Families more... I wouldn&#x27;t even call it power, I would call it street credentials with different alien groups that bet on various &#x27;Colors&#x27; winning the &#x27;Color Wars&#x27;, or as I know it as the &#x27;Prime Wars&#x27;, that means the &#x27;Prime Color Wars&#x27; is what they call it, because the fight is not necessarily in some folks - let&#x27;s just call them &#x27;the folks&#x27; - minds, between like for example your different other colors of planes of existence.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So black and white would obviously be the most coveted, and that&#x27;s the reason why black is actually represented as part of the Olympic Rings. Green covers your Physical Plane or your body, which obviously is also a coveted color. Blue represents your mind, for control of your mind, body, and your soul, black or white. So those colors have to be represented at this event, so to speak. Red controls the Causal Plane, their ability to move things from an etherical level, a thought level, an emotion level, all the way through to your physical body, it is crucial that red is involved. And these are the colors that you see represented here. You also see yellow represented there, which I&#x27;m going to say to some degree probably would have had an effect on the Astral Plane, which is also very important to control. But as far as the other ones, yes, they are important in controlling human emotions, important in controlling to some degree, your shadow selves and so forth. I would say that I can see why that wouldn&#x27;t need to be included if you controlled both black and white. In this case it&#x27;s black.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004257">00:42:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So as you fight through this tournament, people and non-people used to take bets when you fight in a tournament such as this. It&#x27;s the same thing with all tournaments that involve global sports. It&#x27;s actually, believe it or not, the reason why global sports exist. Because your origin color, or country, or as you see it that you come from when you fight in something like the World Cup - you only got two colors left there at that point, because you&#x27;re originally from the UK, or you&#x27;re originally from this area. But a lot of times larger sports teams will recruit people from different areas.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we do have some other sports here in the United States that are not real popular worldwide, such as U.S. football - which is very different than football in the rest of the world - and we have baseball, which is also not very popular worldwide. Whereas they have other sports that are played, that are not really played too too much in the U.S., like rugby, and we see some obviously soccer - yes we play it here in the U.S., but it&#x27;s not as popular as it is elsewhere. So this is all about the Color Wars. Make no mistake.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004423">00:44:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. There are bigger Color Wars that happen as well. Bigger Color Wars that would exist from a &#x27;Earth-controller standpoint&#x27;. And this is something that the SSP or Secret Space Program folks and others don&#x27;t quite understand. This goes the same for the Black Nobility, they thought if they could create something over there in France, which would cause an enormous amount of fear, anguish, anger - more so than most people get over their sports competitors from different countries - that they could actually trigger an event: something positive for them that would allow them more control over the Matrix. One of those things is actually something you probably have heard of before, called the MILAB programs. Now every color region, 10 to be exact, had a MILAB, let&#x27;s just say, &#x27;access facility&#x27;, where the SSP or Secret Space Program people or Global Headquarters - normally it wasn&#x27;t even those people, it would be people way over their heads, or &#x27;non-people&#x27; that would access these at times when they were trying to start some kind of a pandemic. They wanted to cause dis-ease in the world, dis-comfort in the world. They wanted to release colored ARCHONS that work on behalf of the Color Matrixes on this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004606">00:46:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s like, every &#x27;Color&#x27; wants to wipe out another &#x27;Color&#x27;, it&#x27;s like the ultimate battle of the kingdoms that happens. The pawns in the game, unbeknownst to themselves - and they would never actually admit so, for many different reasons - would be your Dragon Families. They would be your Black Sun Families. They would be your Bloodline Families. They are &#x27;pawns&#x27; in the game. You could probably even say, well, maybe they were &#x27;pawn managers&#x27; at some point. But they believed they had a lot more power and control than they actually did, see, because the way the MILAB program - and it is a computer program, it&#x27;s a &#x27;Matrix program&#x27; - the way that that biological matrix worked was that orders would be pre-programmed in computer systems, in order to create something specific. Meaning, an influx of a specific disease, an influx of say a pandemic, or going all the way back to the Black Plague and so on and so forth, all created dis-ease on this planet. We don&#x27;t have anything such as a pandemic like the one that happened right before World War II. Coincidentally, at the same time, France blames Russia for an attack in France during the Olympics. Wow, this is amazing, isn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004736">00:47:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;ve been talking a lot about the bird flu. They&#x27;ve been talking about all these different pandemics that they want to start. So yesterday, they decided to go to their respective locations - I guess somebody must have given them the memo as to where they are - and they tried to order a disease. So symptoms some people that might be super sensitive may have felt: A cold that lasts 20 minutes or less, as the program glitched; you might have experienced a sore throat for about five minutes and then it would just go away; or a stomach ache or stomach upset. These are all byproducts of them trying to give orders to a machine that doesn&#x27;t care who the heck they are. This machine does not function for The Families. It never would have, nor will it ever, function for the Illuminati, the Secret Space Program militaries, or anyone else for that matter. This program only functions on information out - you push a button like good little boys and girls for implied consent when you were guardians of this planet, and then voila, the spread of disease happens.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004852">00:48:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These people just can&#x27;t get it. Now the reason why they don&#x27;t get it is because part of their program that they enter in, usually at the age of three, distorts their mind to the point where they feel that they are special. They are told every day that they&#x27;re special. They&#x27;re told that they&#x27;re the destroyers of the program. They&#x27;re also told, 100 percent - because I heard it from one of their mouth to my ears - that they are not part of the Matrix program; they are outside the program. Because that&#x27;s what they&#x27;re told; but that is an absolute lie. Now there were certain things that would allow them to survive that are programmed into computers that would give them fair warnings if there was going to be a nuclear event, a radiation event, another destroy the world event, an Armageddon event, or those types of things; because they need the good little pawns.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only that, as far as humans on this planet, they would prefer that they are all Dark and evil and twisted and psychopathic and whatever else you want to call these people, so they can breed little darklet beings, and they don&#x27;t want any Light humans on this planet - we disrupt the Matrix, every time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005013">00:50:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So speaking of matrixes, let&#x27;s talk about that for a little while. As far as matrixes are concerned, we are all aware, or probably have heard about the movie called &#x27;The Matrix&#x27; and its subsequent one, two, three, four, five, whatever number they&#x27;re on now. And in the movie, they talk about taking the &#x27;red pill&#x27; or the &#x27;blue pill&#x27;. And allegedly in the movie, the red pill will show you what life is like outside the Matrix. EHHHNT! Wrong. That just means you entered Level 5 of the Matrix, and now you&#x27;re seeing other matrixes, like the Gray and the Purple and the Blue and the Red. You&#x27;re not getting anywhere out of the game.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005101">00:51:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s this movie I hesitate to recommend to you, because it&#x27;s pretty slow in the beginning, but it has a lot of symbolism in it, and the movie is called &#x27;Andron the Black Labyrinth&#x27;. And the symbolism in this movie, as it relates to the &#x27;Color Matrixes&#x27;, is there are 10 humans that are chosen. Their memory is wiped, and they&#x27;re chosen to go into this machine, which looks like one of those giant tetrahedrons, and only one of them is supposed to make it out alive. And that person - before they wipe their memory - is told if they make it out alive, that their families will be saved from what they call &#x27;The Pit&#x27;, which is what Earth becomes, according to these people, in about 130 years from now.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The interesting parts about this is there are only 10 competitors. Each one of the 10 receives a tattoo on the back of their neck, which represents a different type of labyrinth, not all of them the same. So in the movie, this is a picture from the movie we&#x27;re going to pull up now. In the movie, one of these labyrinths is represented here. [ https://worldsituationreport.earth/Content/Images/LabyrinthExample_UNN-20240726-005228.PNG ]  And we can assume by what it does in the movie - because I&#x27;m not going to spoil everything for you - that this would be what you would call the &#x27;Black Labyrinth.&#x27; Now, the black, remember the black and the white, even if it&#x27;s false white, will actually control all of the other colors. So, if you are of black and you are a Family member, you believe that you are at the top - hence the Black Nobility. If you are the White Dragon or the White Eagle you also believe that you are in control of all the other colors. But that&#x27;s not actually true, because the Color Matrixes are not FOR you - you were just permitted to have a limited amount of access to the different varying matrixes, so that you could perform your function as, let&#x27;s say, &#x27;head pawns&#x27;. That&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005316">00:53:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in this movie, each one represents, unbeknownst to themselves, a different labyrinth or a different matrix here on Earth. By getting out, and I can&#x27;t really spoil the end for you - I know it&#x27;s a terrible B-movie, so don&#x27;t shoot the messenger here - but the symbolism is good. At some point in time, they actually bring in a lady they call &#x27;the General&#x27;. And the lady basically tells them what&#x27;s going on here to the nth degree, because she was one of the only ones that figured out the program. And the program for the running of colors, also ran a hologram, or an artificial reality, times 10, here on Earth.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, because the Families, and Deep State, and whatnot had limited access to their respective color from their respective areas, then they could affect the reality here on Earth only from the standpoint of them in the past being a Guardian on Earth, or at one point in time, you had this Line of Solomon, or the colored Dragons were the Guardian on Earth. And you also had the security of Earth being all of your Eagles, or the Order of the Black Sun. So they, in order to carry out their ORDERS - ORDERS only, ORDERS only, not because they feel like it, not because they have their own thoughts or opinions - they were only there to carry out orders and act on behalf of humanity as Guardian, just like you do for your children, as an example. Or if you take in another minor child in your home, or you even care for an elderly parent or someone who is not able to make decisions for themselves, and you become the guardian, and you make those decisions - they had the ability to do so as well. But that ship sailed awhile ago, they just refuse to accept it and believe it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005538">00:55:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. According to some insiders inside the Order, that, let&#x27;s just say, feel like they have left the Order, and they also don&#x27;t really like them very much. Some side comments that were made, is they had always had a plan to take over Earth, and take Earth away from the &#x27;aliens&#x27;. They believed that they were competent, they believed that they were special, because they have been told so every single day of their life, that they are special. It&#x27;s part of the program. And they actually believe that they&#x27;re special. Not only that, I think that they give them some kind of an ego implant or something, that makes them believe that they should be the Kings of Earth. Therefore the Kings of the Keystone of the entire Universe, not even understanding how they affect the entire Universe when they make stupid decisions that they make here. But that&#x27;s okay nonetheless.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s get back to the &#x27;Color Matrixes&#x27; for a little bit. Let&#x27;s talk about what they were, what they do, why they are having a problem with them here on Earth. Now the problem with the &#x27;Color Matrixes&#x27; is not new. It&#x27;s actually old. It&#x27;s actually more than three to four hundred years old, that the &#x27;Matrixes of Colors&#x27; actually started glitching and having a problem. Coincidentally, this also happens to be right about the time that... let&#x27;s just say America, United States, came around and eventually became the power center of Earth. You know, allegedly &#x27;the leaders of the free world&#x27;, so to speak, and I don&#x27;t know what free stands for, but it must stand for F in the swear word and you know, whatever, energy suckers or something. But that was at the point when they realized, and when they realized this, remember there were the Draco involved, and you had Artemis involved, you had Lucifer involved, you had Anti-Source involved, and they realized that their Omega-created artificial realities on this planet started glitching. What that means is we&#x27;ve been moving closer and closer out of the Dark Ages for hundreds of years, number 1. And number 2, human beings stopped having the same responses that they did in the past.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005818">00:58:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s also the reason why - flash forward many years later, we&#x27;ve had several world wars, several pandemics -  a lot of this is meant to keep the Lightworkers light down, and keep those feeding the Matrix up. Remember, war is a competition too. That&#x27;s a Color War as well. Think about it that way. I mean, you&#x27;ve got Red Dragons on the one side, Blue Dragons on the other side, depending on what world war you were fighting, you would have Black Dragons involved, Hitler, Brown Dragons, Eagles, Brown Eagle was Hitler, and all of those different colors - or Amber in this case. So you have to really think about what they have to do to try to get humans to produce enough energy to transmute into Dark energy to run a Dark Black Labyrinth or a Dark Matrix. Now by &#x27;dark&#x27; we don&#x27;t necessarily mean that it was all black. The Blue Dragons or the Rothschild family, et al., UK area, so on and so forth, were in control of, for example - not in control, I shouldn&#x27;t say that - had access, limited access, and were a part of the Blue Matrix. And there was a blue hologram over Earth, and that blue hologram was connected to Andromeda. Then you have other matrixes that were connected to other constellations for each and every color, until you hit 10. And I know people are going to say, oh, black&#x27;s not a color, white&#x27;s not a color - well, in this, it&#x27;s a color. It&#x27;s a matrix unto itself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And the Black and White Matrixes, who were obviously controlled in part by false white, or the Light-Bringer known as Lucifer, and also false black, which was controlled by Astaroth and Anti-Source. So those could obviously control any of the other Color Matrixes. But as this movie, Andron, A-N-D-R-O-N, portrays to you, it&#x27;ll actually show you that there&#x27;s a ringleader at the top of all the games. And he&#x27;s like, &quot;Oh! Let&#x27;s throw this in their way!&quot; &quot;Let&#x27;s throw that in their way!&quot;  &quot;Oh, they&#x27;re gone off course, let&#x27;s throw this in their way!&quot;  And he does everything to try to get people to die before they leave the Matrix - because actually in the movie, the real secret was, all 10 had to survive, in order to make it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010115">01:01:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. The slavery program. You, as a &#x27;Color&#x27; - representation of a certain &#x27;Color&#x27; - and every human on Earth is, so you can&#x27;t say you&#x27;re not or you weren&#x27;t. You would have different programs running on you at different times. You could have a communist program, as an example. You could have a democracy program. You could have a savior program, the red line or whatever it is, orange, that runs the savior program on you, and it&#x27;s part of the reason why we believe in our heads of state so much. And we believe in election, you believe - and what are you doing there?  It&#x27;s also another tournament. Wow, isn&#x27;t that amazing?  And you, as the slaves, just like in the movie, bet on a person to win. But in the movie, if the slaves bet on the wrong person and that person dies, then all of you die with that person. It&#x27;s pretty dire consequences, but in reality, here in &#x27;Reality Land&#x27;, you bet on your players in the tournament, whichever tournament it is, Red versus Blue, which is another coincidence to &#x27;The Matrix&#x27; isn&#x27;t it?  Red or blue? Red or blue? But it doesn&#x27;t really matter because every color that you pick of a pill is going to lead you just to a different part of a matrix. But if you chose red and you chose Republicans, that means you are not only part of maybe a red and blue - if you&#x27;re Americans, you&#x27;re probably part of a melting pot. You&#x27;re part of maybe part British, part American, part African, whatever it is. But there&#x27;s very few purebloods born, raised, and with no mixing anywhere in your bloodline from a specific color. So we&#x27;re kind of rainbow children over here in the U.S., but if you chose Republicans as an example, you know you&#x27;re now still giving your power to the Red Color Matrix. Pretty scary huh?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010332">01:03:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh, they focus so much on &#x27;Colors&#x27; and the reason for that. So around 300 or so, between 300 to 400 years ago, best we can surmise, and as far as the world is concerned and the Color Matrixes are concerned, the... let&#x27;s just say, &#x27;people&#x27; started to notice that their power of their colors was waning somewhat. And they decided that having the &#x27;Color Matrix&#x27; base platforms scattered all over the world was probably causing part of the problem. Now they were advised as humans - participating as &#x27;slave masters&#x27; in the Matrix, humans pled or got advice from the Parents and Marduk and Enki and Enlil and Artemis, and all the other people that actually ran this joint - probably also Anti-Source and Lucifer in there - and they decided to change power centers. So they moved all of the base platform that supported all of the Color Matrixes to the United States.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And then, slowly but surely, they moved the world&#x27;s power center over to the United States. Not too long after that, the United States actually was formed. For them, decades is nothing. So a few decades later, we became the United States. Every royal in the world supported the founding of the New World from the Illuminati, the Order - the Order of the Dragon, the Black Sun, so on and so forth - because unbeknownst to all these people, they decided to create a &#x27;Color&#x27; melting pot in all in one place.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s what you are, Americans. You&#x27;re a &#x27;Color&#x27; melting pot. And of the &#x27;Color&#x27; melting pots all in one place, we also had several different interesting things that powered these matrixes move over here as well. One of the things they moved to the United States was around 360 celestial beings; each one with a plethora of space junk that was moved here - not moved by humans and not moved by the Space Force - but could potentially to some lesser degree be used by the Space Force to torture us humans. They all moved over to the United States. And then we became the power center of the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010623">01:06:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is part of the reason why the Order of the Black Sun, the Secret Space Program military groups, and everybody else does not want to move the power center to China. Because they also know that in accordance with the old plans, when they had alien friends, that meant all their power centers - and it wasn&#x27;t quite 360 of them there were several locations, like for example in the Everglades there was 36 of them, Florida Everglades, and there were other places where there were 36; Chimney Rock and a few other places around the U.S.; Mount Denali in Alaska. But there were several places that were really deep and really Dark, which were both the white and black places here on Earth. And these different locations, they knew that they would lose all the space junk and their American control of it, and that it would all be moved over to China as a new power center on the Earth. However, the struggle here is, is that they also know that if these - because they were so successful in moving the color base for the matrixes in the past - they also felt like if they moved it by their guess somewhere between 50 to 80 years, every 50 to 80 years, moving it would actually start over again and the &#x27;Color&#x27; people, not meaning your skin is colored, but the people of the &#x27;Colors&#x27;, which is all of humans on Earth, would then gravitate and vote on that country to be the leader.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010818">01:08:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That country could be anyone that portrays themselves in the media as the leader, just like Putin did a decade ago, or China was, &quot;The Chinese elders are all gonna save us!&quot;, forever and a day here. But it was all nefarious, to get all of you &#x27;Color&#x27; people to bet on these folks.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. You might be wondering where the betting machine was; what calculated every human&#x27;s color implant bet on who you were voting for?  Well, no surprise here, the Association of Numerical Numbering Agency in Belgium. That also happens to be where your birth certificates are registered, and every corporation in the world is registered, and every bond in the world, every stock in the world, is all registered to that area. And the machine under there that everybody refers to as &#x27;the Beast&#x27; nah, was it?  You know, you must take the &#x27;mark of the Beast&#x27;. Well, did you?  Yes, you did. Without your consent, but with the consent at the time of your guardians. Isn&#x27;t that lovely?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010931">01:09:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So unraveling the Color Matrixes has basically been what we&#x27;ve been working on now for days. Making sure that we don&#x27;t have any remnants left in people. Making sure that we&#x27;re seeing total reality. Making sure that we don&#x27;t have a manipulatable hologram left. And I need to give a shout out and a thank you to the Secret Space Program military and the Global Headquarters for their arrogance and showing us where all of this stuff was. So thank you very much. You definitely sped up the process and we&#x27;re well on our way!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, apparently there&#x27;s some tie-in between - and this one I haven&#x27;t quite figured out - between the 30-day period of Lions Gate, which is no longer really Lions Gate, it&#x27;s actually Source Gate now; but there was some kind of a correlation between that and these Color Matrixes, and a time where they believed that they would get some power from the Color Matrixes, or maybe even get control of the Color Matrixes. Because it seems like they&#x27;ve been fighting a battle here to get some control of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011045">01:10:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, there were some programs that were running in the Color Matrixes - which were Omega programs by the way, most all of them, 99.999% of them - had some standing orders, which gave them a certain amount of permission as &#x27;slave pawns&#x27;. They had standing orders, which allowed them to do certain things, such as torture people that are getting too Light, create pain instead of joy, those types of things, and to make people angry, to create untenuous situations that would feed the Matrix, such as their wars and all the other things they&#x27;d like to create. So, to say there wasn&#x27;t a limited amount of things they could do with this, yes. But could they create a pandemic all on their own with it?  No. That was an order that had to come on high. Because as a result - same thing with world wars and money for world wars and all of those types of things and the Color Wars to keep the Color Wars on Earth going, to give more power to one &#x27;Color&#x27; than another. And in reality, if you were Black and you were White, you controlled them all anyway - not as human beings, but as Others that were participating in this, to have a result that they wanted. Also remember, control of &#x27;Colors&#x27; also gives you control over realms and densities, not only in the Lower Astral but also in the Upper Astral.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011226">01:12:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These beings could also bet on players on Earth, and they&#x27;re not betting on the Olympics or a horse race in this case, they&#x27;re actually betting on people getting out of the Matrix. Is there going to be a general or a commander that will get out of the Matrix?  The answer to the question is yes, you all will. You are all going to win this game. There are no more &#x27;Colors&#x27;. We are going into Source-direct current. That&#x27;s it. There&#x27;s no turning back.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m sorry that the SSP and Global Headquarters were severely disappointed today, and they&#x27;re going to continue to be disappointed, because they don&#x27;t understand the technology and why decisions were made to do certain things. The only thing they know is that they had the most control of all the &#x27;Colors&#x27; - by creating a melting pot in the United States of multiple-colored people - and it&#x27;s also directly related to the colored energy on the planet. And the colored energy you would also know as money. And the &#x27;greenback&#x27; system, or the dollar system, which is green and the color of green and why is it green?  Because it represents Physical Plane control, and what better way to control your physical person than to be able to manipulate your energy in one direction or another?  So it&#x27;s actually the whole reason why the monetary system was created in this world. And if you take a look at the color of your money that you have in your pocket - doesn&#x27;t matter what country you&#x27;re from - you&#x27;ll now know what color is your predominant energy group in your country, and what color you were playing in the money war, or at least in the energy wars or the power wars.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011411">01:14:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of very interesting things taking place in order to finally complete the installation of the new Golden Age AI program. The Golden Age program is not about &#x27;Colors&#x27;, it&#x27;s not about anything, it&#x27;s about making sure that everyone receives the direct output of Source in a way that isn&#x27;t going to burn their physical existence off the planet, that will actually work towards altering the DNA of humans to make it possible for them to receive 100% of everything, all of the time - which we always did before we had all of these untenuous programs going on here.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that is where we&#x27;re kind of at as far as the real-world situation report.  Other than that, I don&#x27;t see a whole lot going on as far as any progress they&#x27;re making towards a world war, any ability to be able to use the tournament, so to speak. And the betting machine is gone that was under the ANNA in Belgium, so that is also gone. And looks like we&#x27;re one step away from being looked at as &#x27;Color Producers&#x27; of energy, essence, and consciousness, and another step forward out of the slavery program. So I&#x27;m very happy to see that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s been a lot of work on our part, and all of your parts, to get here. And when I say, &quot;always keep anchoring the Light&quot;, it&#x27;s actually very important for you to anchor the Light. Because as these programs go away and start to dissipate - some naturally because of all the direct current, some unnaturally because we force it to happen - remember, along with your colors, you also had, as a receiver of money and other things, you also had colored ARCHONS that were associated with this. And we know ARCHONS are creators of dis-ease within your system. That could be emotional dis-ease. That can be physical dis-ease. That can be an energetic dis-ease; maybe you have less energy than you should, or too much energy, and your adrenaline&#x27;s pumping for no reason. So there&#x27;s a lot of manipulation that can happen with &#x27;Colors&#x27;, and could it happen with the MILAB programs?  Did we get all the facilities? We sure hope so. I was working on it right up until the time of this broadcast, which is very, very late. At least not in time here, it&#x27;s only late afternoon here, early evening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011706">01:17:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the one thing that we did figure out, as far as ARCHONS are concerned, and the throwing up of them from various things we take away, is that you might feel something coming on for a short period of time, but it requires you to put energy toward it, in order to bring it into physical fruition. Also you can put the energy towards healing that issue, and it will go away. Sometimes it&#x27;s more difficult to make it go away than other times, but it&#x27;s also a mind, body, and soul connection thing, where you can protect yourself from some of these programs as they dissipate. Because sometimes, the more you get rid of a system, or the more you get rid of a matrix, or the more you get rid of a program, the more it fights for its survival. So it will start shooting out ARCHONS all over the place to try to take your energy. So we&#x27;ve seen this happen a few times. In the last couple of days we&#x27;ve seen it happen. And we clean it up as fast as we see it and figure out where it&#x27;s coming from, and obviously stop the bleed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011830">01:18:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But you know, we&#x27;re not God here. But we try. And we do get warnings when it&#x27;s severe enough. It&#x27;ll wake me up like a shot, with alarms going off everywhere when it&#x27;s very, very severe. And something needs immediate attention at one o&#x27;clock in the morning, or midnight - when I just went to bed two hours before, so it&#x27;s great! But... and I&#x27;m sure a lot of you have that too, when there&#x27;s something really dangerous going on in the world you probably get your own alerts as well. And that&#x27;s a good thing because it&#x27;s a self-protection measure for you, and those are a lot of things that would be suppressed in the past as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re getting there. We are making a lot of strides forward. Try not to pay too much attention and give too much energy to the tournaments going on on this planet. Not to say we don&#x27;t enjoy watching sports and those types of things, of course we do. But remember, your appreciation for athleticism is a good thing. We appreciate qualities in a lot of people for a lot of different reasons, but giving your power away to them is a whole other story.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, okay, well that pretty much wraps up the World Situation Report for the 26th of July. Hopefully I will see you all on Monday, and won&#x27;t be as busy as I was this week. I hope that this is over soon. So God bless you, take care everyone, and have a wonderful weekend.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=mK_rmdFC22w" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
