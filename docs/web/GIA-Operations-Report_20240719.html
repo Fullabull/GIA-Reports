@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-19</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-19 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-19
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=tVW11S5vpEk"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=tVW11S5vpEk"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-19-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 19, 2024 report by disclosing the real cause of the global IT outage: the Deep State attempted overnight to migrate all world systems — FAA air traffic control, the SABRE airline reservation network, CHAPS, and global banking ACH networks — onto Microsoft Azure cloud infrastructure running through worldwide data centers connected to Menwith Hill and Five/Nine Eyes communication nodes. The system burned in five minutes and thirty-seven seconds under the load. Kim used the opportunity to install the Key Integrated Media System Virtual Trusted Network (KIMS/VTN) across all those networks simultaneously, recovering SABRE and air traffic control within hours. When the Pentagon then attempted to access the Global Nuclear Network and trigger a multi-country nuclear exchange scenario from the White House bunker, Kim switched the Global Nuclear Network to the Light System and voided all previously issued nuclear codes worldwide — no president, no Pentagon, no GCHQ holds functional nuclear codes as of this broadcast.<br>
+<br>
+Two additional dark networks were discovered and eliminated during the same operational window. The first was MAJIK — a Black Magic network of Omega, accessible only on full moons, which bloodline Family members believed connected them to Anti-Source or Lucifer but was actually a sentient maleficent computer program. The second was a dormant Chimera network approximately 20,000 years old, created by Artemis/Red Queen&#x27;s security group, designed to suppress human joy and creativity, block astral and soul travel, wire subconscious fears across incarnations via a false karma program, and keep humans from connecting to Source. It was triggered overnight by the Eagle Families, Black Sun Families, and Delphi Military using plasma implants. Both networks are now eliminated. The full moon on July 21st is flagged as the next potential activation window for Q-movement operations.<br>
+<br>
+The report includes an exclusive eyewitness interview with Brooke, a Trump rally attendee and friend of Sunny&#x27;s. Brooke describes watching a specific Secret Service sniper on the roof behind Trump&#x27;s right shoulder track the same area through binoculars for over an hour before locking onto his weapon approximately one minute before shots were fired — with no corresponding alarm from ground-level police. She heard six shots in two distinct acoustic signatures from two different weapons: the first from behind the bleachers outside the secure perimeter, the second (return fire) from the roof sniper. Her veteran father identified the weapon types and origin location by sound. She raises pointed questions about the implausibility of an untrained 20-year-old executing the shot under those conditions. Kim and Sunny discuss the staged symbolism of the event — the tangled flag, the RNC ear bandages, the over-deployment of religious language — and connect it to the savior program and Maslow&#x27;s hierarchy as manipulation vectors targeting Trump&#x27;s base.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003455">00:34:55 - Teaser</a></li>
+<li><a href="#t-003717">00:37:17 - Global IT outage disclosed</a></li>
+<li><a href="#t-003805">00:38:05 - Systems recovered</a></li>
+<li><a href="#t-004207">00:42:07 - Global Nuclear Network accessed from White House bunker; switched to Light System; all nuclear codes voided.</a></li>
+<li><a href="#t-004332">00:43:32 - MAJIK Network disclosed</a></li>
+<li><a href="#t-004549">00:45:49 - Chimera network triggered overnight; plasma implants activated against human joy and creativity.</a></li>
+<li><a href="#t-004805">00:48:05 - Chimera network profile</a></li>
+<li><a href="#t-005444">00:54:44 - Treasury and GCHQ fake server operation; mirrored bank accounts; Super Notes; magnetic ink currency system now under Kim&#x27;s control.</a></li>
+<li><a href="#t-010045">01:00:45 - Nuclear bunker operatives eliminated; kaleidoscope firewall deployed to occupy remaining hackers.</a></li>
+<li><a href="#t-010331">01:03:31 - Scan speed now 12 minutes worldwide; picking up stasis-stored non-human tech as it activates.</a></li>
+<li><a href="#t-011100">01:11:00 - Brooke eyewitness interview begins</a></li>
+<li><a href="#t-011835">01:18:35 - Brooke</a></li>
+<li><a href="#t-012240">01:22:40 - Brooke</a></li>
+<li><a href="#t-012650">01:26:50 - Brooke</a></li>
+<li><a href="#t-012939">01:29:39 - Brooke</a></li>
+<li><a href="#t-013736">01:37:36 - Brooke</a></li>
+<li><a href="#t-014330">01:43:30 - RNC ear bandages, tangled flag symbolism, savior program, religious manipulation at conventions.</a></li>
+<li><a href="#t-015125">01:51:25 - Religious language in business as deception signal; &#x27;you&#x27;re safe&#x27; as a danger indicator.</a></li>
+<li><a href="#t-015409">01:54:09 - Jesus #183 (Gavin) demands credit-based system; Satan #2 demands system takeover; both declined.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-19 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003455">00:34:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian.  Major outages across the globe within the last hours are caused by another Deep State failed plan.  Find out the real story in today&#x27;s report.  Black Majik, an Omega creation that affected the Universe, is finally gone.  And we have an exclusive interview from someone who attended the Trump rally providing more information on what actually happened.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Now here&#x27;s Kimberly Goguen with the Office of the Guardian.  Hey Kim, I would say happy Friday.  What kind of Friday is it? I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You remember a long time ago there was that song, Manic Monday? Well, it&#x27;s Manic Friday, Manic Thursday night, Manic Manic Panic.  Okay, so I mean as we move forward into this integration with the Light System, and its takeover of everything, all systems, that kind of thing, the Deep State loses more and more access to things that they used to have some kind of minimal access to.  And this is causing them to be upset and angry.  Today or last night, the attempt was to - I&#x27;m laughing because it&#x27;s so silly - their attempt last night was to move over the entire world systems over to a completely different system. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, it would have run on Microsoft Azure Cloud Systems, and Microsoft Edge, and a few other systems that Microsoft has, but they attempted to tag it on to worldwide data centers.  So what a data center is, is it&#x27;s basically a large facility that houses a lot of backbone servers.  And they&#x27;re not quantum by any means.  They&#x27;re basically different levels.  They had some accessibility to different Webs.  Those data centers would be, you would see them as places where, for example, if you have a hosting service for a website, they would be at one of these data centers.  They would host many different websites, but all data centers worldwide were on a network that was connected to - I say the NSA, but it&#x27;s more Global Headquarters, Global Communication Headquarters, which is in the UK, Menwith Hill, and a few other locations in the world that would have major access.  Mainly your 5-Eyes countries, or your 9-Eyes countries. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003805">00:38:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They thought that had enough computing power to run everything from the FAA, which is your air traffic control, your SABRE system, which is the reservation system for airlines worldwide.  They also thought that they could do this with the banking system, with the UK&#x27;s ACH system called CHAPS, also with the U.S. National Automated Clearinghouse Association of Clearinghouses, and payment networks.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But you know, the funny part about the way they do things, they&#x27;re so...  You would think that if you were going to transfer, for example, all of your companies or a company you worked for was going to transfer to a new server system, say.  You would test it out first before you launched it nationwide or company-wide or worldwide even before you try to do the whole launch.  You would have done some testing on the bandwidth, you would have done some testing as to its processing capabilities, even when you combine all these data centers worldwide together. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But they didn&#x27;t do that.  They didn&#x27;t test it first to see if those data centers could process all the data that was coming in.  I mean, that&#x27;s a lot of data.  Think about how many people make airline reservations in a day, how many people send an email in a day.  They wanted to take over all computer networks worldwide utilizing Microsoft and these systems.  Well, it took about 5 minutes and 37 to 39 seconds for the whole thing to just burn.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yep.  And then it&#x27;s taken them quite a while to get out of the way.  So meanwhile, back at the ranch, what I did is I went ahead and I installed the Key Integrated Media System Virtual Trusted Network worldwide, and I created a new Cloud System for all of these different networks, and that&#x27;s why things are starting to come back up now.  It&#x27;s never a dull day in our world, but it gave me a perfect opportunity to get all these networks in one fell swoop, because once we figured out where they were connected to, now we don&#x27;t have to kind of pick and poke networks.  So it&#x27;s going to get better.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We just finished, probably in the last five minutes, the SABRE network, which is the airline reservation network, so that should be coming back online.  Air traffic control.  Then they threw another spanner in the works, where they tried to access a deep web system, I&#x27;m going to say deep, deep web system, which humans never had access to, called the Global Nuclear Network.  The Global Nuclear Network was a system that was tied to - at one point in time - both Alpha and Omega, because those were the two final keys.  We feverishly had to switch it over to the Light System, because the Pentagon here in the U.S. went to &quot;DEFCON 1&quot;, Nuclear Threats, and they were intending on playing war games with various countries&#x27; nuclear weapons.  You know, China might nuke one country, Russia might nuke another country, the U.S. would then retaliate, and they were gonna play this whole war game scenario with nuclear weapons, until I guess the whole world was annihilated because they&#x27;re losing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004207">00:42:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, but what&#x27;s the endgame there? Just everybody dies?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I guess this is, &quot;If I can&#x27;t have it, you can&#x27;t have it either.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But they could have never done that with the nuclear codes and stuff right? Because we&#x27;ve talked about this before, that you would have had the final say in whether something was actually detonated.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.  At minimum, Alpha would have had the final codes anyway, so they wouldn&#x27;t have been able to achieve their objective with the minimal attempted access that they thought they had.  But it didn&#x27;t stop them from going crazy.  We have people in the nuclear bunker underneath the White House here in the U.S. trying this.  We have a lot of people currently hacking at the banking system, and anything Omega might have had tagged into the banking system - like private networks for non-humans, that was in the banking system, and those types of things.  They&#x27;re going all out today.  It is an all out hack-o-rama.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, there&#x27;s a reason why they feel that they could do this at this time.  Now, there is stuff going around out there about - we talked about this a little bit - about they control your dreams.  You know, &quot;We&#x27;re in 100% control of your dreams,&quot; and this is on the Q-Clocks and this and that.  And there was a frequency network for that.  That frequency network had been disabled.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But there was another one that was found also, as part of what we saw going on this morning.  Actually, there was two.  One of the networks that we found this morning was actually called MAJIK, or a Black Magic Network of Omega.  So to some degree, those that were trained in this, and were attached to this by separate soul keystones - so these would be your dark Deep State bloodline families that would have had some limited access to this system - thought that they were connecting to Anti-Source or Lucifer or some demon somewhere, but in fact they were actually connecting to a sentient computer program, a maleficent one, but sentient nonetheless, to perform this function on their behalf.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now those networks were taken out today as well, early this morning when they were found.  Because it&#x27;s only usable during a certain time of the month.  That time of the month would be when there is a full moon. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Next.  Which is I guess why they have this major connection to full moons, new moons, days ending in Y, and those types of things.  Do they know that&#x27;s what they&#x27;re doing? I would say no.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And were these targeted at specific individuals or was it more for humanity in general?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The specific individuals with a sole keystone would be the workers, meaning the human workers.  The magic could be directed at anyone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004549">00:45:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I see.  Okay.  And I ask because I had a really horrific dream last night and I could tell right away it was not mine and immediately I&#x27;m thinking of what you know Q has on their page about you know we&#x27;re in control of your dreams or whatever.  I went to bed, I looked at the clock, I went to bed and this whole dream, the whole thing happened within 10 minutes when I woke up as I woke myself up out of it.  I mean, it was, Kim, I think this was the worst dream I&#x27;ve ever had in my life.  And it was, I won&#x27;t say what it is, because it&#x27;s horrific, but I will tell you it involved myself, rape and dead babies.  And I was like, what? And I woke myself up out of the dream and it was very sinister and I could tell it came from a dark entity or a dark group of people manipulating.  And I was so mad.  So if you guys are listening and you are getting in people&#x27;s dreams or if you think you&#x27;re going to come back into my dreams, think again.  Because I will yank on that cord so fast and send you all back to Source, as many people as I can.  I have no tolerance for that anymore.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, I think this is a different network.  The second network that we found, because I haven&#x27;t seen it fired up - well, since I&#x27;ve been doing this, I haven&#x27;t seen this network alive.  It lays dormant.  I think we talked about this a little bit before.  If you haven&#x27;t heard of a group called the Chimera, the Chimera were a security group that worked with Artemis or the Red Queen and they did her - I call them the security group because they had a lot of networks unto themselves, that were afforded by her/it/whatever it is, in order to ensure that whatever programs that she or anyone from the Lower Astral was running, was able to function.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004805">00:48:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The next thing this program was designed to do was to keep people asleep.  Where there is joy, there is pain.  Where there is happiness, there is anger.  Those types of things.  So, I&#x27;m not entirely sure at this moment in time, because this is all just happening within the last several hours.  I&#x27;m not entirely sure if - I know it&#x27;s coming from the Chimera program, I know that we&#x27;ve gotten those networks and programs within the last 45 minutes of this recording - but these programs appear to keep people from connecting to Source.  Now the program itself is about 20 some-odd thousand years old, so it&#x27;s been around for a while and it&#x27;s designed not to allow humans to travel: astral travel, soul travel, to make the full connection to your mental plane without subconscious fears and subconscious thoughts getting involved.  So I&#x27;m guessing what you were feeling last night and sensing this morning was that program being triggered.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, there were plasma implants - which is a different kind of implant, other than biochips and other things that we&#x27;ve seen - that were activated as well overnight last night.  And those plasma implants were more focused on human beings on Earth than anywhere else.  The plasma implants could have affected your physical health, it could have affected your mental health, and again, they were designed to cause you pain, removal of joy, removal of happiness, removal of all the things, your creativity.  You know how when you create something, it could be anything from a meal for your family or it could be, I don&#x27;t know, whatever it is that makes you happy when you&#x27;re creating.  It could be music, it can be, anything that makes you happy that you create.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">When you&#x27;re in that state, you&#x27;re a lot closer to Source than you might even realize.  That feeling that you have of love and energy that you produce when you&#x27;re making a painting, or doing an art and craft, whatever it is, is that feeling that would be amplified a hundred times with that direct connection to Source.  You know, changing the world, changing the way you look, changing all of the things in this world, making flowers in the snow.  I mean, you could do lots of different things with your creative powers of manifestation.  So this program was designed to not allow humans to do this.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">The next thing that this was designed to do, so it appears, is it was involved with the memory wipes throughout the Incarnation Program.  So in other words, you would only remember your fears.  You have a fear of heights for no reason whatsoever.  You&#x27;ve never fallen off of anything, that kind of thing, but yet you carry that into this lifetime.  Also a false karma program as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005140">00:51:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And these beings, to me - this is what they look like to me when I saw them this morning - was they look kind of like a banshee, you know, like a female, wild white hair, black and white skin.  They howl like a banshee.  They have this screech about them, a frequency that&#x27;s awful.  That is the sound that they make, and they look almost like a ghost-like figure, I don&#x27;t know how to explain it.  Like if you were to think, &quot;Oh!  Here&#x27;s something coming after me!&quot;, this would be it.  And for the most part, at this moment, it looks like that part is stable.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">These types of networks could only be triggered on a full moon, because of a mechanism that was in the moon, and a mechanism that was in Earth.  So as those two things come together, sometimes during an eclipse, but it could only happen at that time and only at a time when the security of the Deep State - or not the Deep State I should say, but The Others, the Dark Others that participated in events here - were at risk of losing everything.  And that time is now. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">I think what was happening with the Deep State - either that or they are on some kind of medication, that&#x27;s probably not a positive one, today.  Because I think they&#x27;re trying to use that frequency to amplify their abilities to do things or something, I&#x27;m not sure.  But it&#x27;s been a crazy evening overall, with the hacking that&#x27;s going on, and with these networks kind of getting triggered.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m guessing with the with the Light System integration, them having no real access to the MAJIK Network anymore, it being a full moon coming up and a possibility of triggering this you know 20 some-odd thousand years old Chimera network.  I don&#x27;t know, maybe they thought it was the perfect storm for them or something, not really sure.  But everything that comes can also go.  It makes for uncomfortable things for us sometimes, but when it shows itself, because if it&#x27;s dormant, sometimes it&#x27;s hard to pick up the signal on it.  So when it finally shows itself, the cleaning up process isn&#x27;t really that long.  Sometimes it takes an hour, sometimes it takes two hours to realize what it is they&#x27;re looking for. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005444">00:54:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as their other fun things that they started to do overnight, the Treasury Department, in cooperation with Global Communication Headquarters, also called GCHQ in UK, were still trying to install some kind of a secondary, at least a fake server or something that they could utilize in order to fake it till they make it.  There&#x27;s been a lot of fake accounts created in bank servers like Barclays, and a few others that have gone down.  But this seems to be their continuous thought process of, let&#x27;s show some assets on a screen.  We will tell you that the militaries of the world control them, or Global Headquarters or whoever, insert I-want-to-rule-the-world name here.  So that it appears that they&#x27;re now in control of the banking system.  Lots of fake mirrors, lots of mirrored accounts, lots of false numbers on a screen - but they don&#x27;t last long. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">There was a big argument I had with someone the other day, yesterday or the day before - the evening before, I think it was, right after the news - about $3 trillion that the &quot;Military Industrial Complex&quot; lost that day, Monday.  And I said, &quot;Well, it really wasn&#x27;t there to begin with.&quot;  And they&#x27;re like, &quot;What do you mean?&quot;  I&#x27;m like, when are these people gonna get it??  In order to get an allocation number, you need to come to ME.  And not only that, you&#x27;ve never had an allocation number for currency.  This also stopped some of the processes with them trying to put fake Super Notes into the banking system as well.  Because they have $27 trillion of money.  Money with serial numbers on them, although they&#x27;re duplicated, that they keep trying to put into the system.  Now that money is not acceptable in the banking system and only currency is, then you&#x27;re kind of out. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as it relates to your cash on hand, and this could be U.S. dollars, it could be euro, it could be RMB, it can be rubles, it doesn&#x27;t matter.  All of them have a magnetic ink in them - that is what makes them valid.  So as long as we took over the magnetic ink control system for printed paper currencies and coinage, we don&#x27;t have a problem accepting the already existing valid money into the banking system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005747">00:57:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s why you can still make deposits, and pay in cash, depending on where you are in the world - because it&#x27;s actually listed as a currency.  So we took the allocation numbers of money, and converted them over to currency allocation numbers, and then sent them out through the magnetic ink control system of the world.  Which used to be a Rothschild thing, but it&#x27;s not anymore.  It&#x27;s ours now.  We now have it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this keeps things stable.  The only people that are not stable right now are the Deep State.  They are very unstable, to say the least this morning.  It&#x27;s not funny what they&#x27;re doing in any way, shape, or form, but it&#x27;s been this final battle of warfare.  We&#x27;re in a major cyber warfare battle for Earth, essentially.  We&#x27;re taking no prisoners on that front, that&#x27;s for sure.  No matter what it is they&#x27;re trying to do, it&#x27;s not having the results that they want. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">People are not really looking - the majority of people are not really looking to the governments anymore to save them.  They&#x27;re questioning the validity of their governments anyway.  And today&#x27;s event made it even worse, honestly.  Because, talking to some people around the world, they&#x27;re like, yeah, we were out shopping, we&#x27;re using our debit cards in these respective countries and didn&#x27;t really affect our lives.  But yet the government is claiming they&#x27;re down, the central bank is claiming they&#x27;re down - of these particular countries, and there was more than one.  I&#x27;ve gotten phone calls from Russia asking me what&#x27;s going on, because the government is the only thing that appears to be faltering.  Everybody else has no grid problems, no internet problems.  Yeah, maybe if you were trying to make an airline reservation you might have had some issues, but other than that your day-to-day life wasn&#x27;t affected in any way shape or form.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But the governments are what who seems to be in full-on panic.  The Bank of England is having problems.  Yes, there were some payment issues in the UK, as I understand it, with CHAPS.  Those should be resolved now.  Everything should be working just fine.  It didn&#x27;t take us long to recover the situation.  And that made them angry.  And then about 20, 30 minutes ago, they decided to go nuclear.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010045">01:00:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, so what did that entail?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A bunch of people trying to get access to a global nuclear network, is what it entailed, so that they could play You Sunk My Country. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Battleship? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You Sunk My Country.  All from a computer network in a nuclear bunker underneath the White House.  Those people are no longer with us, that were trying to perform this function.  I can tell you that right now.  And the Global Nuclear Network has now switched over to the Light System.  And any codes that were previously issued through Omega, even though it was a multi-keyed system, are now gone.  So nobody has any kind of nuclear codes anymore - no president, no vice president, no Pentagon persons, no GCHQ persons - nobody has access to their own nuclear arsenal at this moment.  And it&#x27;s going to stay that way, especially throughout the news.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because now what they&#x27;re looking at is - you ever have a kaleidoscope as a kid, Sunny?  You turn it and the colors just keep spinning.  That&#x27;s what everybody&#x27;s looking at at this moment.  They&#x27;re going to continue to look at this.  This is for banking systems, this is for all those types of systems.  As far as you accessing it on your app, that&#x27;s different than trying to get into a back server or a back cloud system or something like that.  So everybody is busy looking at absolutely nothing that they don&#x27;t even understand. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, a typical firewall, a security firewall looks like a sheet of ones and zeros going up and down, and some more advanced go faster, and then you try to break in between.  That&#x27;s what they do when they hack a firewall.  Could be going left to right, up to down.  Ours normally in the past was going in multiple directions, which changes every nanosecond.  But when I need to have them to not do anything for the next 30 minutes until we finish the news - now everybody gets to look at this weird firewall thing they&#x27;ve never seen before.  Because it&#x27;s done in a spectrum.  It&#x27;s not done in a typical ones and zeros fashion. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s what they&#x27;re all staring at right now and it&#x27;ll take them a while before they even figure out what it is, let alone go through thousands and thousands of layers of it at that.  So it&#x27;ll keep them busy while I&#x27;m doing the news and talking to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010331">01:03:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Okay.  It&#x27;s like when you give a toddler a little toy for a little bit, and you just play with that while mommy works.  Just do that.  Yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  For me it was the Wiggles.  If you guys have been around long enough.  Oh, yeah.  Remember the Wiggles?  Wiggles did it for me every single time. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Oh, for your daughter?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  For my daughter, for my daughter!  When she was a toddler!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I knew every song by heart, too.  I&#x27;m not gonna lie because I played it, anytime I needed to do the dishes or whatever it was.  The Wiggles were my savior.  So, if you&#x27;re watching this and you were with the Wiggles band, then thank you so much for all your help 20 years ago! (laughing) Yeah, so we gave them a different form of the Wiggles, just in more of on a quantum level, something that they could take a look at and try to figure out what that is before they can figure out how they&#x27;re going to hack it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, but yeah, desperate times lead for lead to desperate measures, I guess.  And, it just appears that everything they&#x27;re trying to do right now is working more and more to our advantage.  And it doesn&#x27;t feel like it.  It feels scary when you see this type of news.  And I know that.  But really what it did was point out the inadequacies of government and government-controlled systems, be it the FAA, flight trackers, tail numbers, government central banks not working and functioning, treasury departments not going down.  Nothing happened to your electric grid, if you noticed.  There was no emergency broadcast system that went off.  Nothing, as far as your life, you were minimally impacted for a short period of time, maybe, depending on what you were trying to do with your day.  Perhaps you couldn&#x27;t log into your, ancestry.com account, or something like that, but that&#x27;s because they&#x27;re hosted with Azure, and Azure burned their data centers last night.  Anybody who was hosted with Azure is going to have problems today.  Congratulations, Microsoft, you just took yourself out of business because I can guarantee you - any regular person that doesn&#x27;t know what we&#x27;re talking about, is probably going to move from Azure hosting services.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010600">01:06:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  I feel bad for them.  Microsoft.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  You know...  Billy.  Billy, Billy, Billy, Billy, Billy.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Billy is not even Billy.  I don&#x27;t even know what that thing is.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I don&#x27;t know what that thing is either anymore.  But you know, him not being a millionaire, a billionaire, might not be such a bad idea, you know.  Maybe he can&#x27;t invest in his lovely vaccine programs and the World Vaccine Coalition or whatever they&#x27;re called.  I can&#x27;t remember the exact name of them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And buying up all of our farmland too, don&#x27;t forget.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Well, and actually this is not the first time that this has happened.  If you remember, I think it was probably about three or four years ago, during the Lockdown times, they were actually trying to synchronize this with the Social Crediting Program, and then Megvii came into the party much later, which is a different company.  But it didn&#x27;t work out then either.  So now I guess the Deep State is at a point where if we can&#x27;t have it, we can&#x27;t control the world, then you are not going to have a world to control, and we&#x27;re going to blow it up.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Do you think this is still some of those little mini demons, demonettes? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Demonlets. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Demonlets.  Do you think that&#x27;s still... </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Like chicklets.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Like chicklets, I gotcha.  Do you think that&#x27;s still some of that up in there just causing chaos?  Or is that pretty much gone?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, we&#x27;re down to a little less than 0.01% of the population.  Predominantly those people would be Deep State people that are deeply infected.  Was there a little bit of a Chimera action this morning? I&#x27;d say a little bit.  Was there some influence coming from some storage tanks?  I call them storage tanks of the demonlets that were in stasis - that hadn&#x27;t quite come out yet, that were waiting for activation, that we got pretty much by the end of the day yesterday.  I haven&#x27;t seen any more yet today.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And either they&#x27;re caught by us, or they&#x27;re caught by a scan.  Because we&#x27;re still scanning.  We&#x27;re not gonna stop scanning at this point.  It is going faster and faster.  I think we&#x27;re down to a little over 12 minutes now, to make it all the way around the world.  When we started out it was like five hours.  So what this does for us is, if there is something stuck in like a pocket of time that could be released like on a certain day or a certain time during a certain alignment.  We don&#x27;t know what - these are all not human, not Deep State technologies.  These are all non-human technologies that had other plans for this planet and other plans for the Universe, to move back to a Dark Age.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010917">01:09:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they would set them to go off like one after the other.  You know, kind of like fireworks do at the grand finale, like all of a sudden you see it in the sky, it wasn&#x27;t there five seconds ago, but, now it&#x27;s going in rapid fire, kind of thing.  And so it&#x27;s picking up that stuff now, as it&#x27;s showing up, as it&#x27;s starting to show an activation somewhere, it&#x27;ll pick it up and clean it up.  So that&#x27;s helpful, been very helpful to us.  And again these scans are not just for Earth, they are going on throughout the Multiverse, they are going on out into the Kuiper Belt, Van Allen Belt, and our entire galaxy.  Around the Sun, around the Moon, and so we are catching things just about at the time that they&#x27;re released.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it was the same thing with this Chimera thing.  It didn&#x27;t last very long.  It was maybe, I don&#x27;t know, an hour or two before we discovered it.  And like you said, your dream probably happened right before you got up this morning. It was probably a - is that what woke you up this morning or was it late last night?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: No, I went to bed really late last night, but no it was more like, I think it happened right before 1 a.m.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: 01:00 a.m.  Eastern Time huh?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Eastern yeah, 01:00 a.m.  Eastern.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Interesting.  So it could have been the MAJIK Network, you&#x27;re right.  It could have, because that was something that they started around midnight over in UK, best we could tell.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And who was behind that? Like what group of people were behind that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It was a group of people that you would say it was the Eagle Families, the Green Eagle, Black Eagle, all those Families of the Black Sun in combination with Delphi.  Delphi was very active in this, Delphi military, whatever&#x27;s left of it.  And we probably had the industrial psychics that work for the Families, and some of the Order of the Dragon people.  You know they&#x27;re just they just think that they&#x27;re connecting to their Lord you know, whoever that is, Lord demon-name here, but they&#x27;re not - they&#x27;re connecting to a computer system that is connected to their consciousness.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Good times.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know, good times.  Because this Chimera thing didn&#x27;t go off until this morning.  It would have been early my time, probably around 03:00 or 04:00 in the morning my time.  So that would have been a little later for you.  (Right.) But yeah, we&#x27;ll see what happens.  If anything else pops up today, hopefully we&#x27;ll have a better weekend than we had last weekend.  That&#x27;s for sure.  That was rough.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, it was.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, I know that the Q-Folk are planning on something wonderful for themselves around the full moon, which is due to take place on the 21st, around 06:00 Eastern Standard Time in the morning.  We&#x27;ll be on alert.  We&#x27;ll be working.  See if we see anything that&#x27;s going to come up during that time.  I don&#x27;t think so.  But right now they look like Moe, Larry and Curly, running around in a full panic.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Well, speaking of Moe, Larry and Curly, now would probably be a good time to talk about - I have an update for you guys.  I actually had a chance to interview a good friend of mine.  We&#x27;ve been friends our entire life from the time we were way high.  She was actually at the Trump rally.  This is where the Larry Curly and Moe stuff comes in.  She was at the Trump rally.  I didn&#x27;t know this.  I didn&#x27;t know this at the time.  Not on social media.  She posted something on social media and I happened to be out with a couple of other people that said, &quot;Hey, did you see so-and-so&#x27;s post?&quot; She was at the Trump rally.  I was like, What? I have to talk to her.  I wanna know what she saw.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s a great example of just being open with whatever comes your way.  Like this is the whole reason why we have Field Messengers, and why Field Messengers are so important.  It&#x27;s about taking back the news, right? And reporting on what&#x27;s really happening.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I met her for coffee the next day.  I texted my friend, her name&#x27;s Brooke.  I met her for coffee the next day.  I heard her story, and at the end I said, &quot;Do you mind recapping some of that on camera for me? Do you mind if I interview you?&quot;  And it&#x27;s just funny because we&#x27;ve been girlfriends our whole life, like friends our whole life, right?  And she&#x27;s like, &quot;I guess, okay.&quot;  So I sat down with her and for those of you that want to know a different perspective on what happened, she was at the rally with her dad.  And let&#x27;s go ahead, Kim, if you want.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: She&#x27;s not really into this whole, she doesn&#x27;t really understand the whole conspiracy thing behind things, does she?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, not as far as we take it on the news, okay? But she said that things did not seem right, that we are not getting the real story.  She has some issues with who they claim the shooter was.  She has, she was really checking out the sniper that was on the roof.  But we have this, we have, it&#x27;s more than a clip, you guys.  I talked to her for 25 or so minutes, but let&#x27;s go ahead and play this, it&#x27;s kind of long, but it just gives you another perspective of someone who was there, and just telling their honest story about being an eyewitness at the Trump Rally. So here&#x27;s Brooke: </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Interesting!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011452">01:14:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Walk me through your experience a little bit as far as arriving.  This was the first Trump rally you went to.  What did you see? And talk about coming into the venue and all that kind of stuff.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Okay, going into the venue was a very long process.  It was very hot.  It was over 90 degrees.  People were passing out from heat.  We spent probably two to two and a half hours in line to get through the Secret Service security.  We were told not to bring anything, so I just had a little wallet, a cell phone, I didn&#x27;t bring anything with me.  Oh and once we were in, you just saw Trump supporters everywhere.  I mean the best shirts.  Hilarious.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: How many people do you think were there? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: I had heard there were supposed to be I think 35,000 based on like tickets that were purchased or secured online but because of the heat I saw people leave and I know people did not come.  I&#x27;m really bad at guesstimating a people number, but 20,000?  Maybe more? I&#x27;m really bad at that.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;s okay.  Describe the setup.  What did it look like?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: So when you walk in, I was actually very surprised at how small the actual area was, where there was a stage and bleachers set up, and I thought gosh you know they could do this at like a fairgrounds where we could all sit, and it would be so much better.  I would love to go to maybe a bigger venue but most of the crowd was just a crowd of tens of thousands of people just standing in a field.  But there was like some farm equipment set up where a press box was so people couldn&#x27;t really stand around that area.  That was in front of the stage, but back far enough that people could stand between the stage, be in the press.  And then we, and people stood behind them too, because there was a hill.  So you could see over that.  Tons of people were back there too, but we went more to the side.  So we weren&#x27;t behind all that.  And we did find a place with some shade which was key.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah So where was your position in relation to where Trump was and we&#x27;ve seen some maps and things like that So</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  So if you&#x27;re looking at Trump his... Well, okay, I guess if you are Trump we&#x27;re to his left.  And up and diagonal okay, so the complete opposite of where the actual shooting happened.  If you look at everything else, it&#x27;s to his right.  Okay.  And we&#x27;re over on the other side.  Okay.  And towards the back.  We would have loved to get further up, but because of the heat, I was with my dad who&#x27;s 75, and I wanted to make sure we were not in a full crowd of people.  And where we were was slightly elevated, so we actually could see, and it was a pretty good spot, and probably the most safe.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Okay.  And then when did things get going?  How far, when did you arrive?  Like how much time did all this take?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brook:  So much time.  This was so many hours.  So many hours.  I mean, I stood in line to get a cold drink for an hour and 15 minutes.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Oh my gosh.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011835">01:18:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: And that was just a small dent in the day.  So yeah, we arrived like 12:30 maybe.  Trump was set to speak at 05:00 and so everyone was kind of in position by 05:00, which means that I don&#x27;t know what time they got everyone through the security service line, but everything would have been shut down then. I think we were told that you couldn&#x27;t leave while the president was on the stage, so probably everything was blocked off, and everyone who Was ticketed was in the section that was secure by them.  And at 05:00 we were all eyes forward.  Now he didn&#x27;t get on stage till 06:05, so we had an hour of kind of standing and watching and curious, not knowing what&#x27;s taking so long.  Other people who have been to Trump rallies said this is very normal.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, what did you do? What did you notice during that time?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: That whole entire time, I watched who I believe are Secret Service snipers.  They could be outsourced.  I don&#x27;t know if they&#x27;re actual Secret Service.  But they were snipers on the roof.  There were two roofs flanking the back of the stage behind the bleachers.  And each roof had two agents on the roofs.  They were walking, not walking around, but moving, standing and moving, and looking out of binoculars almost the entire time.  For over an hour I watched them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay, wow.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Because I was very interested in their job.  Yeah.  And one kept looking in the same direction the whole time.  So I thought maybe the president was going to come in by helicopter and that was where he was coming from, because this guy was so obviously looking in a certain direction the whole time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay and which guy was that? You said there were two so which?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Yeah well there&#x27;s four.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Four total.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: So there&#x27;s two, yeah.  So this would be if you are President Trump and you&#x27;re looking at the crowd, it&#x27;s on his right shoulder, behind his right shoulder.  There are two on that roof.  Those are the ones I was watching for some reason.  They were interesting to me, I don&#x27;t know why.  So those are who I was watching.  And the first one, closest to the audience, is the one who ended up taking the shot - the final shot - and he was also the one who was looking in his binoculars in that area for over an hour.  Over and over.  And that is where I thought, maybe a helicopter was going to come from that and drop president Trump off.  I didn&#x27;t know how he was arriving.  I knew he wasn&#x27;t there yet.  And I actually said that to people around me, oh, that guy is looking over in that direction over and over and over again.  You know, something&#x27;s over there, oh, maybe that&#x27;s where he&#x27;s arriving from.  That was my idea.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay, all right, and so when did Trump actually come on?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: So, we saw the motorcade, and I&#x27;m gonna say around 5.45.  I didn&#x27;t look at my watch, no, and, because I was really excited.  But guess what?  He doesn&#x27;t come right out.  So, it was another at least 20 minutes before he actually came on stage.  And during that time, I noticed that those two, well, four people were still behaving the same way.  I wondered if one of them would be on their gun while the president was on premises just to be ready for anything, but that wasn&#x27;t their behavior the whole time.  They were still looking in their binoculars and standing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012240">01:22:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay, all right.  And so Trump started to speak.  (Yeah.)  Was there anything, I know this was your first rally, but...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Oh, can I talk about the flag?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, okay, go ahead.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  Actually, okay, so during the... this was around 04:00.  Okay.  The flag got tangled in a very crazy way.  And everybody noticed it there.  At the time I thought it looked like an eagle.  Because it was fluttering and it had like wings.  And I&#x27;m not kidding.  You have to look at the video of the flag and it stayed that way for at least 45 minutes to an hour.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  And where was this flag at?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  So it&#x27;s the huge flag that&#x27;s being held by cranes, that&#x27;s flying over the stage, behind the stage.  And it gets tangled and it looks like something with wings is fluttering over the stage for...  This wasn&#x27;t a quick tangle.  This was a long time it was fluttering over us and the cranes eventually had to drop the flag and reposition and pull it back up before president Trump got there.  So it was an actual American flag.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Oh my Gosh.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  So it didn&#x27;t untangle by itself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Wow.  So Trump starts talking.  How long is he talking? And is does everything kind of seem normal when he first starts talking?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Yeah, when he first starts, very normal.  Very exciting, the USA chants.  Very normal.  And then he&#x27;s not talking very long.  I&#x27;m going to guesstimate, five minutes, could be more.  And then I see this Secret Service sniper guy - the specific one I had been watching - where his binoculars were, drop on his gun.  And I honestly froze.  I didn&#x27;t even say anything to even my dad who was next to me because I just thought something&#x27;s happening.  But I didn&#x27;t know, I mean, I just thought something&#x27;s happening.  But then nothing happened.  I&#x27;m thinking at least 30 seconds go by before nothing happened.  So I started paying attention to the rally again thinking that possibly this was normal behavior.  I mean I&#x27;ve watched him for over an hour and it wasn&#x27;t normal, but I don&#x27;t know, that&#x27;s not my job.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So when you say &quot;drop on his gun&quot;, you mean he was looking through the viewfinder?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: I&#x27;m saying he was in position on his knees, well one knee up, one foot up, on a gun, locked in.  Not moving, not looking around, locked in on a gun.  And that was very different behavior than I had seen the entire time I was watching him.  So it was concerning to me.  But since nothing happened for a long period of time, my brain just said, stay present and enjoy where you&#x27;re at.  So I started watching the rally again.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Could you tell where he was looking? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Oh yeah, same place he was looking through the binoculars the entire time.  It was back to, well it&#x27;s my left, President Trump&#x27;s right, behind the bleachers outside of the secure perimeter. Now every perimeter should have been secured, but when I say secured, I mean people went through metal detectors, and they were inside of this area.  Now we&#x27;re in a place where there&#x27;s farm area that I assumed was also secured.  But not, you know, the people that were there didn&#x27;t need tickets, and they didn&#x27;t go through our Secret Service line.  </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012650">01:26:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  But there were people there?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  Yes, there were. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Okay, alright.  And this - I&#x27;ll just call him a sniper - this person that you saw with the gun was pointed in that direction?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke:  Yeah, locked in.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  Locked in.  Okay.  And how long was he like that? Or did he stay that way?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: To me, over a minute.  Because 30 seconds had passed before I let my guard down.  And then I watched at least another 30 seconds of President Trump&#x27;s - and I&#x27;m trying to be very good with my time because because as I have said, seconds seem longer when you&#x27;re there, and something might be wrong.  So I&#x27;m being very conservative.  I think it was slightly over one minute, that he was locked in before any shots were rang out.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And so Trump was on stage.  What was he saying?  What was happening right before the shots?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: So President Trump in his wonderful Trumpishness said, &quot;Can I go off script?&quot; And we all cheered.  Because of course we wanted him to go off script, we don&#x27;t want a scripted president.  We love him off script.  So he said, can I go off script?  And he had them throw an image on the screen about Biden&#x27;s border numbers.  And one image was up.  And he asked for the next image and he - instead of looking straight at the teleprompter in front of him which is where he probably should have been looking, he went to go look at the screen - the big jumbo screen, where we were throwing a graph up, which I never saw.  I never end up seeing the graph.  It never happened, but he went to look at it and he turned his head.  And that&#x27;s... not that&#x27;s not when the shots ring out.  It coincided.  It was like that.  It was insane.  It was to me a veer.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What did you hear? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: I heard shots.  I heard 6 shots of one type of gun.  It could be three shots, because I don&#x27;t know if there&#x27;s like an echo, but it was like pa-pow pa-pow pa-pow.  And then I heard return fire - three to four - of a different gun.  My initial instinct was the first shots I heard were probably from that guy up there, but I learned very quickly that they were not.  It was apparent when you heard the next shots.  </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012939">01:29:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That it was a different gun.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: That someone either returned the fire he just shot, or he was returning fire.  And since there was no other shots after that, you knew immediately that the first shots were not his.  The second shots were his.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Let&#x27;s talk about your dad&#x27;s perspective in this because he has some experience. Why don&#x27;t you explain that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: So my dad&#x27;s a veteran and a hunter - an avid hunter, for years and years and years.  And this man knew what gun, what the shots were, what type of gun shot the first and the second, but more importantly, what type of gun the first shot came from.  He also knew where it was based on the sound.  He knew where the shots were coming from.  He knew to count shots, which to me was - and he drilled it in my head as we were being evacuated.  How many shots did you hear? How many shots did you hear? And he asked me over and over, so we could have like a clear recollection of - and I was like, &quot;Dad I didn&#x27;t think to count!&quot; And he did!  And he also wouldn&#x27;t drop down.  He probably was aware enough to know we weren&#x27;t in danger, unless there was a second shooter, which was my concern.  And he wanted to understand what was happening, and he was trying really hard to see what was on the other side of the bleachers.  But we could not.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Where did your dad say the first shots came from?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Behind the bleachers.  Behind the bleachers.  Where that building was.  We didn&#x27;t know it came directly from that building, but he knew it came from 50 to 100 yards behind the bleachers.  That were on our left side. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And then there was return fire from there?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Return fire was from up top.  Yeah, to there.  And they were very different guns and very different sounds.  And I&#x27;m not a gun expert, but I could hear a clear difference in the original and the return.  And I also know that the original wasn&#x27;t, couldn&#x27;t have been like an AR-15.  It wasn&#x27;t - I&#x27;m not a gun expert - but it wasn&#x27;t a high power, I mean my dad said it was a long rifle.  Like there was a clear sound and most of the most of the crowd knows their guns.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013218">01:32:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: In the Trump crowd, yes!  Yeah, they do know their guns!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: The people who weren&#x27;t laying on the ground were all hunters and veterans who knew what to look for, what to do, and where.  And to count shots.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So what happened after you heard the shots? What was the reaction from the crowd?  What did you do?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: That&#x27;s where it sounded, where the seconds were minutes.  I laid on the ground and yelled at my dad for not, and waited because I didn&#x27;t know first of all if there were gonna be shots from another area.  But also waited to hear if the president was living.  I didn&#x27;t know at that time.  I couldn&#x27;t see from where I was, down where he had dropped.  So I couldn&#x27;t see that area.  And it felt like a very long time, so I can&#x27;t even put an estimate on the time, but I did hear over the microphone, &quot;Let me get my shoes.&quot;  And I think everybody took a breath at that moment because we heard his voice, that we knew he&#x27;s at least speaking.  And then he did stand up and put his fist in the air.  I did not see that.  But I heard the crowd.  And you - the crowd rippled, kind of rippled back, as far as like, &quot;Oh, President Trump&#x27;s okay!&quot;  It kind of went back through the crowd.  We saw him, he put his fist in the air.  We kind of knew that - even though I didn&#x27;t see it - you knew it within a few seconds.  It was like a ripple.  And you could tell when they cheered, somebody saw something.  But at that time, I still didn&#x27;t know if he had been hit, and he stood up because of adrenaline.  I had no idea.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Right.  Yeah.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Everyone there was very, very concerned. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  With?  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: I think everyone&#x27;s first concern was President Trump.  And unfortunately, we hadn&#x27;t thought about casualties in the audience.  So that was devastating news.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What did you see with the Secret Service and even if there were any police nearby? What did they do during shots fired, and the moments after that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Okay, we did see, I mean, there were police.  Since we were on a gated side, where actually the motorcade came, so we were on a side where police were kind of walking.  Nothing.  I mean, when that guy got on his gun - now mind you we are on the very opposite side - but I didn&#x27;t see any, any alarm by any police officer that was in my area.  I also didn&#x27;t look.  But nobody was doing anything on the ground whose movement matched the guy on the gun.  Which, in your brain, it calms you down, because nobody seems concerned that that guy up there is focused on his gun.  It tells you, oh, you&#x27;re probably okay.  So they didn&#x27;t, nobody was really reacting over by me, in any unusual way.  Or in any way that would tell us that there was danger.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Like a second shooter.  Or something like that to be concerned about?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Well, I know once the shots were fired, then everybody has to think about that.  Yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah.  Alright, so shots fired and they take Trump off.  Then, were there announcements made?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Not that I heard, oh my gosh, there could have been and I blacked out.  So I don&#x27;t want to say anything for sure.  I don&#x27;t think anyone got on the microphone that I heard.  We were probably one of the first to be evacuated based on where we were.  But Secret Service ran up behind us.  And I know they were Secret Service because they were labeled and just started screaming, &quot;Go! Go! Go!  You&#x27;re not safe!  You&#x27;re not safe!&quot;  So we had to rip down the metal barricades, that - you know, I mean it wasn&#x27;t hard to get out, but we just had to make sure that nobody was being trampled or pushed down, and not being able to get up. Obviously, there were children, and a lot of older people were there. So I think everyone kind of felt their job in their area of people was to make sure your area, everyone was evacuated and that anyone who needed help leaving got that help from each other.  And I did see several Secret Service within the first 50 yards that were, kind of, and we couldn&#x27;t really be rushed.  There were people who couldn&#x27;t run.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013736">01:37:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Right. Yeah, older people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Yes.  So we were going as fast as we could but We also were looking around and making sure everyone no one was falling down or and getting stepped on or anything like that We also had over a mile to walk in a field to get back to my car.  And at first you&#x27;re wondering if any explosives are there, if there&#x27;s another shooter.  So the first little bit of our walk was a little concerning.  And then it wasn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What were people saying?  I mean, obviously you have a large group of people that are leaving a small space.  Did you hear anyone saying, &quot;Oh, I saw this.&quot; or, this happened? Was anyone talking?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Only reports of President Trump.  Only his ear was bleeding.  We saw him stand up.  We saw his fist in the air.  Everyone was focused on Trump.  Everyone was asking about his - if he was okay - everyone was concerned with him.  Nobody from my side saw anything over on the other side.  People were concerned with the same sniper that I saw.  By the time we got back to the car, some people around us were talking about that.  That sniper on his gun for a very long time.  And then you started thinking in what did he see and why did it take so long for him to respond? And why was he not the first shot that we heard?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Was anyone talking about the shooter? Did you hear anything about that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: No, no. We were not on that side and nobody around me had any information on the shooter at all.  No.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So you&#x27;ve had some time to process this, and I know you&#x27;ve seen some media reports, because you can&#x27;t really avoid it.  What stands out to you from the event? What questions do you have, or what seems off to you?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Brooke: Well, it seems very off to me that someone wasn&#x27;t stationed on top of that roof.  There&#x27;s also a water tower that was there that was not manned, I&#x27;ve heard.  When you&#x27;re there, you assume that all of this is taken care of.  But my biggest questions are... honestly, I have questions about everything.  It&#x27;s terrible.  But immediately we turned on AM radio and we heard reports about the shooter.  I have a 22-year-old daughter, and I do not believe that a 20-year-old, who has no military experience that I know of, would climb onto a roof - it&#x27;s over 90 degrees all day it&#x27;s a metal roof we&#x27;re talking over a hundred degrees on that roof.  And have the fortitude without training - even with training - but to climb on that roof, to know no one&#x27;s up there, to know you have a clear shot at a stage that was just built and is not a fixed stage.  To bear-crawl up that hot metal roof with a gun.  To know you&#x27;re going to die, and to point it at somebody to kill them, without shaking.  And without retreating. And without having second thoughts.  I think those are my biggest questions.  Even that Secret Service guy - I don&#x27;t know what he saw.  I&#x27;m sorry.  I don&#x27;t know what that Secret Service guy saw on his gun.  That&#x27;s a huge question.  But to me, everything has to go right for that 20-year-old kid, in so many ways, that I can&#x27;t explain it.  There&#x27;s no explanation for that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So there you go.  That was my morning yesterday chatting with my friend.  Been friends our whole life, had no idea she was gonna be in that place at that time.  Obviously, she didn&#x27;t know either.  We were talking a little bit afterwards and she&#x27;s like, &quot;This kind of feels like the Grassy Knoll.  Where were you when this happened to Trump?&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But yeah, so I think it&#x27;s good for everyone to hear a different perspective on it.  Her perspective in general is that she was very concerned for Trump.  She&#x27;s a supporter of Trump, and thinks that he could have been saved, that God could have saved him.  But she has a lot of questions about just stuff that&#x27;s not adding up.  And I think that&#x27;s the important thing here, is that more and more people - regardless of whether you watch UNN or not - they&#x27;re starting to ask more questions.  You know, it&#x27;s happening in my house here, I&#x27;m staying with my parents right now, and they&#x27;re asking more questions.  Like I said before, I think I said this on the newscast last week: They&#x27;re not putting two and two together, because that&#x27;s a jump that requires you to question a lot of stuff - all the rabbit holes that a lot of our viewers have had to go down, myself included.  So they may not be ready for that, but at least people are asking more questions and saying, &quot;Listen, like, how could a 20-year-old do that?&quot; And, &quot;Did you know that 20-year-old was in a BlackRock commercial? Let&#x27;s talk about BlackRock.  Who&#x27;s BlackRock?&quot; So I hear more stuff like this and I&#x27;m like, okay.  I mean it&#x27;s progress.  I know it&#x27;s frustrating.  My parents had the RNC - Republican National Convention - on last night.  Trump was speaking.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014330">01:43:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Speaking of that!  What is that?! Well, you guys haven&#x27;t seen it at the convention.  Was it last night or the night before, everybody&#x27;s wearing bandages on their ears now in support.  What is that? I mean, come on now!  How ridiculous is that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You know, I would agree with that.  And I brought it up to a couple of people who were Trump supporters.  It just depends on your perspective, right?  Because in their mind, if that was legit and not a staged shot - because I don&#x27;t even know that it was, right?  Did they just tell some people to put bandages on their ears to cause more commotion out there?  We don&#x27;t really know.  But if people actually did that - they do feel like they&#x27;re standing with someone who is going to save them from the big bad Democrats.  This is the savior program, right?  And so they&#x27;re standing in solidarity.  I agree with you, it seems silly, given what we know about Trump and his background, which is quite demonic, but, they need someone - they feel like they need someone to save them.  And if it&#x27;s not Trump, who&#x27;s it gonna be, in their mind?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know, I understand that, but I think wearing the bandages on their ear at the convention was a little over the top.  I mean, even if I&#x27;m looking at it from a non-educated standpoint, meaning I don&#x27;t understand what&#x27;s really going on, I would still be looking at my leaders going, okay, of all the ways you&#x27;re going to stand with this presidential candidate, former president - you&#x27;re going to put a bandage on your ear? Everybody in the audience, all the senators? I mean, come on now.  It&#x27;s a little silly.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, it&#x27;s celebrating, in a way, tragedy.  And we talked about this, I think, last week when we were talking about crosses and the crucifix and, showing Jesus hanging on a cross.  Like that creates so much negative energy watching, a person die on a cross.  To me, it&#x27;s kind of the same thing, which is why I question its legitimacy.  I was like, I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And let&#x27;s speak of the cross thing.  So she points out the flag and it&#x27;s like, oh, it looks like it&#x27;s an angel.  To me, it looked like somebody hanging.  It looked almost like a crucifix a little bit to me.  I mean, more than anything,  number 1.  And number 2, I mean, if they were gonna put the American flag up there, all four corners would have been tied down.  This doesn&#x27;t make any sense to me.  The whole thing looks like a really cheesy B movie.  And everybody is seeing it.  I mean, even just like you said, supporters, people that love the former president, that don&#x27;t know anything about what we talk about, are starting to say, &quot;Hey, wait a minute now!&quot; I know all my daughter&#x27;s 20-year-old friends, and I&#x27;m gonna tell you right now, for a 20-year-old kid not to be crapping their pants when there&#x27;s a sniper supposedly pointed at their head - you got to know right?  And with no experience, how could you make a long shot like that?  That doesn&#x27;t make any sense in any way shape or form. I am surprised though, to hear that she heard 6 shots.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014646">01:46:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: She wasn&#x27;t sure, and I think she mentioned this in the clip, of the reverb from it.  She wasn&#x27;t sure if it was kind of an echo, but yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Right.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, it&#x27;s just like everything has to go right in order for that scenario as we&#x27;re presented with it to have actually happened.  We know that something&#x27;s, we know that it&#x27;s off.  But yeah, it just doesn&#x27;t make sense.  It&#x27;s like they handed us this plate full of, I don&#x27;t even know what it is!  They&#x27;re like, eat, eat!  This is really what happened.  Eat, eat, and people are buying it.  I was, the Republican National Convention was on last night and I was working on scripts, because I can&#x27;t, I just can&#x27;t.  But I could hear it when Trump was speaking.  And there was just a lot of playing up in my mind.  What I took away from it, was just a lot of playing up the tragedy, or the alleged tragedy, okay? (Sure.)  And I just, I have a problem with that.  Even if it really happened, even if this plate full of nothingness that they&#x27;re serving us up - even if that&#x27;s true - why are we focusing on the horror of it? I know that there&#x27;s an election-selection, as we call it.  They&#x27;re not really elected people.  But there&#x27;s this whole song and dance they do, and they&#x27;re trying to raise support, and I get all of that.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But it&#x27;s very frustrating.  I was also really frustrated with how many times at the Republican National Convention that he would throw in, &quot;Well, God must have saved&quot; - all this spiritual stuff.  I love the spiritual stuff, but when you know what we know, it feels like they are just laughing at us, going, &quot;We are going to use this against you, you honest, God-fearing people that really want a connection with God, Source, the Creator.&quot;  And you are pursuing that as much as possible, that don&#x27;t have any idea of what we talk about here on the news.  For those people, they&#x27;re using it against them.  That&#x27;s how I see it.  They&#x27;re - it&#x27;s a noose.  And that makes me really mad.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, and it&#x27;s Maslow&#x27;s Triangle too, because in order, and that&#x27;s the Hierarchy of Needs Chart - you can look that up if you want to see it.  But basic needs obviously are a motivating factor for humans.  These are things that motivate a human to do something.  And the highest one, which will get them to do just about anything, is their morality.  Or their religious belief systems, or those types of things.  And they know it too.  The second thing that makes me question - I mean, don&#x27;t get me wrong, I&#x27;m all for, bringing God back into schools and those kinds of things.  And I think, as a kid, it was there when we were kids.  Now you&#x27;re not allowed to say those things.  And obviously of course, they could choose whichever name they use in their respective religion, to refer to this.  But you know, and there should be a little bit more recognition there.  But my question is - even before many, many years ago when I was Catholic and raised Catholic and the whole thing and thought that was the thing to do, for me at the time.  I didn&#x27;t know any better until I found out a lot more.  Then I just started having my own conversations with Source anywhere I wanted to.  I realized I didn&#x27;t have to go to this building with these people I don&#x27;t particularly like anyway, a lot of them.  But at the time, and I had a business career that was normal.  I call it normal.  I owned my own companies.  I had banks.  I worked for banks before that, that kind of thing.  And any time I was in the middle of a business transaction on a high level - merger, anything like that, you know, and someone started, quoting the Bible and giving me verses or whatever religion it was, whether it was coming from the Zohar, or you name it, whatever book we&#x27;re talking about here.  It always led to some kind of deception.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015125">01:51:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I&#x27;m not saying that people that believe in religions are deceptive in any way, shape or form, but when they brought it into a business meeting, it was almost like they were trying to justify the negative thing they were going to do to me in this deal.  And it never failed to be the exact case.  If I&#x27;m in church or I&#x27;m at a church event or I&#x27;m at a charity event or something like that, I expect people to talk about these types of things, especially in that type of setting.  But when you&#x27;re at a business meeting and they stop - they&#x27;re talking about merging the company and their financial statements, and I&#x27;m looking at the financial statements and they&#x27;re like, &quot;But Deuteronomy 4:5 says&quot;, you know, and I&#x27;m like, &quot;Where does that come from?&quot;  You know, is that the section of the finance section of the Bible that I missed?  Or why are we having this conversation in relation to your &quot;All things are possible with God!&quot; or something, does that mean that these financial statements are crappy? And then how does that fit in here?  Like what are we doing?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, that was in Numbers, the book of Numbers.  I&#x27;m just kidding.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah, yeah, probably the book of Numbers.  Yeah, I haven&#x27;t read it in a while, so I don&#x27;t know.  But the point is, is that when you bring it into like that kind of an environment and you are repeatingly drilling it into someone&#x27;s head - and you&#x27;re not in church - that&#x27;s weird.  I think you&#x27;re trying to justify something.  And you&#x27;re trying to get - you&#x27;re trying to play on my religious beliefs or the people, I&#x27;m a regular person watching this - you&#x27;re trying to put on my religious beliefs, that God only saves you.  Well, okay.  And then I&#x27;m gonna think in my mind, because I think like this, and it sounds like your friend does too, &quot;What about the thousands, if not millions of kids that are dying of cancer today?&quot;  God&#x27;s not with them?  But they&#x27;re with you?  God&#x27;s with you?  And not with those guys.  They&#x27;re just innocents, like, why isn&#x27;t God with them?  It just doesn&#x27;t... and anytime somebody repeats to me, like, this is also my experience: &quot;You&#x27;re safe.  You&#x27;re safe.  You&#x27;ll be safe with us.  You&#x27;re safe here.  You&#x27;re safe with me.&quot;  I know I need to get up and I need to run and find a way out immediately, because I&#x27;m in deep doo-doo.  Because I&#x27;m never safe when they say you&#x27;re safe!  I&#x27;m never - I&#x27;m in trouble, I&#x27;m in more trouble with you people and your &quot;safety&quot; than I would be on the run on my own.  And that&#x27;s how I feel about it.  And it&#x27;s always proven true.  And I feel the same way here.  I feel like they&#x27;re just shoving it down your throat way too much.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015409">01:54:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:  That&#x27;s kind of how I feel too.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You know, whatever wins them votes or whatever.  They know their base.  They know that there&#x27;s, a lot of good-hearted people that, follow them that will donate just because they think - I mean there&#x27;s people wearing shirts that say Trump is Jesus!  I mean, come on, like that&#x27;s a little extreme.  I don&#x27;t think a lot of people do that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeahhh, that&#x27;s a little extreme.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;s a little crazy.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But we&#x27;ve got one heck of a media campaign...  So, speaking of Jesus, I forgot to tell you guys, I actually had a different person who claims to be Jesus, reach out to me 24 hours ago.  Yeah.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What did this Jesus want? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Jesus in this life&#x27;s name is not Jesus, it&#x27;s actually Gavin.  And this person wanted to let me know that unless I change back to a credit-based system, I&#x27;ll never get any money through.  That&#x27;s what Jesus had to tell me when Jesus called.  This is Jesus number 183 by the way.  Jesus incarnate.  Speaking of Jesus&#x27;s yes.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh my gosh.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know.  It just keeps getting better.  Also I had a run-in with my second Satan in the last 24 hours as well.  Satan would like to take over my system.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, was that another demonlet in there?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m pretty sure there was something up in there for sure.  He would like to take control of my system because he is Satan and it&#x27;s time for that to happen.  Yeah.  And that was also a no from me.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I mean, what do you say to that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I don&#x27;t know.  I wonder which Biblical character is next.  Who will I hear from over the weekend? Oh, joy! (laughing)</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh my gosh.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know, I need a vacation.  I DESERVE a vacation!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You do! You do.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.  Well, I better get back to the kaleidoscope people, watching nothingness and spectrums of flashing light.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah.  You don&#x27;t want them to cry.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Maybe they&#x27;ll all go get some LSD, and just like chill out and watch the pretty lights.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, it&#x27;s probably like being on LSD watching the kaleidoscope there.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know!  And they would even be better, you know? They all go into those Jedi programs with the LSD.  So maybe they should just take a little hit of acid and just chill out.  Watch the lights.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Wow.  Well, Kim, try to have a good weekend.  I know you&#x27;re going to be busy.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. You too, Miss Sunny.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: We&#x27;ll see you on Monday.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All right, sounds good.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=tVW11S5vpEk" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
