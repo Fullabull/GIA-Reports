@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-12</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-12 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-12
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=hPZxGDxYB0A"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=hPZxGDxYB0A"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-12-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 12, 2024 report by addressing the liquidity crisis spreading across multiple countries and institutions. Russia, China, South Africa, Vietnam, Laos, Indonesia, and the Philippines have all called requesting currency management assistance. The BRICS currency framework and its allocation numbers are disclosed as having been tied to an assignment Kim made to Russia around 2012–2013 — now expired, taking the entire BRICS currency infrastructure down with it. A Thailand-based figure had been claiming majority ownership of the Australian Reserve Bank based on similar old assignments; Australia is now on shaky financial ground as a result. The European Central Bank is expected to begin faltering as early as the following week, still waiting on promised funds that will not arrive. Global Headquarters operatives received new codes allegedly from the Rothschild family, buying them another few days of false credibility before the cycle repeats. Kim declines all partnership overtures using an extended widget-factory analogy: a fully bankrupt company with fraudulent management and a history of lying, cheating, and murder is not a viable business partner, regardless of how recognizable the brand name is. She notes that preparations are underway to issue independent cards or ATM networks and print currency directly if the banking standoff continues.<br>
+<br>
+The real reason for the late broadcast is a fifteen-hour operation Kim has been running against residual consciousness fragments of departed non-human beings scattered throughout the Multiverse. These beings — granted by Anti-Source the ability to split their consciousness into hundreds of particles and place them across any universe, dimension, or pocket of time — can still activate standing orders from even a single surviving particle. One such particle was found to be connected to communication posts on Earth that had been feeding the Q-Clock its operational predictions, including the current &#x27;incoming dimension sweep&#x27; alert that Kim discloses as an extinction-level program targeting all life on Earth, not just the Deep State&#x27;s enemies. She has been hunting and eliminating these consciousness fragments across densities and computer systems for fifteen hours. Several Earth-side communication posts have been located and shut down. The operation is not yet complete as of broadcast, and the risk window extends up to three days. Kim urges listeners who felt intermittent illness or disorientation during the day that this was likely the cause, and states she is returning to the operation immediately after the broadcast.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003622">00:36:22 - Teaser</a></li>
+<li><a href="#t-003800">00:38:00 - Pentagon contacts hack after receiving old codes; BRICS currency framework disclosed as expired Kim assignment.</a></li>
+<li><a href="#t-003800">00:38:00 - Russia, China, South Africa and others call for currency management; Australia shaky; ECB expected to falter next week.</a></li>
+<li><a href="#t-004228">00:42:28 - Global Headquarters receives new Rothschild codes; &#x27;who&#x27;s on top this week&#x27; game; no one performing.</a></li>
+<li><a href="#t-004400">00:44:00 - Widget-factory analogy</a></li>
+<li><a href="#t-004740">00:47:40 - Countries want currency keys handed over for free; Kim declines; independent ATM/card/printing contingency being prepared.</a></li>
+<li><a href="#t-005138">00:51:38 - Mexican standoff</a></li>
+<li><a href="#t-005527">00:55:27 - Real reason news is late</a></li>
+<li><a href="#t-005956">00:59:56 - Kim addresses Q followers directly</a></li>
+<li><a href="#t-010100">01:01:00 - Operation ongoing; risk window up to three days; listeners&#x27; intermittent illness explained; Kim returning to work.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-12 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003622">00:36:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now the World Situation Report with Kimberly Goguen from the Office of the Guardian.  Several countries are calling, desperate for liquidity - but they seem to just want it all for free.  Again.  And Europe is predicting a serious disruption in the European Central Bank as early as next week.  All this and more in today&#x27;s World Situation Report. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now here&#x27;s the World Situation Report with Kimberly Goguen from the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, good evening.  If you&#x27;re here in the U.S., I apologize for the news being so late today.  I wasn&#x27;t even sure I was going to make it.  And I&#x27;ll go into that a little bit and kind of explain to you what what happens sometimes.  But first, a little bit of regular news.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I talked about someone that I was having conversations with and what we could possibly do together.  We did have a conversation.  I did some explaining about who I am, what I do, that type of thing.  And I sent a lot of information over.  Some of that information was very old codes that haven&#x27;t worked in years, just to see what would happen.  Well, it doesn&#x27;t appear that this particular person was directly involved, but it appears that everybody that&#x27;s on his phone is directly involved, because after that they spent all night long hacking. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">No surprise there.  But again, this just goes to show you - because most of these people were Pentagon and kind of around there, let&#x27;s just say - and it just goes to show you that everybody wants something from me, but nobody wants to actually perform a function for us.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And by us here, I mean the people.  I could certainly put out liquidity everywhere right now - but what is that gonna do for us, the people?  Nothing.  Absolutely nothing happened positive for anyone listening to this right now, any other time I had put out money in the past.  And that has to change.  There has to be some accountability here.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Next, other phone calls that we received: Russia, China, South Africa, Vietnam, Laos, Indonesia, Philippines - all of them looking for a way to manage their own currency.  Now.  Those systems I was describing to you earlier this week were definitely backing all of BRICS - that has become abundantly clear.  And the BRICS alleged new currencies, and the BRICS alleged new allocation numbers, and all those types of things you hear about, all the new BRICS partners, all of that was tied to an assignment that I had done to Russia many years ago, probably in 20... probably around 2012 as well, 2012-2013.  So that too has expired and so of course when that system went away everything had gone away.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">At that time I know that Putin - who was still alive at the time - was using that to go around and do a lot of negotiating with Saudi Arabia and a number of other countries, based on this very large amount.  Same thing with China.  And then they had credit lines off of this facility, which they&#x27;ve had out there I guess for a few years.  Which was authorized by someone that is no longer with us, and therefore they can&#x27;t seem to get it back.  That trade facility, tied to the United Nations and the Office of International Treasury Control, had a lot more impact and a lot quicker than I had actually expected. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">We also are seeing issues happening in Australia as well.  For those of you that don&#x27;t know, one of the three people I described earlier this week, again it was Wednesday, from Thailand was actually telling people that he was majority owner of the Australian Reserve Bank.  And that all the gold there was his, and those types of things.  And no - it had to do with some assignments I had done a long time ago.  When all of these things started faltering, now Australia&#x27;s on shaky ground. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;re also getting reports out of Europe that the European Central Bank could start to falter as early as the beginning of next week.  They too are hanging on, waiting for some promised funds to come in.  I think they believe that those funds are going to come in through, insert-Deep-State-name here, whether that&#x27;s coming from China or the U.S. or wherever they think it&#x27;s coming from.  But again, they have failed to reactivate that platform.  Although, God bless them, today they tried really, really hard - and I believe they&#x27;re trying really, really hard as we speak, actually.  But no. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, there is a rumor going around that the Global Headquarters folks have received new, new codes today in exchange for another payday that has passed.  I believe that those codes were issued by the Rothschild family, but I&#x27;m not entirely sure.  I&#x27;m looking for that information.  Now I think the reason why this was done is because again, everybody is fighting to control the planet, and to control everybody else, and they want to go ahead and make agreements with them, you know, who&#x27;s going to work for who and that type of thing.  And none of this is working out. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004228">00:42:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I can&#x27;t express to you the amount of &quot;who&#x27;s on top this week&quot; game that is being played behind the scenes.  But yet nobody is actually on top over there.  Nobody actually performs, but it gives them three or four days, maybe a week or so of fame before everybody figures out that oh, this is just another lie.  So that being said, this will all probably erupt by Monday. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But that&#x27;s not really the reason why I&#x27;m late for the news.  This is all things that have happened over the course of the last couple of days.  I mean, we&#x27;re definitely seeing countries in a full-on panic.  We&#x27;re seeing banks in a full-on panic.  Everybody still wants to be on top, and they don&#x27;t wanna talk to me, because if they talk to me then they know that&#x27;s probably not the case. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And when somebody asked that question again today, I have to give the following answer, I&#x27;m sorry. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">If you own your own company, then you know what I&#x27;m talking about.  So, you own a company and you make widgets.  In this case, we&#x27;re talking about governments.  And somebody else wants to come in, at a different widget making factory, and say to you that I would like to merge our two companies and become partners.  Well, that&#x27;s not really what they want to do here.  They want to actually do a hostile takeover of everything I have.  But let&#x27;s just say they present it as a &#x27;partnership.&#x27; </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now if it&#x27;s a partnership, then you would probably do an assessment of their financial statements.  You would see how much they have on account, like how much in sales they do when they sell their widgets, what their profitability is like, and you&#x27;d wanna assess their management too.  You would wanna see that they were managing everything properly you know, like you think you are with your own company over here, and you&#x27;re very profitable, you&#x27;ve been in business for a long time, and now Widgetmaker number 2 wants to be your best friend and go into even a 50-50 partnership. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">When their company, you&#x27;d find out later, is fully bankrupt, nobody is managing anything correctly, their public relations department at this point is in the toilet, and nobody over there is performing any kind of function that actually makes the quote unquote employees happy.  Number 1.  Number 2, they&#x27;re been robbing Peter to pay Paul now for a few years in a bunch of fake credit lines.  They&#x27;ve also committed bank fraud on a high level.  And this is supposed to be your widget making partner in this factory here. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And they&#x27;re gonna come to you and they&#x27;re gonna tell you that they feel more competent than you to manage your resources.  You know they come in and say, &quot;Well, we&#x27;re willing to merge our companies, but we really need to be in charge of all your accounting, your books, your bank.&quot; You&#x27;re gonna look at them probably like they have four heads and possibly a green body or something, because that makes no business sense whatsoever. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So why would I do that?  At this point, why would I do that?  Why would I partner with these people who clearly are very manipulative.  They lie, they cheat, they steal, they&#x27;re pretty good at that.  They&#x27;re also pretty good at murdering people that go against them.  They&#x27;re also pretty good at suppressing technologies that could help with our health, and the way we move about the planet and all kinds of things.  They&#x27;ve suppressed all that too.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But I&#x27;m not getting where the partnership - what&#x27;s my benefit here?  And thus far, nobody can provide me with a benefit, other than when I give you little tiny bits of information you take it and run with it like it&#x27;s gold.  Now if you think for one red hot second I sent this person anything that I wouldn&#x27;t have sent, or haven&#x27;t even said on the news or showed you pages of here and there over the years, that kind of thing - of course I did not!  Why would anybody do that? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right now, it&#x27;s like calling up a bank hacking company and saying, hey, you&#x27;re the hackers, the ones that have stole all that money from XYZ Bank last week.  I just wanted to know if you&#x27;d like to have my debit card information, possibly my social security number, and then also, if you&#x27;d like my bank account number, I can give you that along with a routing number and any other information you need to steal my retirement, or whatever I have on deposit.  Because I just want to make it a little easier for you to do that rather than trying to go around the long way. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Are you kidding me right now?  Said no one ever.  If you believe that, I have an inheritance in Nigeria for you.  It&#x27;s ridiculous what&#x27;s happening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004740">00:47:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, more and more, I understand that there&#x27;s a liquidity problem, but we...  How do I say this nicely?  Okay, so currently I make widgets and my widget at this moment is the currency of gold.  It&#x27;s the new currency that&#x27;s on the planet, that has overridden - at least code-wise - in most banking systems around the world.  That&#x27;s my widget that I make.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I have countries calling saying that they would like to have my widgets.  Okay, I completely understand you&#x27;d like to have my widgets.  But they would like me to send them, crates or say pallets full of widgets and say thank you very much.  And then, not only that, they would like to run their own widgets from said country.  They would like me to just hand over the keys for them to issue their own currency of gold right out the gate.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, uhhh, no. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">You haven&#x27;t managed currency ever before, at least not in well over 100 years, all of you.  That&#x27;s number 1.  Number 2, even before that, we had the treasuries.  And even before we had the treasuries, we had banks that acted as treasuries.  And those are global institutions, such as JP Morgan, Citibank.  You know, if you were Russia, it was Citibank.  If you were China, it was Bank of China.  Those are all managed by somebody else - and not the people they think that managed it either. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">It wasn&#x27;t even the Deep State that managed it.  The Deep State followed orders and instructions as to what to do to manipulate the world using money.  That&#x27;s it.  Do these families still exist?  Yes.  Are they genetic shareholders of any of these banks?  Well, maybe on paper, maybe the banks believe it, but actually that&#x27;s not the case anymore.  It&#x27;s not even in their operating systems anymore, and it&#x27;s not ratified as an agreement either.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But they still wanna listen to these people.  So you go listen to those people, you go try to make more fake money so you can lie to the entire world and cheat every government in the world again.  Go ahead.   And that&#x27;s what you&#x27;re trying to do as I&#x27;m talking right now.  You know, it&#x27;s...  I don&#x27;t know.  I give up on them.  And as far as you guys are concerned, I probably would think about doing that too. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as savings and working with or without banks, preparations are being made to actually do that, to where we could, if need be, issue our own cards or buy ATM machines, by the dozens for every country, if we need to.  We could even figure out a way to print our own currency.  It would cost a few hundred thousand dollars to do all that, but that&#x27;s not that bad, and I&#x27;m sure we could get somebody to do that if need be. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But anyway, the point is, is we really have to start looking at this as a business partnership.  And I want all of you to take a moment and think about that - do you want to get back into business with these people?  Are there some benefits to it?  Because the world knows that company name, right?  The United States or China, Republic of China, or the Russian Federation, whatever it is.  People know that name, it&#x27;s a known company name.  Even though the company is bankrupt right now, I mean could we use the company name to do something positive in the world? </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005138">00:51:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">How much is the name worth?  And if that is the case, we need different management, because the management that&#x27;s there is not working.  So all things to take into consideration, honestly.  But we would have to pick the management at that point.  We would have to basically say, &quot;Look, your company name is worth something to me, but we&#x27;re not willing to take you on as management.&quot;  And they&#x27;re not willing to step down as management, so we&#x27;re kind of in a little bit of a Mexican standoff, if you will.  Neither one of us is willing to move.  But I&#x27;m also not in their position either.  We actually make some sound decisions when it comes to not overextending yourself and that kind of thing, to the best of our ability.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So.  Okay, I&#x27;m going to give you a little bit of information about what&#x27;s happened today.  That is the real problem.  Give you an idea of what the base root problem is, but I can&#x27;t give you full details at this moment because I&#x27;m not sure if we finished it all off completely.  So this is more on a higher level of things, meaning - people that would be aware this was happening would be your SSP folks, you might see some Global Headquarters, barely, maybe some Family members, some of those people, that might be vaguely aware of what happened. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But clearly these people think this is a positive thing.  And I took a look, I guess the Q Clock expired last night and then it rolled back over for another 10 days.  And now it basically tells us that it&#x27;s going to do a full sweep.  &quot;Incoming, alert, incoming dimension shift, the sweep is coming.&quot; </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now either these people are one of two things based on what happened today.  Either they are the most evil human beings that ever walked the planet... or the stupidest.  And there&#x27;s no in between for these people, because they somehow used to get information from somewhere that something was going to happen.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, let&#x27;s just say they&#x27;re the stupidest people.  When Marduk was around, I used to watch him answer the phone - and actually at one point physically in front of their face - watch him answer the phone for what I call &#x27;those people.&#x27;  This would be your Order of the Black Sun folks, and this would be your Rothschild folks, and the Families that you know the names of, and some of them you don&#x27;t.  These folks here would call, and they&#x27;d give them some line of whatever, and then hang up the phone.  And they knew they were lying.  They used to take bets amongst each other for who was going to tell the most amount of lies and have the humans believe them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And so either these people are stupidest humans on the planet and still believe that line, or they are just pure evil.  </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005527">00:55:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Either way, the best way I can explain this to you without causing a problem for us is...  Some beings, as I had told you before, have the ability to make a consciousness transfer.  Meaning they can even split their consciousness into hundreds of little pieces and put it in any universe, anywhere, any dimension, any pocket of time, anywhere in the Universe and operate them all simultaneously.  And I have been feverishly hunting down any of their consciousness that I can find anywhere. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s almost like if somebody blew your body apart into a thousand molecular pieces, and then each molecular piece went in a different direction, somewhere in the Universe.  And yet you have a centralized operating system for all those pieces called your consciousness, so therefore your legs could be walking on Mars, and maybe your head is here on Earth, and maybe your arms are over there.  But they all perform similar functions, like you were still all one piece.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And this is what these beings have the ability - not humans, but these beings have the ability to do.  And they&#x27;re granted that ability by, at one point in time, many years ago, by Anti-Source.  So hunting down all these little molecular pieces of consciousness everywhere has been extremely painful.  Because even though you get one group of it, one bunch of it, one thing stuck in a computer system somewhere, it doesn&#x27;t mean it&#x27;s not operating from the Ninth Density of the Ninth Plane, or the Eighth Plane of the Lower Astral somewhere.  And there&#x27;s just a speck of it and you&#x27;ve got to go find it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s very frustrating for me.  But I&#x27;m sure this is like winning a war by attrition for these folks, because they figure if they just keep us going and going and going, they&#x27;ll wear us down eventually.  But that&#x27;s not the case - we&#x27;re very resourceful on our side and we keep fighting the good fight. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But when that consciousness is still active, even if it&#x27;s just one particle of that consciousness that&#x27;s still active, it&#x27;s still going to take the orders and instructions from the main consciousness party.  And even though 99% of the particles are gone, that one particle will still activate something, which then tries to activate something like an extinction program on Earth, for example. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And the rest of the people - if it&#x27;s not the SSP that&#x27;s running this Q-Thing - the rest of the people all thought, yay, money&#x27;s coming.  Money&#x27;s not coming.  You&#x27;re all gonna die today if nobody did anything because some speck of consciousness is somewhere in the Universe that you have to hunt down and find before everything erupts here on this planet. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes the frustration level gets really high, and sometimes it takes all day, and sometimes it takes all night. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">I can&#x27;t stress to you enough that I can&#x27;t give more information at this moment, because if they find it - if there is something out there, and if they manage to connect to something, what could they trip?  Because they really don&#x27;t understand what they&#x27;re connecting to.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 2, it became apparent that there were a couple of communication posts left on this planet where they were getting standing order information through this consciousness.  Somehow, someway.  Those have been eliminated, at least the ones that I could find thus far.  And hopefully this information will stop about these crazy quantum flips and whatever they&#x27;re talking about on this Q Clock, because they&#x27;re basically talking about us all dying. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005956">00:59:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I don&#x27;t know if they know that, and quite frankly their stupid president or fake dead guy that they want to put in an office doesn&#x27;t really mean a whole lot at this point, if there&#x27;s no American citizens, and there&#x27;s no citizens on the planet!  What are you going to be running?  I mean what?  There&#x27;s nobody to follow you, there&#x27;s no souls for you to leverage, there&#x27;s no nothing for you to do at that point if we&#x27;re all wiped out!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But you clearly knew that there was gonna be some kind of a sweep.  Were you told by this computer system that they were just gonna sweep bad guys away?  No!  It was everybody!  Why do you believe anything that comes from a black screen made of black plasma with green plasma writing?!  Why do you believe this?  I just don&#x27;t get it. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean, clearly it&#x27;s black plasma.  Now, black plasma would infer that you&#x27;re reading something virtually on antimatter at this point, or dark matter as you call it, which means it comes from a dark place.  And then you get on YouTube and wherever else you go and you start talking about God and Jesus and saying prayers for people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Get over yourselves people!  I mean really!  This is ridiculous. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But anyway the point is, is that I&#x27;m hoping - and I&#x27;m going about to go back and check here, as soon as I&#x27;m done giving you a little bit of an update here.  But I&#x27;m hoping that this has been cleaned up.  It&#x27;s been about 15 hours so far of doing this, and we&#x27;ll see what happens tonight.  I&#x27;m hoping I can get - as soon as, obviously, they figure out that those codes don&#x27;t work, they&#x27;re going to be going a little bit crazy tonight too. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you&#x27;re finding you were feeling off, feeling sick, feeling weird today, off and on, like it would come and it would go and it would come and it would go, this is probably the reason for that.  But hopefully by sometime next week I can go into a little more detail once I&#x27;m a hundred percent sure that there&#x27;s nothing they can try to hunt down to get some information from.  Or kick off some extermination program somewhere that exists in some other density. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m hoping - trust me I can hear it in all of you when I see you on the chats and stuff - I&#x27;m hoping that this is over, just as much as you do.  But you&#x27;re fighting a war on multiple levels.  You&#x27;re fighting a war with an enemy that doesn&#x27;t even know what they&#x27;re doing, what they&#x27;re triggering.  Maybe, maybe not.  Maybe they&#x27;re just flat-out evil and they&#x27;re think they&#x27;re going to be gods on another planet somewhere or something I&#x27;m not sure. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">But hopefully, hopefully soon, I&#x27;m hoping so.  But I am gonna get back to this and make sure that nothing else is going to go off overnight tonight.  As I understand it the risk could last up to three days.  So I want to make sure that that&#x27;s been cleared up, and I wish you all a wonderful weekend.  And I will see you on Monday, hopefully with more details.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Have a lovely weekend everyone.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=hPZxGDxYB0A" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
