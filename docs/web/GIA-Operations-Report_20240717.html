@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-17</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-17 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-17
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=TgZUbiVaKTM"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=TgZUbiVaKTM"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-17-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 17, 2024 report by addressing the Trump Organization&#x27;s ongoing media campaign following the Pennsylvania rally shooting, disclosing that a second alleged shooter appeared in Milwaukee as the operatives push for more public sympathy. She identifies the Trump apparatus as an Order of the Black Sun operation and details the records she holds on Steve Mnuchin — disclosed as running a pedophile ring laundering money through the Treasury black card account — and on Mike Pence, whose child trafficking ring operated in cooperation with Mexican President AMLO with financial records at Santander Bank. The newly tapped Treasury Secretary nominee Jamie Dimon is identified as a Global Headquarters operative known for economic assassination of countries and derivatives manipulation on behalf of the Black Sun. JD Vance is identified as Yale Skull and Bones, also a Black Sun organization.<br>
+<br>
+Kim then discloses the Mei Wah situation: a new Filipino woman named Rodriguez has been appointed to the vacant Mei Wah position — the Lilith bloodline role that historically held a 99-year renewable lease on Anti-Source gold — and attempted to assign gold allocations to the U.S. Treasury and Global Headquarters in London. Kim explains why this failed: the master lease expired before the previous Mei Wah&#x27;s death, voiding all subsidiary lease agreements simultaneously. More critically, ownership of Earth&#x27;s gold has transferred from Anti-Source to Source, with Kim as Guardian and Trustee — making the Mei Wah position structurally obsolete. All Omega system remnants tied to Mei Wah were cleaned up, the gold is now assigned to the Global Repository with humanity as beneficiary, and expired lease agreements were formally transmitted to the Archivist.<br>
+<br>
+The bulk of the report covers a major demonic invasion attempt that ramped up Sunday and continued through Wednesday. Pre-programmed decades-old protocols — authorized by the now-departed Parents on behalf of humanity — attempted to flood the planet with Lower Astral beings seeking human hosts timed to a planned Dark Age restoration. Four target groups were identified in order: Deep State operatives (already hosting demonlets with their own consent), Melchizedeks, higher-density souls, and the mRNA-vaccinated. The mRNA vaccine program is disclosed as Marduk Radio Network Access — designed to modify DNA to allow demonic inhabitation at the right moment — but the Tall Whites, formerly Marduk&#x27;s enslaved geneticists, identified the plan and fed flawed technology to the pharmaceutical companies before handing it off, rendering it ineffective. Individual sovereignty covenants provided an additional barrier: even with multiple vaccinations, consent is still required and cannot be given by the Parents because they no longer exist. Source-direct current on Earth was deliberately reduced to 50% during the invasion window to prevent fully-lit humans from becoming prime hosts. As of Wednesday afternoon, infected population is below 0.02%, all biomarkers and biochips have been removed, a rotating quantum tunnel sweep program is now running continuously, and the demonic entities are weakening without hosts. Agent M is recovering. Kim closes with a warning that the Deep State expected full power by Saturday July 20th — coinciding with the end of the solstice period and the July 21st full moon — and states that will not happen.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003350">00:33:50 - Teaser</a></li>
+<li><a href="#t-003429">00:34:29 - Trump org staging second shooter; Jamie Dimon tapped as Treasury Secretary; Black Sun executive roster.</a></li>
+<li><a href="#t-003945">00:39:45 - Steve Mnuchin</a></li>
+<li><a href="#t-004338">00:43:38 - Q-Team posts flagged as operational signals; quantum flip threat; pandemic 2.0 via Warp Speed model.</a></li>
+<li><a href="#t-004505">00:45:05 - New Mei Wah (Rodriguez) attempts gold assignment to Treasury; Mei Wah line disclosed.</a></li>
+<li><a href="#t-004702">00:47:02 - Mei Wah lease structure</a></li>
+<li><a href="#t-004842">00:48:42 - Gold ownership transferred to Source/Kim as Trustee; London Treasury transactions fail; Repository confirmed.</a></li>
+<li><a href="#t-005224">00:52:24 - Deep State seeing M0 phantom currency flicker on screens; allocation number theft attempts fail.</a></li>
+<li><a href="#t-005416">00:54:16 - Website masking and overlay issues resolved; Light System integration back on track.</a></li>
+<li><a href="#t-005630">00:56:30 - Demonic invasion protocol disclosed</a></li>
+<li><a href="#t-010020">01:00:20 - Demonlets in Deep State operatives</a></li>
+<li><a href="#t-010108">01:01:08 - Melchizedek line targeted; higher-density souls targeted; solar plexus attacks described.</a></li>
+<li><a href="#t-010348">01:03:48 - mRNA = Marduk Radio Network Access</a></li>
+<li><a href="#t-010800">01:08:00 - Why the vaccine program failed</a></li>
+<li><a href="#t-011155">01:11:55 - Current status</a></li>
+<li><a href="#t-011347">01:13:47 - Source reduced direct current to 50% during invasion to prevent all humans becoming prime hosts.</a></li>
+<li><a href="#t-011524">01:15:24 - Second pandemic rationale</a></li>
+<li><a href="#t-011724">01:17:24 - Mei Wah expired agreements sent to Archivist; call for living alternative presidential candidates.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-17 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003350">00:33:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="line">And now the World Situation Report with Kimberly Goguen from the Office of the Guardian. The Trump Organization has already started to build its executive branch assuming they win this &quot;selection&quot;... well: &quot;election.&quot; Treasury attempts to utilize an old gold lease to support a new currency today. Where did the old gold lease come from?  And was it valid?  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And the cleanup of the attempted reversal of the Golden Age continues. And here is today&#x27;s current status. All this and more on today&#x27;s Real News World Situation Report. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003429">00:34:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="line">Now here&#x27;s the World Situation Report with Kimberly Goggin with the Office of the Guardian. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good afternoon, my time today.  I guess good evening for some of you, and good morning in other places. I apologize for today&#x27;s report being a little late, and that Sunny is not here today. It&#x27;s been a very busy few days here, and we&#x27;ll talk about that in just a minute. I wanted to talk a little bit about some real news, since there is a lot still going on all over the alternative media about the Trump organization, meaning, &quot;he&#x27;s a martyr&quot;. There was an alleged shooter again in Milwaukee. I guess they&#x27;re not getting enough street cred, so to speak, from the first shooting, so they decide to have a shooter. And probably everywhere he goes there&#x27;ll be a shooter until they figure out that no matter how many alleged shooters are there, there will be no more support for this organization than they already currently have. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">This isn&#x27;t a Right-Left thing for me, and I just want to point this out. We already know that we currently have a president that passed away shortly after he was elected in office now. We obviously can see that whoever they have in there, they&#x27;re pulling the strings behind the scenes in China for this particular president.  They are looking for a crash of the United States and a transfer of power over to China, and that is why they make the president of the United States look so bad. This obviously wouldn&#x27;t happen unless China somehow got a grip or a hold of the world economy to the point where they believe they could be successful in running the entire world and moving the world&#x27;s power center over to China. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003627">00:36:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So don&#x27;t get me wrong. I don&#x27;t even consider that an issue but I do have some issues with this Trump organization. Now the reason why I do is because the people - the operatives that run the organization behind the scenes - are doing a lot of evil things to humanity. This is not evil as in politics or even Project Warp Speed that he launched during his prior administration when he was alive. This also ties into a lot of human trafficking ties. There is a lot of pedophile rings that are associated with the organization. Not only that, we have the Q-Team that was built underneath Kushner at one point in time. And the Q-Team keeps putting out these messages like, &quot;we control your dreams&quot; - that&#x27;s the latest one; &quot;it&#x27;s over for you,&quot; all of these kind of things. &quot;We&#x27;re all going to die,&quot; &quot;there&#x27;s going to be blackouts,&quot; &quot;the quantum flip is happening&quot; and all of this stuff, which... The quantum flip that they&#x27;re talking about is something that could be devastating to the human race. So my problem, and the reason why I keep mentioning these people, stems from this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003745">00:37:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we&#x27;re going to have a little bit of a conversation about them, just real briefly, because I think it&#x27;s important to really understand, what is happening behind the scenes. Okay, so we&#x27;ve talked a little bit in the last few weeks about Jamie Demon/Dimon, however you say his name. Demon works for me. And he is currently with JPMorgan Chase. He also is currently with a group called the &quot;Global Headquarters&quot; and the Global Headquarters, as you know, is basically what you would call the head of your military industrial complex. These are the guys that had the Global Security Contract, underneath the Order of the Black Sun. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, he believed that he was in charge of this organization, or had taken the reins or was promised this position, due to some serious manipulation of derivatives that was happening at JPMorgan Chase: the fact that he was endorsing Central Bank Digital Currencies and endorsing digital currencies for the bank and a lot of other financial manipulation that is being done on behalf of the Order of the Black Sun. Well, in the last 48 hours, the Trump Organization has tapped Jamie Dimon, who plans on retiring at some point this year, to be the new Treasury Secretary.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now knowing all of the things that this man is involved in, and lots of financial... economic assassinations of countries and all kinds of things he&#x27;s been doing, especially recently: This is the guy that they pick. So let&#x27;s talk for a second about the guy that was under the Trump Organization as the last Treasury Secretary, Steve Mnuchin. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003945">00:39:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steve Mnuchin is known actually behind the scenes to run a pedophile ring, on behalf of most of the Washington DC politicians and elite. This is a fact. He definitely has a Black Book of that.  He has a history of that. He also liked to utilize his connections with the Treasury Department, in Washington and in New York, to launder a lot of money for a lot of politicians and kind of wipe the records clean so you wouldn&#x27;t know who&#x27;s buying how many kids and on a regular basis and whatnot. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the track record here for the organization as far as what they&#x27;re involved in is kind of rough, even from the last time. Now, I did - a long time ago when I believed that Trump was actually going to do the right thing for the country, because he was kind of an outsider in the political circle arena, except for his involvement with campaign funding and that kind of thing - I did send him Mnuchin&#x27;s file, all of the politicians involved, where he buys the boys and girls from, his involvement with the Clintons and Child Protective Services in the United States, and all that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004102">00:41:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">All those records are there, very easy to see. He would launder a lot of that money through his Treasury expense account, his black card, Treasury black card account, and a number of other places too. Did anybody do anything to this guy, except for where the original one disappeared to? No. Is he still... is the person that is fronting as Mnuchin still running a ring?  Yes. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I don&#x27;t know why they didn&#x27;t choose to bring him back, because the one that they&#x27;ve got now is just as bad, if not worse. So hiring people from within the Black Sun&#x27;s central circle is probably not make him the most popular president in the world, at least not with those of us that are allegedly fighting the Deep State. He doesn&#x27;t fight the Deep State, he hires the Deep State. Not really sure what that&#x27;s all about, but I... actually: We do. You, watching this now and listening to this, know that that is a fact.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">After we sent Mnuchin&#x27;s file to the president, nothing happened. Everything was squashed underneath the rug, he continued on to the end of the administration, so no surprise there. Also, Vice President picks, that happened this week, but his former Vice President, Mike Pence, also runs a child trafficking ring. They love their children there with the Trump administration, don&#x27;t they? And I&#x27;m sure he&#x27;s saving babies left and right like they say on the internet.  But his child trafficking ring was in cooperation with AMLO [Andrés Manuel López Obrador], which is short for President Obrador of Mexico, which he still runs to this day - or whatever&#x27;s playing that part now of that person - which they still run to this day and that financial information can be located at Santander Bank in Mexico. The information is all there, and probably in Santander in Spain as well, and then a few other locations in the world, depending on where they&#x27;re buying children from today. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that was the former vice president. This current pick, Vance, is a Yale Skull and Bones&#x27; man, also an organization and a society that falls under the Order of the Black Sun. So I guess they&#x27;re just a group of Black Sun people that want to run the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004338">00:43:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And meanwhile, their operatives are putting out things like, &quot;we&#x27;re going to control all of your dreams&quot;, and we&#x27;re going to do all of these things to you, and &quot;there&#x27;s going to be a quantum flip.&quot;, &quot;your life will never be the same,&quot;, &quot;144,000 people, and you&#x27;re going home,&quot; and all the crazy things that they post. I watch the things that they post because oftentimes that means that there&#x27;s something going on in the world that could potentially harm all of humanity. So: shot - no shot, whatever these people are contemplating on the internet, the only thing I can tell you is what the facts actually are.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This is an organization run by the Order of the Black Sun and all of their friends and family network and meanwhile, the same organization is trying to kill all of humanity. So I can imagine what would happen if this person got back into an office and probably try to initiate some other type of pandemic in another Warp Speed. But that is some very interesting information in relation to other things that are going on, as far as this Golden Age reversal is. So I&#x27;m going to talk about that in just a second, and what the real plan was behind the scenes in launching these Pfizer vaccines, and all of the other things that were done under the former Trump administration.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004505">00:45:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay.  Next.  Let&#x27;s talk about what else is happening in the regular world today. You and I have spoken way back in 2022 about a woman that was the female representation of Lilith on this planet, and her code name was called Mei Wah. Mei Wah has not been with us - that position has remained empty since 2022. But most recently, they tried to appoint someone that they believed is in her bloodline, as the new Mei Wah. My understanding is this person&#x27;s last name is Rodriguez, a Filipino person, a female, to take that slot.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now this person truly believes that she has this position and she&#x27;s running around the world telling everybody until... she wasn&#x27;t!  Which means that today when she tried to assign a gold agreement. She believed she controls all of this gold, and that really was never even the case for Mei Wah anyway. But she believes she now controls all of this gold, to which she was trying to assign more gold to Treasury Department, and of course Global Headquarters, because they all... Global Headquarters and the Order of the Black Sun loved Mei Wah, because she was the issuer of all of their clearances to exist. She also assigned to them a security contract to &quot;protect&quot; the gold and her alleged assets at the time, many many years ago. The former Mei Wah was probably in her 80s, probably was not aware of some of the other agreements that took place before her tenure. Therefore, she felt like she was doing her job.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004702">00:47:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, I guess, these people don&#x27;t tend to give the next in line a whole lot of information. And that&#x27;s what&#x27;s causing a lot of disruption in the world right now. So, in a conversation that was had with the Treasury Department the other day - that would be in the U.S., because every country has a treasury whether it&#x27;s public or not - with a person from the Treasury Department recently. They were all headed over to London, because there are a number of banks, mostly larger banks like Barclays and a few others, that are going under in London. I mean they&#x27;re at critical mass right now. And that&#x27;s because they&#x27;re listening to a bunch of people that have no hope of ever performing any function.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But yet they keep going on these old contracts and old pretenses, because they believe these things are real. So first, I need to break down for you the Mei Wah situation. The Mei Wah line was the line of Lilith. Now, the gold ownership in the past, before we took it over on our side... The old gold ownership was with Anti-Source. And then there was a lease that was given for a short-term renewable every 99 years to whoever held the position of the Mei Wah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004842">00:48:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In other words: Ownership never transferred hands, and the Mei Wah organization, also known sometimes as the Mayflower organization, never owned the gold, which is why, with all the treasuries of the world and the other, the lease agreements that are out there, also with the country of Denmark or the queen of Denmark, I should say - there is a difference. The other agreement, a lease agreement that they had, is with the old USSR, because it was part of the 100-year plan to basically burn the Russian Empire and install communism everywhere. And that agreement they believe, is still intact, which it&#x27;s not. And the Federal Reserve also had an agreement, and the Treasury had an agreement.So there were four parties that had an outstanding lease agreement for a lease of gold on top of the Mei Wah lease. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, that 99-year lease expired even before her death. And they thought... I guess this is another Black Sun scam because that would have been part of the Black Sun organization. They thought by appointing this new person out there that they could then utilize that gold. They thought that the reason why they couldn&#x27;t utilize the gold wasn&#x27;t because their secondary contracts had expired. They felt that the reason why they couldn&#x27;t use the gold was actually because there was no current person to authorize the usage under the lease agreement known as Mei Wah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">However, that is not the case, actually.  Because the Mei Wah agreement was never actually renewed as a lease - a master lease - to all the other subsequent leases. Therefore, when her lease agreement expired even, I think it was a year prior to her death, then all the other lease agreements expired as well. So you can create a person to sit in that chair, but without the ultimate covenant, that person will have no authority. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the next reason why that was a flawed model of theirs, is because the ownership of the gold of Earth is not Anti-Source anymore, it&#x27;s actually Source - and with myself as the Guardian, and myself as the Trustee of the gold on that behalf!  So the position of Mei Wah on the Dark side of things is no longer actually applicable in this case. Therefore, the treasuries&#x27; transactions they&#x27;re trying to do in... I think it&#x27;s in London right now, which was today, and then a few other things they tried to do over the last few days, but mainly it was in London today, completely failed. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only that, any remnants that existed in the Omega system of Mei Wah went away. Any remnants of anything that of Anti-Source that tried to reinstall themselves due to this other program went away and everything on that front has been pretty well cleaned up and everything went back to the way that it was, meaning: The gold is now assigned to the Repository, you as humanity are the beneficiaries of that gold and all the energy and everything else, including currency, that it creates. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005224">00:52:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Treasury can actually see a lot more now on all of their screens, along with the governments, of the new currency and a new algorithm and a new way of creating currency. But that doesn&#x27;t stop Global Headquarters and the military industrial complex from doing what they do best: Chase fantasies. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as part of this reversal that was set up by non-humans, that has been happening for the last couple of days, one of the things that has happened is that they&#x27;re starting to see things flicker over to the side in the Omega system.  Things that have flickered are a few trillion dollars, for example, for this gold security contract. That was one thing they saw last night. They believed that they had access to a global server, to go ahead and work on getting this money into the system. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">I have people calling me, asking me if I want to transfer money into a global server and I do not want to transfer money into a global server that is owned by Global Headquarters because what will happen there is, that they feel that they could steal allocation numbers from me and then make that money good and put it into the financial system and give us, as humans, zero.  Now that is not the case, my friends.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 1, all my allocation numbers are highly encrypted and there&#x27;s no way you&#x27;re ever going to break them. Nobody else has been able to break them, and the same people that think they&#x27;re going to break them have been trying to do so for approximately four years now and it hasn&#x27;t worked to date. So I don&#x27;t know why they think today would be the day where you could screen scrape my allocation numbers, but: No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005416">00:54:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. The fake money that they&#x27;re seeing pop up on screens, and the minimal access to whatever glimmer tries to show back up of Omega System, Omega quantum AI system, is Money 0. In other words, not only does it have no allocation, it&#x27;s still money - it&#x27;s still M0. So that is not even a compatible monetary system with the new system anymore, because remember: This program that was set up to revitalize the Dark Ages or not let us out of the Dark Ages, I guess, was done so long ago that most of the beings involved even with current consciousness have not been successful in altering their systems and their time-released protocols to the current way things are. So in that sense, we have been at least a couple of steps ahead and we haven&#x27;t lost what we had. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">What we did have a problem with, is: We had some, what you call a &quot;website mask.&quot; We&#x27;ve had some masking issues. We&#x27;ve had some overlay issues. We&#x27;ve had a few things like that where they could see our currency systems and then they couldn&#x27;t see our currency systems.  And this has nothing to do with the humans. This has to do with things that were set up a long time ago. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So most of that has been fixed now and we&#x27;re back on track integrating the Light System, and fixing anything that happened to show up over the last few days. And I got to tell you: As far as things that showed up in the last few days, there&#x27;s a few things that - some of them I kind of hesitate to tell you, but now that things are a lot clearer and a lot cleaner, my understanding of what&#x27;s going on and what began to happen to some degree at the end of last week, but it really ramped up on Sunday, and then by Monday I was still trying to sort out what the heck is happening when we talked on Monday. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005630">00:56:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so when we talked on Monday, we talked about approximately 25% or hundreds of millions of people being infected.  Now, &quot;being infected&quot; means that they had, to some degree, a marker that would allow for them to have a &quot;demon walk-in,&quot; for lack of a better term, something from the Lower Astral that could have the ability to inhabit their body. Now, you would think, well, there has to be some consent for this. And in the current modern day, that is true but way back when these protocols were put in place, it wasn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Humanity was spoken for by the group we call the &quot;Parents.&quot; And the Parents had full authorization to take care of their &quot;children,&quot; which was all of humanity, and authorized that walk-in at the time the programs were developed decades ago. These are decades-old protocols that were put in place. However, with the now recent covenants returning to a sovereign being, that didn&#x27;t quite work out the way that they wanted it to work out. Now there would have been a lot of innocent people that were hurt if that had actually been successful.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But all along the way, we have to trust in Source. And there&#x27;s something that came up that proves that point. As frustrated as I am with delays, sometimes delays have saved a lot of people&#x27;s lives. And underneath this protocol, we would have been in trouble. Now, of course you have a lot of the Deep State running around with something in there.  They still had something in there.  I didn&#x27;t even know that some of them still had something in there  because these things that are in there are, I call them &quot;demonlets.&quot; They&#x27;re a piece of someone else&#x27;s thing that inhabited their body - with their full consent, by the way. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the reason why this is...  Okay, with these folks, something that they&#x27;ve been doing for a long time - I&#x27;m trying to explain this in the best way I can - is this thing that is inside them inhabits their body during the day, in which it talks to them, it gives them ideas, it gives them thoughts. And obviously, based on what we see happening with the Deep State all throughout the world, they&#x27;re obviously not positive thoughts.  But the less connection that they have to computer systems that are functioning, such as Omega, and the less connection they have to the Lower Astral, the demons obviously are getting not-so-smart.  And they&#x27;re going off of old knowledge that they have, and they&#x27;re also going off a little bit of spying that they do. So during the day they&#x27;re having these conversations with these folks internally. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Next, and sometimes if they&#x27;ve been infected long enough, you&#x27;re not even having a conversation with the person you think you&#x27;re having a conversation with.  The other thing they do, is: They have the ability at night to leave their body. And when they leave their body, they come out in the shadows, so you&#x27;ll see them out of the corner of your eye, moving around that kind of thing, and then they go back in during the day. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010020">01:00:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These also have what we would call &quot;more skills&quot; than humans. They have telepathic powers.  This is where a lot of espionage takes place. A lot of information for their corporations takes place, because these things can go all over the world and no one - unless you&#x27;re awake and aware - can actually see them. Some people think they see a shadow out of the corner of their eye, &quot;Oh, it&#x27;s just probably the wind&quot; or whatever it is, but the rest of us know really what&#x27;s going on.   </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010108">01:01:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, that was for the Deep State. The next group of people that were on the list to actually do a swap with - because their DNA could hold something very positive, such as full Source energy, or something really negative, which is full Anti-Source energy, or in this case it&#x27;s spawn, what I call demons - were the Melchizedeks. They were also on the list to be inhabited. They wanted to take over this line, because they knew that if we ever left any of the Dark Ages and moved to a Neutral Age or moved to a Light Age, that the Melchizedeks would have a lot of power and therefore they wanted all the power on Earth. So they were sending them over after that bloodline or our bloodline for quite a while.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This caused an enormous amount of pain to most of these people. It caused a lot of illness in a lot of these people.  Some of the people I know felt like they were having a heart attack or were going die for one, another one couldn&#x27;t breathe, and it would happen mainly after sunset when these things were on the prowl. So they were going after that bloodline like crazy.  So if you&#x27;re one of these people and you experience these symptoms over the weekend and really thought that you were going to die and you could feel awful pain in your solar plexus like you were having a baby - if you&#x27;re a female you know what that feels like - or maybe having a kidney stone if you&#x27;re a male and know what that feels like. It&#x27;s horrible, horrible pain.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s very difficult because there were not enough bodies assigned to what was coming in, to accommodate the amount of demons. So this was the second part of the program. Obviously the Deep State was a given. They&#x27;d get their own respective demons, but now it wouldn&#x27;t just be over the age of 40, it would be for their entire bloodlines down to small children. So that was the plan all along.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">The next ones in line were obviously the strongest, as far as being able to retain that much energy and so the largest of demons were coming after this whole line. That&#x27;s why my Sunday night was horrible, and I&#x27;ve been doing triage on others that I know - and I&#x27;ll just leave it at that - of the same line because they thought they were going to die and this has been going on every single night where they are respectively in the world. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010348">01:03:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, next.  We have another group of people here that are, say: from higher dimensions that have higher natural energy within their person. And those persons also were affected because there is not enough bodies to go around to inhabit. So they started going after some of those people - you know who you are, you feel like you&#x27;re not from here.  So a lot of you might have also felt stomach aches and a lot of pains, because what it does first is, it burrows a giant hole in your solar plexus, that would allow it to pass from the Astral Plane into the Third Density. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s terrible. You would know it for sure.  So this was the third target group, those that have been identified as their soul actually being from a higher density that could probably retain a higher-level demon. Maybe not the ultimate demon of Lucifer, but maybe someone to a lesser degree.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The next targeted group, and this was the original targeted group of these people - because now that I saw the registry and the program, now I understand a little bit more of what&#x27;s happening - was the vaccinated. So, M-R-N-A stands for Marduk Radio Network Access. And some of that Luciferase ingredient and stuff like that, that was in there?! ...But not all the vaccines, only certain ones. The Luciferase - I can&#x27;t remember exactly how it&#x27;s pronounced, so forgive me, but I&#x27;m sure you probably remember when you were doing research on them - was actually designed to not initially... Well, it wasn&#x27;t fully designed that way and I&#x27;ll explain why it didn&#x27;t work. But it was actually supposed to allow for, at the right time - when the influx of demons were running around Earth like crazy and coming in through these portals in order to usher in the Dark Ages once again, like happened 250,000 years ago - then it was supposed to, at that time, allow for a DNA modification of the body to allow for a demon to inhabit that body.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, they accounted for the fact that a large portion of the population, hundreds of millions, if not a billion people, were going to actually get this vaccine. They were unsuccessful in that program, number 1. Number 2, The Tall Whites, the geneticists of the planet that used to work as slaves for Marduk, figured out what they were trying to do before they gave the technology over to the pharmaceutical companies in order to produce the vaccine! it didn&#x27;t work. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, it made a lot of people sick.  Yes, I understand about spike proteins. I understand a lot of things, but it could have been detrimental to the entire planet, if not the entire universe, if they had actually been infected. So they gave them flawed information, and therefore those humans are still walking around. Now in order for a vaccinated person to actually even come close to the program, they had to manage to get you to take at least two to three shots. The only companies that were producing the alleged &quot;enhanced vaccine&quot; that had the capability of doing this was Pfizer; and AstraZeneca, to some degree.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010800">01:08:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, it was completely and totally unsuccessful. But what it did do, unfortunately, is: It started... these beings could not go and inhabit these people&#x27;s bodies for number 1, the Parents don&#x27;t speak for us anymore. The Parents aren&#x27;t even around anymore and you have your own sovereignty - at least on a covenant level. And I know it might not feel like it in your daily life sometimes, but on a covenant level, you have this sovereignty.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it still couldn&#x27;t! Even if you had two to three vaccines, even if you had gotten the boosters, even if you had a hundred boosters, it still isn&#x27;t going to make a difference, because it still needs your permission. So another flaw in a protocol that was set up way ahead of time. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Next.  The protocol was actually set up to return us to the Dark Ages, but what it didn&#x27;t account for is all of the Golden Age programming we have had. So it didn&#x27;t actually fully understand the changes in a Golden Age versus a Light Age. So in a Light Age, we still would have had darkness.  We wouldn&#x27;t have had Source-direct current. We didn&#x27;t have a lot of that stuff. So all of those changes that have been taking place over the last couple of years also stopped this from happening. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">However, it didn&#x27;t stop these demon things from flying around the planet all day and all night looking for a proper host, which is why everybody was so tortured for the last several days. Now, as of today, at least as of the time of this recording today, there is less than 0.02% of the population still infected with this issue.  All of the biochips have been removed, all of the biomarkers have been removed, if there were any, and then also anything that they had implanted into the Melchizedek Line, and the Others of the Light as well, have also been removed. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right now, because they don&#x27;t have a human host, they&#x27;re getting weaker and weaker. But in addition to that, we developed a rotating sweep program that would basically send them all back to Source on an automated basis, utilizing quantum tunnels and a few other things we have running constantly on this planet right now, because until we could make sure that we did get all the sources - which I believe we finally have as of this afternoon: We have no more leaking in, and there were a few more we found yesterday, unfortunately, but most of them have gone. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">As of this afternoon, most of the major attacks on the human bloodlines they&#x27;re going for - whether to use them as a feeding source of energy or to try to inhabit their body - have pretty much kind of slowed down. A lot of these people are exhausted.  They haven&#x27;t slept in four days. A lot of these people still have bruises because it feels like you&#x27;ve been through a fight and someone had been gut-punching you for four days straight. So a lot of these people are starting to feel better now. They&#x27;re starting to be able to eat again and recover, so that&#x27;s a good sign. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Agent M is doing well.  If anybody is wondering out there: He&#x27;s recovering. And that really just didn&#x27;t even start until this afternoon. So that&#x27;s part of the reason why the news was late. I wanted to make sure we didn&#x27;t leave any stone unturned, because when sundown comes, we&#x27;re all going to be in trouble again. So I kind of went from the east over to the west so that I could follow the sun before sundown hit in each respective time zone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011155">01:11:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the things that are up in the Deep State, even at 0.02% of the population of Earth is getting weaker. They&#x27;re not getting the information that they were getting before. There&#x27;s no collective consciousness anymore. And the attempts that they&#x27;re making on doing some of this stuff was based on things that were supposed to kick in, in computer systems. They really truly believed that they would have full on power within the next few days - at the latest by this Saturday, for two reasons.  </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 1, we have a full moon coming up on the 21st. You know, they love their full moons and they feel like there&#x27;s a program that happens every full moon, which hasn&#x27;t happened in a long time. But with the advent of this program starting to work, they felt that that is a possibility. It&#x27;s also stated on the Q-Clock. Number 2, the other reason why Saturday would have been an important day, is because it marks the end of the solstice period.  The solstice period ends 30 days after the Solstice, which this year was a little early on the 20th of June. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So they&#x27;re hoping by the end of this period that they definitely would have returned to at least a dark timeline, if not an entire Dark Age. That is definitely not going to be the case. &quot;We&quot;... and there are many people that are out there working, to make sure that this never actually happens. It has pointed out a few things, that some programs that needed to expire.  There&#x27;s been a lot of work on our part of it, to make sure that we are still moving forward, as well as cleaning up at the same time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011347">01:13:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s very time-consuming, and there&#x27;s a lot of effort that goes into doing that, but we don&#x27;t want to go completely backwards. Our energy on this planet dropped significantly on Sunday night. We were back to 50% of direct current. That&#x27;s not what we wanted, but it&#x27;s actually in some ways what we needed because if we had 100% Source-direct current at the time of the invasion - let&#x27;s call it the &quot;invasion&quot; - at the time of the invasion, we all would have been prime candidates to host one of these things. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">And imagine how many people out there have no idea what we&#x27;re talking about right now.  A lot of you would be aware that this was going to happen and you would have probably adamantly said, &quot;no!&quot; and not consented. But there&#x27;s a lot of people out there that didn&#x27;t know. And if we were all prime candidates, everything that we have worked so hard for would be lost. So in this way, sometimes I don&#x27;t always understand Source&#x27;s delay with things. I don&#x27;t understand why things like this are allowed to happen but honestly, this was a blessing for humanity, that we weren&#x27;t at full 100% at that time. And they dropped the energy down so low, and we were not able to bring it back up until probably the last 24-48 hours, because if we had that full energy in every single human, we would have been in serious trouble.  </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011524">01:15:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I really didn&#x27;t even understand that until last night, because we&#x27;ve been working so hard on everything, but I had this epiphany and I&#x27;m like, &quot;Oh my God! If that worked out, we would have all been hosts, not just the vaccinated ones, not this just... whatever. We would have been in serious trouble!&quot; The reason why they would like to start a second pandemic is because, if they can get more vaccines in people - it doesn&#x27;t matter what it&#x27;s for. It didn&#x27;t matter if it was an mRNA for a cure for toenail fungus.They just needed enough people to buy it.  So then these people would too become hosts as well for what was incoming. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, did the Deep State fully understand this? I have no idea. Did the demon talk in their head and say, &quot;Hey all my buddies are here, we&#x27;re gonna go have a beer&quot;? I don&#x27;t know.  But one thing I know for sure is that it&#x27;s going in the other direction now, and they are aware of that. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">They are aware that the things that they were expecting to happen on day one, day two, day three did not happen, and their transactions are not being successful. I certainly am not going to help them out with actual currency in any way shape or form. I know that they would never help me out, even if I gave them allocation numbers with currency.  So yeah.  Absolutely not.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So until then we&#x27;re going to continue to clean. That&#x27;s our plan for the next couple of days, just to make sure everything is at a hundred percent in the opposite direction. We will make sure that no matter how many Mei Wahs that they appoint, that nothing will happen in their favor, as far as Treasury or anybody else for that matter. They now should have a copy of the expired agreements because we sent them out to the Archivist today, so that they actually have it.  They were in the system as expired, but now they actually have a copy, so we sent those out, just in case anybody is confused once again. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011724">01:17:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And more dead people running against dead people for president!  And appointing other people that human traffic and all of these things.  We already have a dead pedophile in the office right now, and why not have another dead pedophile in the office?  I wish people would start to look at alternative candidates.  I&#x27;m not saying they&#x27;re the best, and I&#x27;m not saying they&#x27;re the worst.  But at least we&#x27;d have some representation that is, a) breathing, so that would be good; and that maybe can try to work from outside the system to make something happen for the U.S.  And the U.S. is also the power center for the world, and we&#x27;ve got big problems everywhere right now.  Financially speaking, everything is going into the toilet. They&#x27;ve been promising everybody to just hold on to this weekend when they&#x27;re going to have full financial control. That&#x27;s never going to happen by this weekend or any other day ending in Y. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So as for us, we are still standing.  We are standing strong. Most of us are fully recovered and we are back at it and going full bore. So that is about where we&#x27;re at for Wednesday the 17th. Hopefully I&#x27;ll have some more really good news by Friday. I&#x27;m hoping so.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So at this moment, I guess, that is the end of the World Situation Report for today. I hope everybody has a great rest of the week, and we will see you on Friday. Have a great night, everyone.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=TgZUbiVaKTM" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
