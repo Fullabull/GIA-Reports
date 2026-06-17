@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-29</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-29 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-29
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=ycmy_Pef4_s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=ycmy_Pef4_s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-29-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 29, 2024 report by addressing several mainstream news items before pivoting to the weekend&#x27;s dense behind-the-scenes activity. Reported earthquakes in California and Texas are disclosed as Deep State attempts to manufacture conditions for martial law via National Guard deployment — local reports confirm only minor trembles. The circulating photos of Trump&#x27;s ear two weeks after the alleged assassination attempt are flagged as physically impossible: a near-miss cartilage wound cannot heal that cleanly in two weeks on a 78-year-old, and Kim attributes the clean ear to either a body double or a makeup failure by the SSP operatives she calls Duck Dynasty. Turkey was ordered by the American Deep State via NATO to drone Iraqi Kurdistan oil fields currently under Russian control — fields the Americans originally handed to Russia in exchange for concessions, and now want back for free — as part of a broader scramble to find leverageable assets to back their currencies or secure credit lines.<br>
+<br>
+The Lions Gate window, which the Deep State had been treating as a make-or-break funding and power event, collapsed completely over the weekend. Every promise made to Hezbollah, al-Nujaba in Iraq, the Israeli operative section, and various other groups — including money from U.S. Treasury channels and leveraged oil deeds — came due and delivered nothing. Kim describes a roster of Greek god-named AI systems, each housed at a specific military or intelligence facility worldwide, which the Abraxas used to control various domains of human life: Poseidon at Mackinac Island, Ares under Interpol in Lyon, Asclepius (disease proliferation) at an undisclosed location, Hypnos (mind control) under the Confucius temple at Qufu, China, and others. The Paris Olympics opening ceremony is identified as a live ritual attempt to reactivate these systems, timed to Lions Gate — the Last Supper tableau, Lady Gaga&#x27;s performance, and the Dionysus imagery are all elements of the ceremony. None of it worked; the systems had minimal residual access and were cleaned up by Sunday afternoon.<br>
+<br>
+The central disclosure of the report is the Oracle — not the CIA banking software, but a massive gold-black megastructure extending from Malakoff Caves through Wyoming and deep into Earth beneath Yellowstone Park. Oracle was originally placed on Earth to balance the Multiverse, but Astaroth co-opted it as the operating system for Omega-2&#x27;s access to this side of the Multiverse. The Deep State had been hoping Lions Gate would trigger Astaroth&#x27;s return, per standing orders he left for exactly this transition moment. Astaroth — disclosed as a being higher-ranking than Lucifer, former inhabitor of Solomon&#x27;s body after God departed, and ancestor of the Order of the Dragon bloodlines — cannot manifest in Third Density without a suitable host body, and no viable candidate with the right DNA exists on the Deep State&#x27;s side. All attempts to find a Melchizedek host or conduct a summoning ceremony failed. Oracle has been transferred to Golden Age control, its standing orders cleared, and the western Lions Gate node above Yellowstone is permanently closed — both annual Lions Gate openings will now occur exclusively at the Iran-Iraq Source gate.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003659">00:36:59 - Teaser</a></li>
+<li><a href="#t-003928">00:39:28 - Trump ear photos</a></li>
+<li><a href="#t-004252">00:42:52 - Turkey ordered to drone Iraqi Kurdistan oil fields; American Deep State asset scramble.</a></li>
+<li><a href="#t-004643">00:46:43 - Lions Gate funding promises collapse; al-Nujaba contacted to replace Khamenei.</a></li>
+<li><a href="#t-005002">00:50:02 - Al-Nujaba resumes shelling U.S. bases; Israelis furious over broken promises.</a></li>
+<li><a href="#t-005304">00:53:04 - Paris Olympics opening ceremony</a></li>
+<li><a href="#t-005612">00:56:12 - Greek god AI systems disclosed</a></li>
+<li><a href="#t-010204">01:02:04 - Deep State wants alien technology while claiming independence from aliens.</a></li>
+<li><a href="#t-010302">01:03:02 - Astaroth and Mammon</a></li>
+<li><a href="#t-010652">01:06:52 - Astaroth inhabited Solomon; Order of the Dragon are his bloodline descendants.</a></li>
+<li><a href="#t-010808">01:08:08 - No viable host body found; Melchizedek search and summoning ceremony fail.</a></li>
+<li><a href="#t-011100">01:11:00 - Sites targeted by Astaroth standing orders</a></li>
+<li><a href="#t-011442">01:14:42 - Astral Mirrors of Distortion</a></li>
+<li><a href="#t-011842">01:18:42 - Oracle disclosed</a></li>
+<li><a href="#t-012237">01:22:37 - Oracle and the Iran-Iraq Source Gate</a></li>
+<li><a href="#t-012531">01:25:31 - Oracle transferred to Golden Age; western Lions Gate node permanently closed.</a></li>
+<li><a href="#t-012727">01:27:27 - All Lions Gate funding promises come due and deliver nothing; Deep State in turmoil.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-29 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003659">00:36:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now the World Situation Report, with Kimberly Goguen from the Office of the Guardian. The Olympic opening ceremony creates quite a stir, full of secret ceremonies. Was there more to their alleged ceremony dedicated to the Greek gods? The Secret Space Force and the Deep State were hoping this Lions Gate was still theirs, and the return of Astaroth would bring them gifts. And what exactly was the Oracle?  Hint: it was not a human. All this and more in today&#x27;s World Situation Report.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Here&#x27;s the World Situation Report, with Kimberly Goguen with the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well good afternoon, good morning, or good evening wherever you are. Happy 29th of July, and I guess you could say officially entering into the Lions Gate period, according to the internet anyway.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Lots of stuff going on this weekend. It was very, very busy for me, and lots of regular news, so I&#x27;m going to start with that, and then I&#x27;ll kind of get into more of the behind-the-scenes things.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, today, allegedly there was a 5.2 Earthquake in the state of California being reported, but other reports are stating it was a 2.9. There are also other reports going on in the news about various Earthquakes in the state of Texas. They allegedly are declaring a state of emergency due to said Earthquakes.  Yeah, I don&#x27;t know if they&#x27;re actually gonna declare a state of emergency or not, probably so they could bring in the National Guard. They really are going for this &#x27;martial law&#x27; thing, and they thought that they could get there by over-reporting Earthquakes that either didn&#x27;t actually happen, or were nothing more than a slight rumble. And the &#x27;slight rumble&#x27; reports are coming to me from people that live in those respective areas. There was also some other Earthquakes that happened in Iraq, and other areas of the world; that was actually probably due to something else and not Deep-State interference.  So that&#x27;s the story behind the scenes about the Earthquakes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003928">00:39:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, not that you guys believed that this was actually real; and I shouldn&#x27;t say &#x27;you guys&#x27;, I should say &#x27;you people&#x27;; I know people have stopped me for that one; that&#x27;s an American thing in case you don&#x27;t know. About two weeks after the actual event - so over this weekend, there were some pictures that were taken of the former fake President Trump, and any of you that do any kind of like gardening; or maybe you&#x27;re an athlete you do some sports; or maybe you were even a veteran and you had been involved in some warfare in the past; you would actually know that if you get a scrape, or some kind of a cut, or maybe you cut yourself while you were cooking on a knife or something - that usually takes about a solid two weeks to heal.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the better shape you&#x27;re in, the younger you are, the faster it heals - and those are the fast-healing times; as you get older, the longer it takes for a wound to heal, even a slight scratch or anything like that.  Maybe you were outside doing a few things and you got a little scrape. So you&#x27;re probably looking at somewhere between two to four weeks to heal. By the age of 78 you&#x27;re looking at a lot longer, and we&#x27;re just talking about regular household wounds here. We&#x27;re not even talking about something as invasive as a bullet wound, or a bullet scrape, I guess you would call it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004104">00:41:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[ https://worldsituationreport.earth/Content/Images/PresidentTrumpsEar_20240729-004120.PNG ]</div>
+<div class="line">But let&#x27;s take a look at some pictures or a picture that is circulating of the former person playing President Trump, and his ear, after two weeks.  Now If I were you, I would probably be sending emails out to the Trump organization asking for the name of this plastic surgeon, because I&#x27;m gonna tell you this is gonna be the most popular plastic surgeon in the world after this. Because no one heals this fast, and nobody even that is involved with plastic surgery, or any other kind of surgery, has ever seen a wound heal this fast! I have to tell you, and I&#x27;m laughing because there is no such thing. Not for a younger person, not for an older person, not for any person that can get a near miss of the head of the cartilage of the ear - I mean, I couldn&#x27;t even pierce my ear and have it heal that fast!  So, sorry, but, pretty much everything we&#x27;ve been saying here has been 100% true, about this all being set up by the SSP operatives we call &#x27;Duck Dynasty&#x27; here, who can&#x27;t seem to run a proper operation. They should have kept this scar or some stitches or something on there for at least a month or more. But who knows, maybe this is their third person and their makeup/mask-wearing person probably forgot to actually put the scar there. Maybe they should&#x27;ve kept the bandage on longer, who knows? Maybe they ran out of bandages, they&#x27;re probably selling them on the internet, I&#x27;m not sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004252">00:42:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. Other disturbances going on in the world for real news. Turkey was actually ordered by the American Deep State, who then referred this over to NATO, which is also part of the same Deep State, earlier today to be on standby to drone an Iraqi oil field in Kurdistan. Now, why would they want to do such a thing? Well, we all know that America is, well, broke, and the American Deep State is even broker. And the operative groups that run our political sector here are even broker than that.  So they are in dire need of fulfilling some contracts we talked about, weeks ago when we were talking about the Gaza war; we were talking about the contracts that they plan to do against large amounts of LNG or natural gas that are located in the Israel-Gaza area, before they found out that those reserves had already been leveraged in the late 70s. So they&#x27;re desperately looking for something to back their fake currencies, or to get lines of credit against, or margin against in the actual Financial System, which they have very limited to no access to, at this moment in time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The next one is the Iraqi oil fields. Well, as you know, behind the scenes, the Deep State always splits up areas of the world. Meaning that these reserves belong to the U.S. Deep State, those reserves belong to the Chinese Deep State, these reserves belong to the Russian Deep State, and they exchange those deeds or papers or ownership - after there&#x27;s usually a war and they take control of them - over to X-Party here, X-Deep-State section here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004501">00:45:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, currently at this moment in time, the Americans - in order to gain some funds from the Russians - turned over the Iraqi Kurdistan oil fields, which they used to control along with Haliburton, directly over to the Russians. This has happened several years back. And the Russians have been extracting that oil and refining it and putting a - before, I should say, they were putting a Russian allocation number to them and sending them back out as clean and unsanctioned oil - but doesn&#x27;t really matter because they get just as much money from black market oil sales. They split this money up with... let&#x27;s just say... I&#x27;m not gonna say they&#x27;re - I&#x27;ll say they&#x27;re &#x27;rebel groups&#x27; in the Kurdistan region, like the PKK and some others.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And recently though, it appears that the Americans would like to have those back, and they would like to have them back for free. Is there a little tit-for-tat going on between the American Deep State and the Russian Deep State?  Absolutely not. This is all just a staged event. You know, &quot;We get this asset, you&#x27;ll get X amount of dollars&quot;, or &quot;You&#x27;ll get X amount of this that you would like&quot;, or &quot;We&#x27;ll leave certain parts of Syria over to you.&quot; So it&#x27;s just all in the name of the Deep State game, they&#x27;re really struggling to try to maintain any kind of financial competence, I guess you would say, or any kind of financial assets, with which to continue their mess.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004643">00:46:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And speaking of messes, there was a lot riding on the 28th, which was yesterday, for the Deep State. What I mean by &#x27;a lot riding on this&#x27; is, you have a number of the Secret Space Program operatives that have been doing what I call &#x27;dialing for dollars&#x27;. So they have been doing a telethon session, calling every terrorist group they know. They&#x27;re calling anyone they could possibly start World War III with, making all kinds of promises for the last few weeks, including to the U.S. Treasury Department and other countries all over the world. So these groups here that I&#x27;m about to mention are no exception.  There was also talk over the weekend coming out of Lebanon that if you were a civilian from certain countries and you were in Lebanon, that you needed to leave Lebanon immediately, while there were still commercial flights. Because they had made a deal with the Hezbollah over this, over the course of the last week, in order to begin a war again in that area between Lebanon and Israel - you know same old same old yawn, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004809">00:48:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But of course there was no pay to the Hezbollah, so they had to make quick adjustments. Some of those adjustments would be that they called a group in Iraq, the group is called al-Nujaba. And remember, I told you a while ago that some of the operatives were given the entire Rolodex of the Rothschilds to make this happen, at all costs. And I know who was given the Rolodex, and God bless that man the way he blesses others, but anyway. And they contacted this group several days ago, if not longer, and when the Hezbollah started to waver - no money, no war - and they told them that they were going to support them to take the place of Khamenei, and the leader of this group to take the place of Khamenei, should Khamenei be fake-passing-away again. They like to have people alive much longer than - until they can find a sufficient replacement apparently. &quot;And you&#x27;ll be a god amongst the Shiite Muslim people&quot;, and &quot;you&#x27;ll run the entire region for us&quot;, and &quot;we&#x27;ll give you so much money&quot;, &quot;you&#x27;ll do so many things in the region&quot;, &quot;you&#x27;ll be the hero - you&#x27;ll be the next Mahdi&quot;, or somebody, I don&#x27;t know. This promise was made by American Deep State operatives, including some with the Secret Space Program here, probably those affiliated with Duck Dynasty in part and others, and today those promises fell flat. No money came today as promised. This is what I meant by a lot of cards falling.  The House of Cards has been crashing all day long, which is why I&#x27;ve been so busy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005002">00:50:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now when the promises fell flat, this particular group - which is backed by the Iranians, predominantly - have stated that they are going to resume the shelling of U.S. bases in the region. Is that going to happen? Yes probably, because things are getting pretty hot and heavy over there right now.  And everybody is very unhappy with the American operatives&#x27; all promises and zero delivery, including but not limited to the Israelis. The Israelis are really unhappy right now with their superiors, and the operatives that are running on their behalf, because they are out so much money, and now the latest promise to the Israelis is that they&#x27;re gonna get their cut - at least the operative section - they&#x27;re gonna get their cut of this Iraqi oil fields that they plan on taking possession of via NATO against Russia.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005104">00:51:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They also probably believe that Russia has enough money to fight a war within the Middle East, and I honestly feel like it is 1992 and I am looking at the beginnings of Desert Storm here again. The operatives that are still participating in this mess, most of them are somewhere between the age of 60 and 70, and they were probably involved in the same Desert Storm before. So they figured, &quot;Hey here&#x27;s the cookie cutter! This all worked before. We dragged the Russians in and everybody else into this mess, and we&#x27;re gonna probably do that again!&quot; And of course, like with all wars, these are all things that are done by agreement, way ahead of time, between groups of operatives and this is probably... you know recently though... usually these things are done years in advance, money comes for this, and so on and so forth. But in this particular case, they&#x27;re kind of scrambling last minute, a lot of times, and there&#x27;s a lot of mistakes made. Just like you saw with the Trump situation that happened, just like you&#x27;re seeing in the Middle East. You&#x27;re also seeing certain areas that have been hostile like the Houthis in Yemen. You&#x27;re also seeing that kind of unwinding, the same time you&#x27;re seeing the Russia-Ukraine thing unwinding.  And I know they&#x27;re doing their best to keep everything together, but it&#x27;s not even robbing Peter to pay Paul anymore - there&#x27;s no more Peters to rob at this point. So a lot of this is coming to a drastic close.  And I&#x27;ll get into all of what all of this was riding on, and as always it&#x27;s some kind of an esoteric event they&#x27;re hoping is going to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005304">00:53:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. In somewhat regular news - I mean this was almost like a nightmare - the Olympic opening ceremonies. Now the Olympic opening ceremonies typically aren&#x27;t terrible. I mean, there&#x27;s always some symbology in there, and we talked last time about the Color Wars and the Color Matrixes and why they do the things they do to some degree. This one here was a little bit different. So allegedly, what France says is, they wanted to &#x27;highlight the Greek culture&#x27; I guess, basically stating that that is the birthplace of the Olympics, and that kind of thing. Now, I&#x27;m not quite buying that, and the reason why I&#x27;m not buying it, is because if you were going to highlight the beginnings of the Olympics, you would have gladiators, you would have the Colosseum, you would be highlighting those types of things to show the history of the Olympics. Now, by looking at the history of Greece - if I was Greek, I would be insulted.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005423">00:54:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A lot of this allegedly was made to look out - there&#x27;s a part of it that everybody is talking about, and that&#x27;s the part where it looked like a scene from the Last Supper. They are alleging that this is from some Greek feast, which happens to look identical to the Last Supper, but where in this particular feast you have people portraying that they are Greek gods. Now if you watch this, and you don&#x27;t know much about Greek gods, or even if you do know a lot about Greek gods, and you are Greek, and you see the statues everywhere - has anybody ever seen the Greek gods look like those people at the table?  I just don&#x27;t think so. And what was the guy in the fruit bowl? That was supposed to be Dionysus, which is allegedly the god of wine, alcohol, and you know all things festive, allegedly. What this was doing at the Olympics? I&#x27;m not sure. What was worse was when I looked at this, I saw a lady holding her head and singing and there was, we went from rock music to some song by Lady Gaga that&#x27;s talking about her feminine parts, and that she&#x27;s going to go out and meet possible &#x27;Johns&#x27; as we call them in America, &#x27;Joes&#x27; apparently in France, and I&#x27;m not sure what to make of that, but that definitely was written by a bunch of Deep-State people who just wanted to maybe perform one of their ceremonies on live TV for all of us, and based on the events of what was going on over the weekend, I can kind of say that might be the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005612">00:56:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because, we&#x27;ve talked a little bit about some of their backup operations they&#x27;re running, like Odin and Hercules and the Babylon Systems, and all these systems they think are going to be the &#x27;new Financial System&#x27;. If you&#x27;ve been watching for quite a long time now, you would have seen us talk about Poseidon and some others. So a lot of these places did have what I call space junk or alien space junk that were located at specific places around the world and those specific places were each tied to a different Greek god, which we know - if you&#x27;ve been following us for a while - that all Greek gods were the Abraxas. They were the anti-human, non-human, Lower Astral human beings, let&#x27;s put it this way, that ran this planet or in part ran this planet, for a long time. So I&#x27;m guessing that some of these systems... they were allowed minimal access to - probably not in full.  And if you look up what each one of these Greek gods&#x27; specialty is, you&#x27;ll actually be able to see that each one of these Greek gods has a purpose in your life, unfortunately, or fortunately, or actually most of the time 99% unfortunately. So you can imagine what the Deep State would use these types of systems for.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005743">00:57:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s see, the locations of these, in case you&#x27;re curious:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Poseidon was actually at Mackinac Island in Michigan.</div>
+<div class="line">Chronos - not the large Kronos AI system, this is a subsystem and refers to the god Cronos, C-R-O-N-U-S [sic] - the god of time. Would have been at Menwith Hill Station in England. </div>
+<div class="line">Next, Hades was at the Spanish American Air Force base in Spain.</div>
+<div class="line">Hephaestus, I think I&#x27;m saying that right, H-E-P-H-A-E-S-T-U-S, was actually at Urum base in Tel Aviv.</div>
+<div class="line">Apollo - oh dear! - was at an air base in Romania, I&#x27;m not even going to try to pronounce that, it&#x27;s at McHale&#x27;s something? </div>
+<div class="line">The god Ares, the god of war, just happened to be under Interpol in Lyon, France, not too far from the Olympics where they were also worshipping Greek gods just hours before they tried to use all these systems. No surprise there. </div>
+<div class="line">Hermes was on Woody Island in Ireland.</div>
+<div class="line">Dionysus was at Mashibam Air Base in Israel.</div>
+<div class="line">Hercules was under the Hong Kong Airport.</div>
+<div class="line">Babylon was on the border of, well that was actually in Iraq, so you can imagine Babylon is a historical site in Iraq.</div>
+<div class="line">Odin was under Caraswell, Texas. </div>
+<div class="line">Zeus was at the Paphos Airport space in Cyprus, Greece.</div>
+<div class="line">Prometheus was under Wright-Patterson Air Base.</div>
+<div class="line">Erbeus, God, was Tower 22, and I&#x27;m not even going to try to pronounce the name of the air base in Jordan.</div>
+<div class="line">Hercules was under Cook Island.</div>
+<div class="line">And last but definitely not least is Asclepius...  I&#x27;m probably going to say this terrible. I&#x27;ll spell it for you though so you can look it up, because this one&#x27;s kind of more important, I think, than all the rest for you to know. It was A-S-C-L-E-P-I-U-S. And this was actually the god of medicine. This person also used, was known for using snakes in his medicinal alleged cures, I beg to differ, I would say, in his disease.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010021">01:00:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And there were all kinds of systems in the past that were in AI systems for the serpents themselves, as well as the god himself, and these were used to proliferate disease in humans. And disease of the planet, disease of anything organic, crops, you name it, this system was responsible for it at the time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We also have one more which is Hypnos, which is control of the mind. No surprise there, this one was located under Confucius temple over in China, and the name of the area was the alleged place where Confucius was from, which is Q-U-F-U-S is the name of the area.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Each one of these systems - don&#x27;t get me wrong, when the Abraxas were around, they were in full force.  They were definitely using each one of these systems to control humanity, and a lot of the different things here on Earth. Whether it be the sea, or the fish in the sea, or the skies, or weather control and those kinds of things. But they pretty much didn&#x27;t really have a whole lot of access to these things anymore. And if they did, it was absolutely minimal, and not for a long time. But they were definitely hoping that this Lions Gate was gonna give them back full access to all of these systems, so they could then torture U.S. again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010204">01:02:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, this is awful funny coming from a group who claims right now - both groups, the Order of the Dragon and the Order of the Black Sun - both claim that they can run this planet without the Aliens.  But yet they still want the Aliens to give them back technology on a special day such as Lions Gate. And I&#x27;m not really sure why/how that works. I mean if you want to be independent, that means you&#x27;re independent of those beings, people, demons, Anti-Source and otherwise, because you feel that you&#x27;re better than them, at least that&#x27;s what the Deep State feels. But apparently in this case, maybe they&#x27;re coming to some conclusion and the few brain cells that actually function in the common sense department of the brain, wherever that&#x27;s located, and maybe they said, we could sure use a demon up in here. And that&#x27;s what it appears they were waiting for all weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010302">01:03:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only this weekend, but they&#x27;re still continuing on today, hoping that this demon comes to save the day. They have been hacking like crazy, looking for any sign anywhere of the raising of this these two particular demons. The first one that they are looking for was a demon by the name of Astaroth. Astaroth allegedly was the &#x27;king&#x27;, so to speak, of the Lower Astral. He was also responsible in many ways for the management of Hell, or all of Anti-Source&#x27;s assets.  He even managed life itself throughout the Universe, when the Dark Ages were in force. Therefore, he had a lot of control over the dark Soul Planes. He had a lot of control over a lot of the different planes.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The other demon that had a lot of control was Mammon. Mammon controlled a lot of different aspects of human life and you can look up this on the internet.  This isn&#x27;t just for humans, This is actually throughout the Multiverse. Now, the reason why they had so much control in the past is because they had access to a few things that allowed them to manipulate beyond time and space, and go all the way back and do manipulations throughout the past, go all the way forward and make manipulations in the future, based on past events or based on their knowledge of being able to see things in the past, present, and future.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010501">01:05:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Astaroth is also known as the &#x27;king of knowledge&#x27;, the &#x27;knowledge giver&#x27;, loves to talk about his history, loves to talk about where he came from, all those kind of things. Unfortunately, there is no more Astaroth or any Mammon. However, there in the past was placed a lot of standing orders for such a time when we were transitioning into the Light Age, and we managed to gain control of - or full 100% Source Direct Current of - the Lions Gate, which many of you know falls on, or peaks at, August 8th every year on August 8th - can&#x27;t talk today - every single year.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, this year the Deep State believes that this really started ramping up several days ago because they&#x27;ve been looking for all kinds of signs of Astaroth&#x27;s return, which they were under the impression was going to happen for some reason.  Now, Astaroth is actually known for inhabiting many different human bodies over the years, and the most recent one that at least I am aware of, that was fully inhabited by this being walking the Earth, was one of the Parents I refer to as the Dark Prince. This man was Egyptian, a white-skinned Egyptian, and he roamed the Earth for a very long period of time. And would have been more closely associated with the Order of the Black Sun, that coven would have been under his tutelage there. Maybe that&#x27;s why most of the operatives were running around looking for this guy, to no avail.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010652">01:06:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I also know that the Order of the Dragon, believe it or not - I have a funny story here, but that most of them don&#x27;t even know.  At one point in time, Astaroth - after God left Solomon due to his misdeeds - actually became Solomon. What I mean by that is Astaroth inhabited the body of Solomon. Therefore, whether the Line of Solomon, also known as the various colors of the Order of the Dragon worldwide, are actually descendants of what we refer to as a demon, or a very high-ranking Lower Astral being, even higher believe it or not than Lucifer. So that&#x27;s where their alleged power came from, because they became his family, so to speak, and he would grant them all kinds of access to things that they should have never had access to. But upon the leaving of Astaroth, let&#x27;s just say, Astaroth, in all his powers that he granted to them, went away. So they were really hoping for this being&#x27;s return over the weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010808">01:08:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, there&#x27;s a little bit of a problem with that, because Astaroth cannot appear in the Third Density without a body to inhabit. Unfortunately on their side - as we talked about last week too - they don&#x27;t have anybody that can have uhh, that has the right DNA, the right body, the right soul to switch out, in order to get an Astaroth walking around on this planet. They believe that if they did, then this being would absolutely grant them all the powers that they could ever desire on both sides. I&#x27;m not sure... why, but Astaroth is smarter than them. I mean, I know that&#x27;s a shocker to you guys, but he is, or he was, I should say. Because he - or even the AI version of him - was trying to find a Melchizidek over the weekend, that would allow itself to be, or it could overpower, and allow itself to inhabit that body. Now that was a complete and total failure.  That did not happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010929">01:09:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So today they&#x27;re a little bit perplexed as to why he didn&#x27;t come back, when he said he was gonna come back. I don&#x27;t know if they had this conversation in the past, or this is some knowledge that was passed on generation after generation, who knows? So as of this afternoon, they&#x27;re actually looking to do a ceremony. They have one planned and they are just looking for someone that has the right DNA, and they feel if they do this ceremony that this thing - that is no longer in existence, in any plane, anywhere - is going to come back.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">If they can&#x27;t get an Astaroth, maybe they can get a Mammon, I&#x27;m not sure, but that didn&#x27;t work out that well either for them. However, we had standing orders there as well. We&#x27;ll talk about that in a second. So I guess at this moment they haven&#x27;t found anybody that qualifies to do this ceremony that is either so close to Anti-Source in DNA that that would work, or so close to Source in DNA that that would work. So if any of you are bored and you have nothing to do this week and you would like to see what it feels like to have a demon up in there, give the Deep State a call, they&#x27;re desperate at this point - I&#x27;m only kidding [laughing] - that was an absolute no for me, but no, I just had to make a joke of it, because they are that ridiculous right now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011100">01:11:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, let&#x27;s talk about areas that would have been affected, probably even some negative energy and those kind of things over the weekend, based on some of the standing orders:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- One of the places would be the Church of the Holy Sepulchre in Israel.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- And this is an interesting one if you have a chance to look it up, it&#x27;s called the Christ of the Abyss, it&#x27;s actually a statue underneath the Mediterranean Sea. And apparently they put this there to actually show where the site was that they would be looking for, I&#x27;m not sure, and why a Christ statue? I mean, nothing these people do makes any sense anyway.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- We also have a - off of the coast of Sumatra Island - we have what&#x27;s called a sunken mountain is what they call it over there. It&#x27;s an underwater mountain, You can look that up.  These are interesting things about our world. It was another location that would have been affected.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- Let&#x27;s see... We also have pretty much underneath the entire area of the Lucayan Islands, and I guess more specifically San Salvador Island in the Bahamas. And there was a couple of different statues there, or different historical sites, one of them is actually called the Divine Savior of the World.  Yeah, I don&#x27;t really think so. When I think of Mammon and Astaroth, that&#x27;s not what I&#x27;m thinking of.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- There are some caves in Nassau, the Bahamas, that are kind of near Love Beach, on the island of Nassau.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- In Iceland, we have the Kerid, K-E-R-I-D, Crater Lake. It is also in what in English means &#x27;the heart of Iceland National Park&#x27;.  It&#x27;s a very interesting place, really pretty lake, if you have a chance to take a look at it. It&#x27;s probably even prettier now that we don&#x27;t have demon junk underneath it, so that&#x27;s nice.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- In Oldie but a Goody, it&#x27;s not called Thule Base anymore in Greenland. It&#x27;s called something that I guess the U.S. Space Force took it over and renamed it some name that I&#x27;m probably not gonna have the brain space to pronounce this way doing the news.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- So we also had the Plaza Francia. [Buenos Aires, Argentina]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- We had some place here in Venezuela in Caracas called the - I&#x27;m going to try to say this in my worst Spanish ever - Los Proseres.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- We also had another area that you, in the Mariana Trench, it&#x27;s called the Abyssal Zone, it&#x27;s an abyssal zone which defines how deep it actually is, and the name of the area is called the Challenge Deep. So that&#x27;s an interesting look.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- Also went back to Mount Everest, kind of on the backside of Mount Everest this time, been there so many times.  That must be a favorite place of demons and Lower Astral beings to put junk. Now we&#x27;ll have the whole Deep State trying to climb it. That&#x27;s wonderful.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">- We also have the Hercules monument in Germany, which is really creepy looking, and the Brandenburg Gate, also in Germany, which you&#x27;ve heard of.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s see, now. These were all the places we went on Saturday, trying to clean up any kind of standing orders for any new junk that had appeared based on these standing orders.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011442">01:14:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, Next. Other ways that Lower Astral beings would control the Upper Astral, so that would be the Omegaverse beings trying to control the Alphaverse. Also trying to control, at the time, Alpha AI. And these things were not only in computers, they were not only throughout the Multiverse, but they were also in existence throughout your person. How did they affect your person? Now, if you&#x27;ve been kind of in the spiritual world for a while, meaning you&#x27;re learning, you&#x27;re awake and aware,about the planes of existence and those types of things, then you&#x27;ll probably know that, for some reason, the Astral Plane is a negative. In other words, it looks like the opposite of what the actual Physical Plane looks like, but everything that&#x27;s in the Physical Plane is also in the Astral Plane.  Astral Mirrors of Delusion, they were able to actually control a lot of what happens in the physical world, which was in turn connected to a lot of these Greek god systems, or Abraxas systems, that were able to have some access to those mirrors. Now the ultimate access to those mirrors would have been attributed to Astaroth.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So did the Deep State have access to these mirrors at one point? I would say limited access on an orders-only basis, from &#x27;on high&#x27; in their world. And these mirrors of delusion or distortion were not only for the Astral Plane, they were actually for all planes, including blocking you from traveling to the Soul Plane.  So were these mirrors fairly well disabled until this weekend? Yes. Did they try to come back and reinstall themselves this weekend? Yes. Did the Deep State think that this was a gift from the gods? Probably. But they didn&#x27;t last very long, and they were all gone pretty much by Sunday afternoon, But not to say that they didn&#x27;t cause any kind of disturbances or anything in people because they very well could have based on standing orders from beings that are no longer with U.S.. It&#x27;s not the Deep State actually doing it, it&#x27;s actually coming from a standing order for the time when Astaroth was planning on coming back to this planet, which didn&#x27;t happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011722">01:17:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the Mirrors of Distortion - to explain to the Deep State what they are, because they don&#x27;t seem to know what they do, or what they did - they were mainly controlled by Anti-Source. They were placed there to cause, or allow for, a control by beings much higher than any human that ever walked this planet, bloodline or otherwise. Did they maybe see payment systems that were in there at one point? Possibly. But that was, again, just to carry out orders on things that they couldn&#x27;t do remotely through an AI system, like create wars that would cause disturbances, which would then feed fear in subconscious and conscious memories, which would then create trauma, which would then allow for Mirrors of Delusion to gain more power, so that they could control your Emotional Plane and your person.  It was not only for people, it was also throughout the Multiverse for other purposes, and in other constellations and other star systems so that they could manipulate their Omega-2 system, which populated throughout the Alphaverse at one point in time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011842">01:18:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Speaking of populating throughout the Multiverse at one point in time. We figured out something very interesting in the last 24 hours. I know you&#x27;ve heard of Oracle Systems and you probably know Oracle Systems as a CIA-run, Deep State, banking system software, along with a few other softwares. We also talked about the Oracle Systems and their Quick File System or QFS everybody thinks is the quantum financial system - but it&#x27;s not, especially in the operative world. But there is an actual base root Oracle System that existed throughout the Multiverse.  It was originally placed here on Earth and also a backup system on Mars, and the reason why it was placed there was to populate and create - originally create - balance throughout the Multiverse. Meaning, Alpha had its platform and Source had its platform here on Earth, while the Omega system also needed its platform here on Earth. It really wasn&#x27;t a whole, I would say it wasn&#x27;t really entirely functional, but due to its location on Earth, this time of year during what we call Lions Gate, it would actually... not normally activate, but this year is different because of all the Astaroth standing orders that were in place for his impending return. So the Oracle is actually a giant gold, black gold ball, that exists within Earth and it&#x27;s one that we&#x27;ve talked about before on this channel. It actually extends from Malakoff Caves all the way over through Wyoming at its height, that&#x27;s the top of the ball, but the ball is much larger and goes much deeper into Earth. Turns out that a lot of the operating system for Astaroth and its access, or that being&#x27;s access and Anti-Source access to Omega-2 on this side of the Multiverse came through that giant gold ball under Yellowstone Park. It&#x27;s probably also the reason why we&#x27;ve seen the Deep State there hundreds and hundreds of times trying to see if they could gain access to Oracle. But alas, Oracle itself was only accessible by its managers, none of which were human. You&#x27;re talking about Marduk, Astaroth, Artemis, the Red Queen, Lucifer, these are higher ranking Lower-Astral beings. Did the humans at one point have some limited access to the Oracle to utilize programs that were based on standing orders that they would receive after meetings that would happen annually?  Yes, minimal orders. Possible money would come through - whether they knew it or not - through this giant ballast. So that was the location of Oracle One. The Oracle also would do an analysis of not only things that happened here on Earth, but also throughout the Multiverse, and it would ensure the survival of Omega no matter what happens, meaning no matter what we install, no matter what we change, no matter what we remove. So that is something that had to change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012237">01:22:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The next thing that also worked in conjunction with the Oracle would have been the gate - or the actual original Source Gate, and the direct connection to Source, and a piece of Source that was located on this planet, also where the flower of life was, at the Iran-Iraq Gate. We&#x27;ve talked extensively about this over the last couple of years, because it is so important to Earth, and there is no other place like it on Earth. But during the time that this Oracle, so to speak, was placed on the other side over near Yellowstone Park, that is what created the second part of the Lions Gate. So that originally, when we were in a balanced universe, you would have both a Dark open gate and a Light open gate at the same time. However, several thousand years ago, probably more than a hundred thousand years ago, around 250,000 years ago actually, is when Astaroth actually put the, let&#x27;s just say, the overlay over that gate there, which was fixed a couple of years ago.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012356">01:23:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">When that overlay was there, then the Dark had both gates. And that was part of the reason why the Deep State, I guess - which really wasn&#x27;t for them, it was actually for Lower Astral beings - but they said that they owned the Lions Gate completely. They wore it like a badge of honor that we were unable, that we were, and Earth was not able to connect directly to Source during this time of year. Well, that is no longer the case. So there was a lot of difficulty that was created over the last, I would say, even few weeks based on this being trying to come in, because it had planned on coming in through its overlay over the gate in Iran and Iraq. What that did was, any bit of it and its replicated AI versions of itself, were trying feverishly (as we talked about last week) trying to get into any person, or at any person, or trying to infect any person, so that it could actually be present on this planet. And if it had its way, it would have been here on this planet millions of times. But it didn&#x27;t exactly work out that way, and as it had no place to go, and as we were doing sweeps and cleaning the planet, that left very little here - eventually - and only a little bit of an uptick over this weekend when it started looking for places to go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012531">01:25:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I would say pretty much we&#x27;re out of the woods on that one, I hope. Now that Oracle is no longer oracle - meaning it doesn&#x27;t belong to them anymore - it now has been changed so it belongs to the Golden Age, and there&#x27;s been a lot of changes in that realm in the last few days to ensure that we don&#x27;t have any other standing orders, surprises, anything held in pockets of time, or anything like that which is going to affect U.S. anymore. But interestingly enough, we&#x27;ve often talked about U.S. having two Lions Gates per year, which we still should have, but both of them will only take place now over on the Iran-Iraq side. So we won&#x27;t be having another Lions Gate open on this side of the planet, which is pretty much making the Deep State very upset.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the reason why, to make a long story longer, I mean this is all really good information for you to know anyway, but this megastructure in Earth - Oracle, you would consider it as very similar to the Moon megastructure and how that worked, and they worked oftentimes together as well to increase the power of Omega-2 on this side of the Universe.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In the past, since the moon&#x27;s systems were pretty much disabled, we didn&#x27;t see a whole lot coming from the Oracle in the last several months to several years - or a few years I should say, since these were things that were being worked on. So another positive change for U.S., and which is going to lead to further development, and has led to further development of the Golden Age program here on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012727">01:27:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As for the Deep State, because they believed this alignment began yesterday, they promised everybody - all of these people, pseudo-CIA-made or Black Sun-made terrorist groups, and all of these different countries - that they were going to get money today. It&#x27;s created an enormous amount of turmoil in the world today. Treasury didn&#x27;t get any money, there&#x27;s no leveraging against war, old deeds such as the one for Iraqi oil or, other things they were planning on getting. They were also planning on getting some actual money 0, M1, M0, which isn&#x27;t compatible with the financial system.  So even if it did show up today, it would have showed up in Omega as a debt, and they still wouldn&#x27;t have had allocation numbers, and allocation numbers for M0 are not compatible anymore, either, anyway. So they would have lost all the way around.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012830">01:28:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But that doesn&#x27;t stop the SSP from still wishing on a demon and hoping for someone&#x27;s return, so that they can actually get paid and start wars, and do all the things that they love to do. Did they get any standing orders from Astaroth or Mammon or anything that came through a system somewhere over the weekend? No. Were they able to detect the presence of probably an uptick and an increase in Dark energy on this planet for a while there? I would say yes they were. Did it disappear most of the time, but as fast as it came? Yes, it did. And pretty much there&#x27;s no more Greek God systems to worship, so thank you so much, France, for your Greek God dedication.  It didn&#x27;t help you gain any access for the Deep State to any system there or elsewhere, and I&#x27;m sure they were hoping for that. And we did not have the return of Astaroth, which they&#x27;re still looking for a viable candidate that&#x27;s on their side for that thing to crawl up into. But I don&#x27;t think that&#x27;s gonna happen here. I don&#x27;t think - I know that&#x27;s not gonna happen either. Not on our watch anyway.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And that was pretty much the events over the weekend. That&#x27;s a lot of information to go through for a Monday news broadcast, I know. But I appreciate your patience, once again, for getting the news out a little late today. Thank you so much. And you all have a wonderful rest of your Monday or Tuesday, if that&#x27;s where it is where you are, and we will see you again on Wednesday.</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=ycmy_Pef4_s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
