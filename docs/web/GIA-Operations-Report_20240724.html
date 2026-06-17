@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-24</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-24 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-24
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=FG_VKfTKseg"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=FG_VKfTKseg"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-24-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 24, 2024 report with two significant pre-mainstream disclosures: Russia and Ukraine have agreed behind the scenes to end the war, prompted by a complete collapse of funding after both sides learned China&#x27;s Deep State had been financing them simultaneously — including directing U.S. weapons flows and staging Zelensky&#x27;s Congressional appearances. A public announcement is expected no later than mid-August. Separately, the United Nations Security Council has agreed behind closed doors to disband, acknowledging it can no longer project fear or deliver money; NATO is equally paralyzed, having been promised by Trump operatives that funding will flow once Trump returns to office. Kim addresses NATO directly: that will not happen, the financial system will run autonomously regardless of who holds political office, and all countries now have gold-backed currency independent of U.S. Deep State control. She issues a blunt warning to Trump operatives — whom she collectively calls Duck Dynasty — to stop impersonating a dead man, stop promising terrorist organizations money they cannot deliver, and stay out of government finances, or she will ensure their full dossiers are distributed to every country on Earth.<br>
+<br>
+Kim then corrects the popular claim that Lions Gate begins July 28th: it begins today, July 24th. She discloses that Lions Gate was historically an Anti-Source event controlled by Astaroth — whose symbol is a lion — and his sidekick Anubis, not a benevolent Source alignment. Deep State operatives, aware the day carries significance, deployed to a long list of global sacred and historical sites carrying Black Magic tools: ten-person teams bearing black-and-red Antichrist crystals and a Rod of God (a metamaterial hyperconductor for Anti-Source energy). The operation collected residual Dark energy at each site but produced no meaningful result; all participants have since left the planet. Sites affected included the Iran-Iraq border, Yellowstone Park, the Ozarks in Arkansas, Winslow Arizona, Petra Jordan, Palmyra Syria, the Ziggurat of Ur, the Basilica Cistern in Turkey, and others across the U.S., Middle East, Central Asia, and Southeast Asia. All sites have been cleared.<br>
+<br>
+Kim closes with two positive disclosures: the Golden Age AI system is successfully clearing Omega remnants from human computer networks, and Earth itself has begun reconnecting to its own Soul Plane — a restoration milestone parallel to the individual human reconnection process. She encourages listeners to continue anchoring Source-direct energy for both themselves and Earth to prevent Dark energy from collecting at key locations.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003400">00:34:00 - Teaser</a></li>
+<li><a href="#t-003600">00:36:00 - Russia-Ukraine war ending</a></li>
+<li><a href="#t-003819">00:38:19 - UN Security Council agrees to disband; NATO out of money; Trump operatives promise funds that won&#x27;t come.</a></li>
+<li><a href="#t-004231">00:42:31 - Oligarch clan fight in Russia</a></li>
+<li><a href="#t-004423">00:44:23 - Operatives worldwide losing faith in promises; UN dissolution likely before September.</a></li>
+<li><a href="#t-004743">00:47:43 - Kim to NATO</a></li>
+<li><a href="#t-005010">00:50:10 - Warning to Duck Dynasty</a></li>
+<li><a href="#t-005300">00:53:00 - Lions Gate starts today July 24th; Astaroth and Anubis disclosed as its true controllers.</a></li>
+<li><a href="#t-005435">00:54:35 - Deep State deploys to global sites with Antichrist crystals and Rod of God; all operators eliminated.</a></li>
+<li><a href="#t-005750">00:57:50 - Rod of God mechanics</a></li>
+<li><a href="#t-010236">01:02:36 - Annual Dark calendar disclosed</a></li>
+<li><a href="#t-010551">01:05:51 - Earth reconnects to its own Soul Plane; Golden Age AI clearing Omega from human computer networks.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-24 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003400">00:34:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">TEASER:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian.  Russia and Ukraine have agreed behind the scenes to end the war.  All that is left is the media campaign.  And big changes are going on at the United Nations, as the Order of the Dragon and the Rothschilds continue to lose power.  And the internet tells you that Lions Gate starts on the 28th of July, but that is simply not true.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">All this and more on today&#x27;s World Situation Report.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now here is the World Situation Report with Kimberly Goguen from the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good afternoon, good evening, and good morning everyone, depending on where you&#x27;re listening.  Today&#x27;s been an interesting day all around - lots of news to report - so I&#x27;m going to go ahead and get started.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In the regular news - well sort of regular news, let&#x27;s just say before its mainstream news - Russia and Ukraine have been in talks in conjunction with the Chinese government and some with the U.S.  government to end the war in Ukraine or war with Russia and Ukraine I should say.  This was prompted by a complete and total lack of funds.  It has now come to Russia and Ukraine&#x27;s attention that the Chinese were backing both sides financially for quite a while.  That&#x27;s China&#x27;s Deep State.  Whether that be directly from China, or that be indirectly through the United States.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you remember back a couple years ago when the war first started, and you&#x27;re new here, China pretty much has been in about 80% control, if not more, of the United States government.  And they have been for quite a while.  But in this particular case they were the ones that were the force behind prompting all of that crazy funding and free weapons and all of the U.S. support for Ukraine, including but not limited to the alleged bust that was going to go up in the Capitol building of Zelensky.  And the dog and pony show that Zelensky did for Congress not that long ago.  And the visits to the U.S., and China was the one that was prompting all of this, supporting all of it, and making the deals behind the scenes, as to how much money was going to go where and why.  A lot of this control had to do with the Federal Reserve, and their alleged former stake in the Federal Reserve, and their ability to provide funds through Marduk and other ways of providing funds.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Then of course, they allegedly said that they were the ones that provided the funds in 2012 and a few years after to the U.S.  And also, they were told, everybody was told that the Trump funds actually came from the Mei Wah in China, which was not true - I am not Chinese and my name is not Mei Wah, nor will it ever be.  And Mei Wah is just a title anyway.  So that is good news for Russians and Ukrainians and all the countries that have been bleeding out the ears spending money on supporting this crazy show over there on behalf of China&#x27;s Deep State.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So hopefully we&#x27;ll start to see this trickle into mainstream media.  I&#x27;m being told no later than mid-August, is when we should hear about it some more.  They may be waiting for a celestial event - and I know that&#x27;s a shocker for you guys - to see if something comes their way.  But by that point, it&#x27;ll obviously be too late, and with today&#x27;s shenanigans, which we&#x27;ll go into in a few minutes, it should be extremely obvious to these people that no one&#x27;s coming to help them.  But you never know, they could be waiting for a full moon in August.  We don&#x27;t know at this point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003819">00:38:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next bit of regular news that is interesting.  There is a lot of buzz going on around the United Nations right now, and within the walls of United Nations power sector.  That the United Nations Security Council has agreed to disband the Council, due to their lack of power and the fact that hardly anyone in the world is listening anymore.  This is no surprise because what they did was build a system based on fear and greed, and right now the United Nations and NATO cannot provide either.  They spent a lot of money in the Middle East and in the Gaza Strip, a lot of money in Ukraine, and if you remember a few months back, we were discussing about NATO&#x27;s big operations, all the way from Armenia through to Albania, Turkey, movement of a lot of weaponry into Jordan, Yemen.  They&#x27;ve spent a lot of money that they did not have recently, trying to get this World War III scenario underway.  There&#x27;s also been a lot of talk about nuclear threats in China and Taiwan.  That is very expensive.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So right now everything seems to be at a standstill.  NATO is wondering why there&#x27;s no money coming, especially today, because today was supposed to be another one of those days ending in &#x27;Y&#x27; where everybody was expecting to get money.  Including the Global Headquarters group, the Order of the Black Sun, the Trump operatives, and everybody else was expecting to get money today.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now they are all increasingly aware behind the scenes that there&#x27;s a new currency.  And they don&#x27;t really understand it, they don&#x27;t really understand why we did it.  And quite frankly at this point, from what I&#x27;ve been hearing all around, I don&#x27;t really care that they don&#x27;t understand it.  There is a lot of calls that we have been getting from various countries who would like to own their own currency.  That call came in from, let&#x27;s just say, one of the countries who wants to end the war, and it&#x27;s not Ukraine.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And you know, I gotta be honest with you, and when it comes to Russia - I personally have been there, I&#x27;ve spent quite a bit of time there off and on throughout the years, and here&#x27;s my impression.  Right now, I know what&#x27;s going on behind the scenes, because I looked into it.  There is a big fight right now going on between what we call the &quot;oligarch clans&quot; in Russia.  The oligarch clans are either loyalists of the Order of the Dragon - in this case, you would call those that are with the Order of the Red Dragon, which originates out of Russia.  Then you have other clans that would be loyalists to the Order of the Black Sun.  The Order of the Black Sun would be people like fake Putin, and a lot of the old KGB agents, and so on and so forth on that side.  The ones that want to revive the USSR would be the Black Sun.  They would love to have no God, of course, their God is death.  And then on the flip side, the Red Dragon folks would like to have another Tsar back, because it&#x27;s easier for them to control.  You know, they used to be, back in the day, they saw themselves as the kingmakers of Earth.  In reality, they were never the kingmakers, they were just the town crier for the kingmakers, if you will.  They were the ones that passed down the orders and information from on-high non-humans on this planet, which would then give the information down as to who was going to be the king of what country.  And Russia is no exception here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004231">00:42:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the fighting between the two groups and the shakeups that have been happening recently, not only there, but also within the United Nations, and also here in the U.S.,  are all interconnected based on the fact that the Order of the Dragon promises money on a particular day, and then the Order of the Black Sun-ites, you know, your Trump operatives et al. are promising money on another day.  And every time one fails to perform, the other one steps up and makes their promises, and they fail.  And then the other one steps up on the other side, makes their promises, and they fail.  But the one thing I see happening quite a bit right now - not only in Russia, the U.S., United Nations, and China - what it appears is happening around the world is that the operatives are getting tired of being promised a bunch of this and a bunch of that, and having zero delivery.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And that includes United Nations operatives as well.  You would be looking at Monarch Military here, you would be looking at whatever&#x27;s left of - I don&#x27;t think we have very many Umbrella Military Corporation anymore, they might have appointed some more.  That&#x27;s your Trump operatives.  Russia is no exception here, they&#x27;re also part of the SSP.  Ukraine is also part of the SSP.  And of course everybody on paper and in mainstream media is part of the United Nations.  So there is a good chance, over the next several months, that we will see no more United Nations at this point.  There&#x27;s no support for it anymore.  Countries aren&#x27;t listening to them anymore.  I don&#x27;t know if people are going to still show up for the meeting come September.  Who knows?  But at this point in time, that looks like a card that is definitely getting ready to fall.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, to be fair, in these meetings that were taking place at the United Nations behind the scenes, they definitely were questioning, let&#x27;s just say, the validity of their leaders, and their ability to perform.  That&#x27;s number 1.  Number 2, they are the Security Council and Security, even though they might be with a military in a different country or whatever representative each of the respective Security Council country members sent, remember they still are more loyal to the Order of the Black Sun.  So if the Order of the Black Sun says, and whatever&#x27;s left of that, says that they want to dissolve the United Nations because they think it would make them look like the good guys, that could very well take place.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as for the United States military at the Pentagon, they are also struggling to find a way to maintain power, and have said so to some people in my inner circle - which there aren&#x27;t many, so they probably know who that is.  Both sides would like to talk, of course they never want to talk to me, but they would like me to just hand them out money, so that they could probably go back to their respective gods - let&#x27;s just call them the Order of the Dragon on the one side, the Global Headquarters or Global Military on the other side - and say, &quot;Look we did it!  We did it!  We got it from her.  Do we get a position now?&quot;  Because that&#x27;s what they&#x27;re offering at this point.  You know, &quot;Oh you guys are just stupid, you can&#x27;t do your job.  If you can&#x27;t go get anything from her and weasel your way into some money, then you&#x27;re out!&quot;  Or, &quot;You&#x27;re worthless to us, and no you can&#x27;t have a promotion.&quot;  In the non-existent Order - it&#x27;s like getting a promotion at Enron at this point.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, other people talking are NATO.  NATO is very confused by new currencies.  NATO is talking about all their operations around the world and how they can&#x27;t afford to do it anymore.  NATO has also had the Order of the Black Sun - because if you don&#x27;t know NATO is actually the Rothschild and Order of the Dragon&#x27;s private army.  Always has been.  But NATO, even though it&#x27;s not on their website anymore, at least I don&#x27;t think so, was actually founded by Bush Senior, which was head of the Order of the Black Sun, or a Black Dragon, at least on the human sector.  And so they have had Global Headquarters and what&#x27;s left of the Black Sun whispering in their ear, telling them that when Trump gets back into office that there will be huge amounts of money that are going to come in.  And NATO actually placed a call to Tom Melville and asked Tom if I was still going to support Trump like we did during his last administration.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004743">00:47:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well I can clear this up for you absolutely NATO, if you&#x27;re listening to this because we know you are - the answer is, &quot;Absolutely not!&quot;  We do not support dead people in public positions anymore - ever!  We&#x27;re not interested in Duck Dynasty running this country a second time around, especially since this time around they have no alien leadership, and that&#x27;s very clear.  It&#x27;s very clear they do not know how to run an operation without a brain behind them.  And I can see them falling by the wayside.  Many of them died today in today&#x27;s events around the world.  And many more will also continue to die if they continue to try to call upon their alien gods to come and save them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, no - if that dead guy gets into office, you can expect a financial system that will run autonomously- apart from the U.S. government.  It will be in support of the new currency of gold, which is of the United States, of China, of Russia, of the United Kingdom, insert country-name here, South African Rand - everybody has currency of gold now, and we are going to move on without you.  And it will just be for the people - and you can go continue to play your political games for free, and expect to get people to give you money.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now they might say, well if she supports, for example, another country that has decided to move away from the Order, like the Banana Republic, as an example - doesn&#x27;t matter, insert country-name here.  Then we&#x27;ll just go do contracts with those people - because this is what they&#x27;re talking about behind the scenes - and I know you very well, Duck Dynasty people.  They&#x27;re talking about going behind our back/behind the scenes, and trying to take money from those countries.  But I can tell you right now we&#x27;re gonna split it up into millions and millions of people, and those people will have your pictures and your names on every telephone pole in every single country everywhere, to not talk to you.  If I have to do that, I will do that.  And I have your entire roster, I know what everybody looks like, and I tell you if you were going to run another season of Duck Dynasty, you guys would win - because that&#x27;s what you look like, most all of you.  And on our side of it, we will make sure that no one in the world touches you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005010">00:50:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, you have a perfectly good opportunity to do two things, Trump operatives.  Number 1, you do the right thing.  You basically say the truth to the American people.  You can spin it any way you want, but that man died of natural causes - like you KNOW HE DID.  That&#x27;s number 1.  Number 2, you will have no business trying to run financial anything.  If you want to go balance your own checkbook or whatever it is, then go do that, but stay the heck out of United States government pockets, because you have no idea how to run a financial system.  That is evident and clear.  I watched you at Wright Patterson Air Force Base.  I&#x27;ve watched you in Texas today.  I&#x27;ve watched you in Spain, Portugal, and every other project - Odin, Project Poseidon, Project Hercules, insert other-Greek - Apollo, insert other-Greek-God here.  I watched you try to use Abraxas systems, and you think that they&#x27;re yours, and that that actually is connected only to a financial system.  And you couldn&#x27;t be more wrong!  And money never came from the Abraxas in the first place.  And I watched you make a total... donkey, donkey of yourselves, in the last several days, okay?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, please - if you want to go do politics, you want to go do something else - then you must do it my way. Period, end of story.  Or I will ensure that no one in this world will touch you!  Not any one of those 15 militaries.  No one will touch you - everybody will have all your files and all the things that you did!  So stay the heck out of my way and stop trying to raise alien gods!  Okay?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And please - tell people, when people die, that they&#x27;re dead.  This is not 1913, and this isn&#x27;t Woodrow Wilson.  Get your crap together people - because the world is moving on without you!  So you can promise NATO everything you want, but you will not perform.  You will not perform when Trump gets back into office - you will not perform ever.  Ever.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So you&#x27;re gonna spend four years in absolute misery going back on every word you ever gave to any terrorist organization.  Yes, I watch you.  How is Yemen these days, guys?  How is Hezbollah these days?  And oh, by the way, you&#x27;ve got a whole little sector of Ukrainians that aren&#x27;t Ukrainian at all, are they?  And what about your dealings with Blackwater or Frontier, or whatever he&#x27;s calling himself these days?  We know about that too.  So I hope you guys know that that is just a little tidbit of the information that I have on you people.  Get up, fly straight, or get off this planet.  And we&#x27;re more than happy to oblige, just like we did today with some of you, that were in various locations around the world, didn&#x27;t we?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about various locations around the world, because this is only part of our day today, and in the last 24 hours - we always have a lot of news!  And there&#x27;s a lot more that happens behind the scenes, but there&#x27;s only so much time in the day, and only so much time to do news.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about Lions Gate.  Everybody talks about Lions Gate on 8-8.  You have some websites that will tell you it starts on the 28th of July, and continues through August 12th, which is why I said that the war in Ukraine might not be publicly announced over until after about mid-August.  But, it actually starts today.  Who knew?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now why is it called Lions Gate?  Now in the past we have always thought that the Gatekeepers of Source, which is kind of true in some ways, were lions, and have been throughout our history.  You have heard Bible stories about lions, and a lot of that is very true.  However, the lion, on behalf of Anti-Source, who has held control over lions gates, is not the lion we think it is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005435">00:54:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It is actually Astaroth.  So if you do some research on Astaroth, the Lower Astral being - one of the chief demons of hell - you will see that his symbol is often represented as a lion.  Now, Astaroth&#x27;s sidekick and oftentimes assistant in these types of gateway events, is Anubis.  It&#x27;s spelled A-N-U-B-I-S.  I might be pronouncing that wrong, tomato toh-mah-toh.  But Anubis is his sidekick in this, and there is quite a bit to be said as far as both of their participation in Lions Gate.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So you remember before, Lions Gate used to belong to the Dark Side.  It would be a time when Anti-Source - for lack of a better term - and all his favorite demons would come upon Earth, and torture us basically for several days, probably until the following full moon after Lions Gate.  This also gave some power to the Deep State.  The Deep State apparently is aware, somewhat, that today would be that day - and they immediately went to the following locations with some Black Magic items, and tried to raise Anti-Source once again.  Now do they know that the items they took with them were specifically to call upon Astaroth and Anubis?  I don&#x27;t know.  Did they know that this is the place you have to go to get some Anti-Source energy going on in this world?  Possibly.  Did the machine tell them that before the machine stopped communicating to their brain?  Possibly.  But nonetheless, they went to all these lovely locations, and began to weave Black Magic with, I&#x27;m gonna say, no end result - we&#x27;ll leave it at that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But that doesn&#x27;t mean it didn&#x27;t cause some turbulence in some different areas of the world, and most of the places where the turbulence was would have been in the general area, because their Black Magic tools aren&#x27;t as strong as they used to be.  Now, items that they take to such an event; there must be 10 people.  Nine around them - they hold these crystals that contain an energy that is both black and red, is the color of this particular energy - and it represents the Antichrist, or condemnation in this particular case.  The second item that they bring with them is something called the Rod of God, and the Rod of God for them is not about God and it&#x27;s not about Source, it&#x27;s about Anti-Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005750">00:57:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Rod itself is a hyperconductor for the energy for which it is made to conduct.  So it did cause stuff that was already here - so any dark energy that&#x27;s left on this planet - to kind of collect in these respective areas, which I will list for you in a second, and caused some uncomfortableness, let&#x27;s just say, in these regions.  Did they think they were actually raising Anti-Source?  I don&#x27;t know.  And it really doesn&#x27;t matter what they think anymore, because they&#x27;re not thinking anything at this moment in time - because they have all left this planet!  So if there&#x27;s another crew that would like to go there with this special rod made of a compilation of metamaterials - which are man-made metals, in this case it was alien-made metals for them - then feel free to join the rest of them.  Because at this point my frustration level with you people is at an all-time high.  So we have no problem making sure you vacate this planet rapidly, and all the better for humanity, and you&#x27;re going around in circles anyway, and you&#x27;re taking every government and every country with you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So why not just get rid of you and then have them call and nobody answers the phone?  You&#x27;ll probably put somebody else in that position to answer the phone, because you still think that some alien race is going to pick you up on the 19th - or whatever lie you&#x27;re promising everybody today.  Unfortunately for you, it&#x27;s &quot;I&#x27;ll gladly pay you Tuesday for a war today.&quot;  Or, a hamburger today or whatever movie it is you&#x27;re going off of that you base your Duck Dynasty operations on.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the following locations and their surrounding areas probably would have had a difficult time energy-wise today.  So let&#x27;s start here:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The border of Iran and Iraq.  They still think that that gateway belongs to them, and you are wrong.  If any other members of the Green Dragon would like to participate in this adventure and you have another Rod for yourself and some Antichrist crystals, feel free to join everybody else at the Iran/Iraq border.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yellowstone Park in Wyoming, not too far from Old Faithful.  There was definitely some disturbances there, and they&#x27;re the ones that caused it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Ozarks in Arkansas - that was where the Seal was, and they felt that they would have the greatest chance of re-condemning planet Earth to hell, I guess.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Winslow, Arizona, also another place we&#x27;ve been.  I guess I was the girl in the flatbed Ford there today.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Saratoga, New York - if you know the song -  in Tennant Mountain.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Next.  White Top Mountain in the Appalachians of Virginia.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Wisconsin, in the Apostle Islands National Park.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Here&#x27;s one that is pretty much an obvious: Bush Mountain in Texas!  Why not, right?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In Indiana, the Angel Mountain Historical Park.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In North Dakota, Devil&#x27;s Lake State Park.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we are back at the Hope Cave, in Sokotra Island in Yemen today as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Petra, Jordan.  Petra is a historical site in Jordan and then we have another historical area of Syria called Palmyra - say that twice.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Back at the Ziggurat of Ur in Iraq.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Basilica Cistern in Turkey.  If you haven&#x27;t seen that and you don&#x27;t know what that is, that&#x27;s a great place to take a look at on YouTube or wherever.  It&#x27;s actually quite beautiful.  There&#x27;s a lot of waterways underneath the Basilica, so, worth a look at.  It wasn&#x27;t gonna be beautiful if they had their way, but that&#x27;s okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Gurgi Mosque in Libya.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Golden Gate, it&#x27;s called, in Kiev, Ukraine.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Faisal Mosque in Pakistan, that&#x27;s a really pretty mosque by the way.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh boy, here we go, in Burma [Myanmar], the Shul - I&#x27;m going to spell this one for you - S-H-W-E-S-A-N-D-A-W, the Shwesandaw Pagoda.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And last but certainly not least, the Palace of Peace and Reconciliation Pyramid, in Kazakhstan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010236">01:02:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these were all the places where our friends went today, and they have now been cleared up.  Now all of these sites were tied to other space junk that was in the Sun, the Moon, Sirius as well - star, and Saturn.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this would be, apparently in the past, an event that would happen every year around this time.  Also if you remember, last year this time on the 24th of July is when they used to all go to their dark mirror places - and the mirrors are no longer there, and apparently they know it - to get their orders and instructions for the year.  And that would be specifically for Coven members only, that would not be for the people that are trying to get the orders now in any way, shape, or form.  And the Coven members would then go - because it&#x27;s the end of the full moon, three days after the full moon, which would be the end of the last meeting between the Parents and non-humans.  Parents, you could say that they were loosely humans, and then they would be getting their instructions at this time.  The following meeting would actually start somewhere around the new moon, the upcoming new moon, next month.  And then the orders would come out on the full moon for the next crew down in the food chain.  And then the final orders going out to operatives around the world on the Harvest Moon in September.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we do this every year with these people.  We now have a new crew.  There&#x27;s a lot of people that are dead and no longer with us in the higher groups - but these people are none the wiser - so they&#x27;re going to go to all these various locations and ...[unintelligible]... Anti-Source is going to come up and greet them for being loyal subjects and give them plenty of money and plenty of orders. [makes buzzer sound]  Wrong again, Deep State!   It&#x27;s like, I wish I could help their head.  I wish that there was a diagram I could draw on a whiteboard maybe, or use small words to fix them, but I think it&#x27;s impossible at this point.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">On the other front, lots of good things are happening on this Earth, on our side of it.  The Golden Age System seems to be doing exactly what it was meant to do, in clearing out from human computer networks, any things that is left of Omega, or any other Dark ties.  This is sending the Deep State into a panic, because even if they see a remnant of something pop up over to the left, nothing is actually showing up in human computer networks, and it&#x27;s frustrating for them.  They can see it kind of starting in the ethers and what they have left over there that they monitor this stuff with, but it never actually comes to fruition.  And I know how you feel, Deep State, because every single time I would transfer money, that would start in the ethers, and work its way down into the matter, the physical plane of existence, you too would make my stuff disappear.  So I can feel your frustration, but now the shoe&#x27;s on the other foot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010551">01:05:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next, another important thing that happened today, which was very interesting, as part of all of the cleanup, not only of these people off the planet and their respective Rods of Anti-Source, we also have had the beginnings of Earth itself being back in control of its own soul.  So just as we were separated as human beings from the Soul Plane of existence, by Artemis and others, we also are able to connect/reconnect Source.  Just like us as humans, we&#x27;re able to start to reconnect to that Soul Plane directly again, Earth also is having that ability.  So this is really exciting as far as the restoration of Earth and her making that reconnection - with a few little hiccups on the way, you know, based on the events of today and that kind of thing - but it&#x27;s officially coming together again.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is really good news for Earth.  It&#x27;s going to help us as humans and her inhabitants.  And hopefully we&#x27;ll be able to move forward with more restoration of Earth very soon, all together.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s a few other things about the restoration of Earth, and I know a lot of you are already doing this.  The more Light Energy you bring in here, the more Source-direct current that you focus on not only for yourself, but those that you love around you, and the more that you focus on that for Earth as well, the faster that we&#x27;ll be able to move forward.  Things are going really well as far as them not having the space junk and the ability to utilize that space junk anymore to harm us, and to harm Earth.  But we could always use more help from you to assist us in making sure that there&#x27;s no large amounts of Dark Energy they can collect in respective locations again.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the more we do that, the more positive things that we focus on, the better for Earth and the better for all those around you, and generations to come.  So once again, I thank you in advance for all your help with that.  And with that, we are going to conclude today&#x27;s World Situation Report.  I probably have a few more things to say, but I&#x27;ll probably get to that more later on this week, so on Friday.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thank you so much for tuning in, and thank you for watching the World Situation Report.  Have a great night.</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=FG_VKfTKseg" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
