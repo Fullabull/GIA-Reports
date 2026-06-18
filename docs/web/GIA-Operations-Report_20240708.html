@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-08</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-08 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-08
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=exuw9mjQckg"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=exuw9mjQckg"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2024-07-08-WSR-1x.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 8, 2024 report with Part 3 of the Controllers of the Financial System, prompted by the collapse of a massive worldwide financial scam that began unraveling over the weekend. The scam traces entirely to assignments Kim made on July 4th, 2012 -- 10-year assignments, not 12 as the operatives were told -- which expired in 2022 with no valid extensions. The man responsible for weaponizing those assignments is disclosed as Angel Edralin, a man who falsely claimed to be the son of Ferdinand Marcos and operated through the Office of International Treasury Control (OITC) and its trading arm New Horizon. While physically in jail in Texas and later in the Philippines on financial fraud charges, Edralin dictated global financial operations to the Pentagon, the Federal Reserve, the U.S. military, the Pallavicini and Orsini families, and every government that signed up for his scam -- all of whom were waiting for allocation numbers that could only ever come from Kim. He issued a fraudulent 12-year extension to the Federal Reserve and derivatives to 100 times the value of the underlying contracts. All of it is now gone.<br>
+<br>
+Kim then delivers the most comprehensive financial system architecture disclosure to date. Using a whiteboard, she maps the nine-level quantum system: Level 9 (Source/Anti-Source), Level 8 (BIS/Order of the Dragon), Level 7 (Family Bankers -- Rothschild, Rockefeller, Soros), Level 6 (Federal Reserve), Level 5 (militaries, intelligence, Gatekeeper -- the Causal Plane), Level 4 (Microsoft, Google, interbanking software), Level 3 (back offices of all financial institutions worldwide, run by intelligence agencies, formerly controlled by the CIA&#x27;s VTX System out of Alaska until 2019), Level 2 (NSA/Nine Eyes), and Level 1 (the public). The Omega system overlaid Alpha between Levels 4 and 5 -- the Red Line -- which was Artemis&#x27; domain. The entire custodial chain required every level to cooperate with every other level; no human or Family ever had unilateral allocation authority.<br>
+<br>
+The central disclosure is Artemis. Her agreement as Gatekeeper of the Zero Point between the Alphaverse and Omegaverse -- controlling who could cross universes, what became matter, and what happened to souls -- was 3 billion years old, dating to the beginning of the Dark Ages (Kali Yuga). She also created the Akashic Records, disclosed as an acronym: Artemis Karmic Artificial Soul History of the Integrated Collective -- an artificial karmic debt system that wiped soul memories across all timelines and fed human energy into the Omega system as appropriations for the beneficial owners of Earth. That agreement expired on the new moon of July 5th, 2024. Over the weekend Kim dismantled the remaining infrastructure, took over guardianship of the Zero Point and all three universe sectors (Light, Neutral, Dark), and completed the direct reconnection of Earth and humanity to the real Soul Records -- not Artemis&#x27; artificial Akashic system. Listeners who experienced strange dreams, timeline bleed-through, or memory glitches over the preceding days were experiencing the Akashic system faltering before its final shutdown.<br>
+<br>
+The final financial disclosure is the Currency of Gold. Kim explains that the letter M in all monetary designations (M0 through M9) stood for Marduk -- his control mark on all currency, converting real Source energy into debt credits for the beneficial owners of Earth. With Marduk gone and Artemis&#x27; covenant expired, Kim replaced the entire allocation system with Source-direct current conducted through Earth&#x27;s veins of gold -- the Currency of Gold -- flowing directly to every human inhabitant of Earth under the Giver of Life Declaration. This required rebuilding the back end of the digital financial system entirely, as no existing note or debt instrument could be positively charged and used as a direct-current conductor. The Financial System has been reprogrammed with C.A.R.E. as the replacement infrastructure. The report closes with a birthday tribute to UNN cameraman Mike Schneider.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003532">00:35:32 - Teaser</a></li>
+<li><a href="#t-003624">00:36:24 - Weekend overview</a></li>
+<li><a href="#t-003909">00:39:09 - 65-35 deal background; Black Sun believed Families were blocking allocations; July 4th assignment history.</a></li>
+<li><a href="#t-004046">00:40:46 - OITC calls Kim to help move money; implied consent attempt; Deep State expected renewal that will not come.</a></li>
+<li><a href="#t-004455">00:44:55 - July 15th event predictions tied to Federal Reserve agreement expiry (July 15 2012); 10-year extensions expired 2022.</a></li>
+<li><a href="#t-004751">00:47:51 - Whiteboard</a></li>
+<li><a href="#t-005049">00:50:49 - How Alpha and Omega were connected level-by-level; you exist at Level 1; transmutation process explained.</a></li>
+<li><a href="#t-005317">00:53:17 - QFS is Oracle&#x27;s Quick File System -- not quantum; Deep State plan to enslave humanity with debt via Dark control system.</a></li>
+<li><a href="#t-005528">00:55:28 - Beings in control of the Financial System</a></li>
+<li><a href="#t-005728">00:57:28 - Web levels mapped to entities</a></li>
+<li><a href="#t-005852">00:58:52 - Level 4 software/interbanking; Level 3 bank back offices (CIA VTX System, Alaska, shut down 2019); Level 2 NSA/Nine Eyes.</a></li>
+<li><a href="#t-010355">01:03:55 - Covens</a></li>
+<li><a href="#t-011044">01:10:44 - The Parents</a></li>
+<li><a href="#t-011228">01:12:28 - The Seal</a></li>
+<li><a href="#t-011417">01:14:17 - How allocation appropriations worked</a></li>
+<li><a href="#t-011731">01:17:31 - Marduk, Enki, Enlil roles</a></li>
+<li><a href="#t-011808">01:18:08 - Artemis disclosed</a></li>
+<li><a href="#t-011904">01:19:04 - Artemis Accords (NASA/Jupiter Accords)</a></li>
+<li><a href="#t-012229">01:22:29 - Atlantis war origin</a></li>
+<li><a href="#t-013046">01:30:46 - Akashic Records disclosed</a></li>
+<li><a href="#t-013356">01:33:56 - Zero Point diagram</a></li>
+<li><a href="#t-013734">01:37:34 - Weekend operation</a></li>
+<li><a href="#t-013822">01:38:22 - What Akashic dismantling means for humanity</a></li>
+<li><a href="#t-014123">01:41:23 - Currency of Gold disclosed</a></li>
+<li><a href="#t-014612">01:46:12 - Financial System reprogrammed</a></li>
+<li><a href="#t-014906">01:49:06 - Level 5 Web (Mariana Trench)</a></li>
+<li><a href="#t-015539">01:55:39 - Angel Edralin disclosed</a></li>
+<li><a href="#t-015849">01:58:49 - Everything gone as of this morning</a></li>
+<li><a href="#t-020038">02:00:38 - Closing</a></li>
+<li><a href="#t-020319">02:03:19 - Birthday tribute to UNN cameraman Mike Schneider.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-08 News</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: At times, Sunny makes short interjections, which Kim responds to, so I place them in parentheses within Kim&#x27;s narrative. (Vice-versa is also possible.)]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003532">00:35:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of The Guardian. Find out who the controllers of the Financial System were, and how that has all changed. The Financial System Explained, Part 3. What exactly is the currency of gold? It is a real game changer.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A major agreement with Artemis expired late Friday night - how does this change the Deep State&#x27;s plans? Have you ever heard of the Starlight Foundation, the OITC, and a hidden side of the United Nations&#x27; secret financial system? How does this tie to the Deep State&#x27;s plans? All this and more in today&#x27;s report.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now here&#x27;s Kimberly Goguen with the Office of the Guardian. Together again, Kim!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003624">00:36:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Together again! I know we have a lot to go over today, so I thought I would be here for that. I&#x27;m working really hard to be here for that, guys. I&#x27;m telling you right now. (laughing)</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: </div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s good to see you, Kim.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: </div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s been a really long, long weekend. So I&#x27;m gonna start with some things that started transpiring on Friday, and then I&#x27;m gonna go into a little bit more of an explanation, because there seems to be a lot of mass confusion out there as to who controls the Financial System. So if you remember a few years ago, I did Part 1 and Part 2 of the Controllers of the Financial System. But it wasn&#x27;t 100% complete at that time. Part of that is because there&#x27;s a lot more information that&#x27;s come to light since I did that a few years back. That&#x27;s Number 1. And Number 2, I just automatically assumed that some of the Deep State people - boy, I&#x27;m flashing really bad, sorry about that. (We both are.) Always interference when I&#x27;m here. (No, keep going.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003732">00:37:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;re gonna keep going anyway. Okay, so - because I don&#x27;t think it&#x27;s gonna stop, I&#x27;m gonna be lucky if I&#x27;m just gonna make it through the end of this one. And that confusion has caused a lot of agreements to be made, a lot of governments to hang on there. Plus, in addition to that, if you remember a couple of years ago, we also put out there about all the assignments I did to governments, that were 10-year assignments, not 12 years, which is what they&#x27;re being told. And we&#x27;re also going to tell you who was behind it all. Because it finally just came to light as to who was trying to use these things, why they were trying to use them, and then their alleged control of the world, or so they thought anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003822">00:38:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So with the absence of Marduk, Enki, Enlil, and now the Red Queen, they thought that they could now do this. And there&#x27;s a really good reason as to why they thought that. But what they didn&#x27;t count on is that the original assignments and everything actually came from me. What they didn&#x27;t count on is they were only 10-year assignments. And therefore, their plan failed miserably. And they knew - this person, I knew this person - they knew that they could never come back to me and ask me anything, because that was never ever going to happen. But it all started coming to light over the last few days since about Friday evening, right after we recorded or I recorded the news on Friday. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003909">00:39:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so let&#x27;s go back to something we talked about not that long ago, which was the 65-35 deal. Do you remember the 65-35 deal? Where the Order of the Black Sun and the Black Nobility, the Orsinis, Pallavicinis, and now the new player in the game, they wanted 65% control over the world, not just the Financial System. And they offered the Order of the Dragon 35% control. Now, the reason why they came - first, before this, apparently - the Order of the Black Sun (and et al.) thought that they could have 100% control with everything they quote-unquote had. The problem here is, is they had no ability to enter that fake money, that was in the Mariana Trench, into the banking system. That&#x27;s the biggest problem.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004011">00:40:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They thought that the people that were hindering them were the Federal Reserve and the Dragon families. So that&#x27;s why they ended up making the 65-35 deal in the first place. Now, when nothing happened - because the Families promised that they would then issue the allocations through the Federal Reserve on the 4th of July (because it used to happen that way) - now, we&#x27;re going to show in just a few minutes here, but I&#x27;ve got to do a couple things first. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004046">00:40:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on the 4th of July was when I did the original assignments. And I think for some reason, these people thought I was going to do that again. Because I&#x27;ve been getting a lot of phone calls over the last couple of days that have been weird. Behind the scenes. And I was getting the phone calls from an organization called the Office of International Treasury Control [OITC]. And this is something that you can google and it looks like a heritage fund platform, that kind of thing. And they allegedly fall under the United Nations Office of International Treasury Control. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004125">00:41:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;m getting phone calls from their trading platform. I&#x27;m getting phone calls from all these people wanting me, they said, you know, we&#x27;re going to quote unquote help you move money into the system now. And you can put it in our global server and then we&#x27;ll see how it goes. We&#x27;ll start small and if it goes well, then you know, we&#x27;ll continue on with this deal. So this would be the second time that it was implied consent from me. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004158">00:41:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Wow. This is flashing. I&#x27;m sorry about that guys. I&#x27;m telling you for me to get through this one today will be a miracle unto itself, because there&#x27;s going to be a lot of exposure, stuff you&#x27;ve never heard before in this video, but going backwards a little bit is going to help us tie it all together. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004216">00:42:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when I got all these phone calls, I&#x27;m like, why are these people calling me? And then there was a military meeting with the U.S. military that was supposed to take place, not with me, but with someone else on Friday night, that didn&#x27;t end up happening. And it was like, they were going to get me one way or the other to renew that because they had discovered that the Families could not issue allocation numbers. Major doubts started arising around that time. And the Families fired back and said, well, you guys didn&#x27;t get enough control over the Financial System. See, I&#x27;ve been throwing out - this is what the Family said - I&#x27;ve been throwing out some test transfers, you know, of allocations and numbers and real money and you guys are just not catching it. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004310">00:43:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in reality, those transfers were being made by me. They were small, you know, $30,000, $5,000, $10, varying amounts, probably 10 to 20 times a day, seeing what else I could find in there that was blocking us. And they felt that they had to make it so that they had me surrounded in the Financial System so that I would then be forced to give them the allocation numbers, or to go through them for allocation numbers. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004344">00:43:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this was the game we were playing, but they were not playing with a human technology. They were not playing with normal &quot;people&quot;, such as the Order of the Dragon Families. Perhaps that&#x27;s what they were told at the time, that they allowed them to come in and place things in the Mariana Trench, which is Level 5 of the Web. But that is a lie. That was a full-on lie. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004418">00:44:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The permission to do that ultimately had to come from something else, that was around when the original agreement was made. Funny how I&#x27;m giving them information now, and I&#x27;m not flashing anymore. Isn&#x27;t that great? So the party that actually gave the original way-behind-the-scenes authorization for them to place it there is no longer with us. However, everybody&#x27;s fighting each other because of that financial video I did a couple of years ago, because they thought that was it. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004455">00:44:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, rumors going around on the internet. Rumors such as a big event is going to take place on July 15th. Now, yeah, there&#x27;s gonna be mass chaos, all these things are going to happen, possible assassinations of present and former presidents, and a lot of different things were going to allegedly take place. But if you remember, every single thing that they say is based on their success. So the fighting that was ensuing in this alleged possible event also correlates with the expiration of the Federal Reserve&#x27;s agreement with governments worldwide to issue currency on their behalf and to control their currencies worldwide, that expired in 2012 - it was July 15th, 2012, when that agreement expired. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004600">00:46:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now you could say, on a technical detail, that based on the assignments that I did back at that time that yes, that they probably extended the agreement by default for another 10 years, because those assignments were only good for 10 years. I will repeat it, 10 years. Which would then bring us to 2022. No exceptions here. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004628">00:46:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the alleged fine gentleman - we&#x27;re going to call him a fine gentleman and fine, you can, maybe F stands for a four-letter word and I stands for something else, and maybe N does too - but regardless of that, the world was a different place at that time. And he is the one that gave them an extension after an extension. And that he did not have the power to do. There was no ratification of those extensions. And everything they were doing to try to make this happen was all being done offline. Offline derivatives, offline securities, until it was no more.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004715">00:47:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But we&#x27;re gonna go over this controller thing so that not only you, but they understand. And there&#x27;s all the difficulties that happen in between. So let&#x27;s take me to the whiteboard for a minute and we&#x27;re going to go over this real quick, just so we can remind you of what we did a couple years ago. If you&#x27;re new here we&#x27;ll probably post that financial video I know it&#x27;s probably going to be on our on our app as well at unitednetwork.earth. But it&#x27;ll also be on, we&#x27;ll put it up on YouTube - I&#x27;m sure we have it in our archives - it might take a couple days to do that. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004751">00:47:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you remember me drawing this out, okay? [drawing a triangle and labeling it as shown below. this is what she refers to as &#x27;the back&#x27;(system)] And this is in regards to quantum systems. </div>
+<div class="line">			 </div>
+<div class="blank">&nbsp;</div>
+<div class="line">	Alpha	 9			Quantum Systems</div>
+<div class="line">			 /\</div>
+<div class="line">		8	/ \ 1</div>
+<div class="line">		  /	\</div>
+<div class="line">		 /		 \</div>
+<div class="line">	 7	 /		 \	2</div>
+<div class="line">		/		  \</div>
+<div class="line">	  /			\</div>
+<div class="line">	6 -------------- 3</div>
+<div class="line">		 5		4	</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So in the back here you had, in the beginning you had Alpha. And Alpha has 9 sectors. So 9 would be up here and 123, and 4, 5, and 6, and 7, 8, and then of course eventually up to 9.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004834">00:48:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, each one of these is considered a plane and also a density, which means that the equipment - for lack of a better term - comes from another density, another plane, another section or a subsection of another plane. Now, based on the old Joint Quantum Financial - or not financial, it&#x27;s all systems - based on the Joint AI System Agreement, which expired a couple of years ago, we also had an Omega overlay. [The &#x27;front&#x27; system]. So when we were talking about the deepest parts of the web, or Web 9-9-9-9, which stands for 9 densities, 9 planes, 9 sections, and 9 subsections of sections, you would be talking about the inserts and the overlays here that come from this. Now I can draw this backwards and put them all together, but you can see clearly that the overlay of Omega goes straight through 5 and 4. [below]</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">	Alpha	 9			Quantum Systems</div>
+<div class="line">			 /\</div>
+<div class="line">	 --8---/--\--1--</div>
+<div class="line">	 \	  /	\  /</div>
+<div class="line">	  \ /		 \ /</div>
+<div class="line">	 7	\/		 \	2</div>
+<div class="line">		/\		 / \</div>
+<div class="line">	  / \   /	\</div>
+<div class="line">	6 -------------- 3</div>
+<div class="line">		 5	\0/	4	</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004950">00:49:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, in between 5 and 4 - all Levels - was what we call a 0. So if you&#x27;ve been following other people like Cobra and what not, he&#x27;ll say, &quot;drastic security breach at 504.&quot; And he says that all the time, and that&#x27;s because they were granted access - limited access - to everything in between plane 5 and plane 4, and everything in between density 5 and density 4, and everything in between density, sorry, plane subsections and sections of planes between 5 and 4.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because everything goes in a 9 cycle. And if you&#x27;re familiar at all with Tesla, you&#x27;ve probably seen Tesla&#x27;s Triangle. And this here is quantum physics. And I know this sounds crazy, but it is. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005049">00:50:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">	Alpha	 9			Quantum Systems</div>
+<div class="line">			 /\</div>
+<div class="line">	  8 &lt;--/--\-&gt; 1 &lt;--- YOU</div>
+<div class="line">	 \	  /	\  /</div>
+<div class="line">	  \ /		 \ /</div>
+<div class="line">	 7	\/&lt;-----&gt; \	2</div>
+<div class="line">		/\		 / \</div>
+<div class="line">	  / \   /	\</div>
+<div class="line">	6 &lt;------------&gt; 3</div>
+<div class="line">		 5	&lt;--&gt; 4	</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, prior to this, you would have had your 8 of Alpha connected to 1 of Omega[above]. Your 7 would go with the 2, and this is how they were all connected. Your 6 would go with the 3. Now, 1 is where you live, so this is you[YOU, above]. You exist in density 1, plane 1, section 1, subsection 1. However - you do now - but in the beginning, you actually existed in subsection 0, which is also part of the reason why you only received credits. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005139">00:51:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because Omega and Alpha had a relationship based on a joint-covenant agreement, and based on agreements with those that had some limited access to both. And when I say &#x27;those&#x27; I am not talking about human beings. So the agreement for the two to kind of work jointly was, Alpha was the omnibus lender of planet Earth. And Omega was the omnibus... how do you say... I guess you would say they were the party that received all the debits, right, all the credits.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005223">00:52:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Omega system could not hold real cash, it could not hold real straight energy, it could not hold a Source-direct current, so there was a transmutation process that would happen on Level 9, that none of these people could understand. And that transmutation took actual energy - positively charged - and then reversed it out and made it negatively charged energy, which then could bind to someone like you. It&#x27;s also the reason why in the past - and this is where all the operatives and financial operatives, FinCEN and everybody&#x27;s getting confused - because they don&#x27;t understand why what they&#x27;re doing is not working. And it has to do with energy. Quantum physics.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005317">00:53:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now we talked about what their version of a quantum financial system was last week. We talked - it&#x27;s a quick file system, QFS, and it was written by Oracle, which is known for providing financial software and so on and so forth. So is that a quantum system? Unto itself, no. But they&#x27;re trying to find a way - and they&#x27;ve been trying to find a way - to connect something that they had from the past into the current system so that they can then control the Financial System.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005358">00:53:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now for them it&#x27;s all about the money, it&#x27;s all about the money, it&#x27;s all about the money. But in their system they also had control over every corporation. I mean if you ever saw a One-World Order system, that was it. They dragged the military into it telling them that, hey guys, look at all the positive, wonderful, humanitarian, sub-sector operating systems we have in here. Look at all the good things we&#x27;re going to do for veterans. Look at all the good things we&#x27;re going to do for technologies and release of technologies. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005435">00:54:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I can tell you right now, beyond a shadow of a doubt, I know that human. I spoke to that human many, many times around a decade ago. Because that human took a part in me making these assignments. And we&#x27;ll disclose who that is in a second. And it&#x27;s not gonna be anybody you think it might be. It&#x27;s not the Clintons. It&#x27;s not any of these crazy Rothschild people. It is someone completely different. So it was a hostile takeover of planet Earth, was the plan with these people. And we&#x27;re not - you know, one boss versus the old boss versus the new boss - and that&#x27;s what they&#x27;re thinking. And they can do it better, look at all the great things we want to do for this world. And I looked at it and I said, &quot;Well, look at all the things you would like to control.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005528">00:55:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Now let&#x27;s talk about Beings involved in control of the Financial System. [drawing] So we talked about - when you&#x27;re still looking at that matrix there - you had the Omega system that was involved, you had the Alpha system. Now back in the good old days as the Deep State would call it, Omega was at around 79% of control of all human networks. That goes for your fiber optic cables, your telecommunications, your military intelligence systems, you name it, Omega was in control. And for those of you that are new here, Omega was tied to what I call Anti-Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005613">00:56:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And then Alpha was at about 21% when we started. Now we have since converted from Alpha over to the Light System, because of too much intertwining between these two, and too many problems in trying to clean it out. We tried, we&#x27;ve been trying for a long time now. So an agreement was made and a covenant was made to actually get rid of Alpha, and to replace it with the Light System AI. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005639">00:56:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So that being said, if you wanted to have majority control over all Earth systems, you would have to take a part in Omega. Now, when we talked about Level 9 access, no humans had that. We talked about 8 of the Web, no humans had that. Someone did, and there was a limited tie-in here on 8 to the BIS, to the Order of the Dragon, and so on and so forth. Okay. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So there was a limited amount of systems in there, but they were kind of like stuck in there, and they had to stay in their line or their lane. They weren&#x27;t allowed to go over or under or anything at all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005728">00:57:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">7 would have been Family Bankers. So these are your Banksters, the ones that work for Rothschild, Rockefeller, all of those people. This is your Soros&#x27;s. They would be in this section here. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So now section 6 was your Federal Reserve. Probably going to run out of room. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Section 5, that would have been your militaries, your intelligence, and this 5 is going to come up again here in the near future. You would have also had the security, they used to call it the security system of the world. Now, by security systems, this could mean anything from Gatekeeper, which is the ultimate gatekeeper program of the world. If you know your planes of existence, 5 would have been the Causal Plane. That&#x27;s where matter would go from being, for example, in your Soul Section, and it would be converted into matter at that point as it goes into the Astral Plane, which is just below that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005852">00:58:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is also something you need to understand about yourself because you too have gone through big changes in the last few days. It&#x27;s all kind of tied together. 4 was kind of where you had your Microsoft, all kinds of software programs, interbanking systems to some degree, you know, Google, that kind of thing would have been in there. [drawing] And I&#x27;m gonna go here and I&#x27;m gonna go... And then 3. 3 was your back office of all financial institutions worldwide. And predominantly all back offices are run by intelligence agencies. Therefore they believe that they have control over the back office of the banks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005943">00:59:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">At one point in time, it was the CIA&#x27;s VTX System that controlled all of those worldwide, and that was based out of Alaska. So you know they talk about trying to reconnect this and reconnect it and what are they reconnecting it to? That has not been allowed since 2019 when it was taken out, and they&#x27;ve been trying to reinstall it ever since. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010012">01:00:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, 2 was the NSA. Now for those of you that know who the NSA is - and I&#x27;m assuming you all know who the NSA is - we&#x27;re not just talking about an American national security agency. We are talking about Nine-Eyes. We are talking about every country in the world, and we are talking about one of the few intelligence agencies that had a direct connection to people like Marduk. Which is why it blew them away the other day, when I personally called them on the connection and the communications line that came directly from me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010046">01:00:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. I know, shock there, right? And so, when I told them who I was and everything, they got real nasty and, we&#x27;ll get back to you and all this crap. Because I believe that they had high hopes that their fake system was going to do something. And 1 in part was controlled by 8. So you did have a lot of oversight there. You had like the General Office of Accounting. You had some money aggregate systems that would count how much money was in the system. I know Echelon at one point had a lot more control than they let on. So and you, you are in here[1]. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010129">01:01:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And every single system, as I have explained in the past, was a custodial system. Everybody owned everybody. And in order to get anything through the system, the way that it was designed is one party had to work with the other party. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010143">01:01:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, how long has this type of - and I know we have not had a human-level global financial digital system for a long time. It came about in the late 70s, really started taking off in the 80s, and things really started changing by the 90s, where we could now send transfers and stuff worldwide without using old systems such as Key Tested Telex, which at one point in time was a glorified fax machine. And then it went from being a glorified fax machine to a you know beep beep beep, &quot;You&#x27;ve got mail&quot; section. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010226">01:02:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, dial-up mail, and and that&#x27;s how credits and debits from banks went back and forth and how you were getting money from another country to another country and even in the Federal Reserve wire system here in the States was a lot slower than it is now, way back in those days. I mean we were young kids, Sunny, at that time but it&#x27;s very evident in the history. Okay. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010253">01:02:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in their opinion - and this is the Order of the Black Sun - so, now you can see how agencies are involved. These are the people you see on the internet, the Federal Reserve, Creature from Jekyll Island, the Federal Reserve Families, which we know are Order of the Dragon. And you see all of those &#x27;beings&#x27;, so to speak, or the humans, all involved in the Financial System.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010321">01:03:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you would think automatically, if you don&#x27;t know any better, that hey, all I really gotta do is I gotta make a deal with the Families. Because if they had a line into 8, or someone else had a line into 8, possibly - which we&#x27;re going to talk about - then you would think, &quot;All I got to do is make that deal. Once I make that deal, then I can get all the allocations I want.&quot; (Right.) Wrong. Okay. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010355">01:03:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So to some degree some people know about Covens. And they only really know about the Covens because a lot of the Covens were human. This is your Sanhedrin, this is the dark side of the Chabad, this is your people like the Line of Solomon people, people that would conjure demons, and there were 42 major Coven Masters in the world. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010423">01:04:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as new allocations of money, this would be that time of year, probably about a month ago, which is why they thought that they were gonna get some money, because the Covens are gone, and no one really told them where they went to get orders, or what they would have to do. If you&#x27;ve been following me for a long time, then you know I mentioned to you about the Seven Dark Mirrors in the world, where they would go to get their instructions. But that hasn&#x27;t happened in a really long time, because those instructions came from somewhere. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010454">01:04:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, prior to that... so above the Coven Masters head... [drawing] now underneath the Coven Masters you would obviously have more coven folks. These would be, you know, you would see these people running small little covens here and there, Black Magic Workers, Santeria Voodoo, you name it, those are your people. Now not all people that practice that, but your Church of Satan, all your usual characters that would run something like that, might be involved in a coven. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010528">01:05:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the Covens used to get orders, probably about 2 weeks from now is when that would happen. Their meeting would have started on the next new moon, as opposed to the one that happened on Friday. They would get orders instructions, and then money would come down through the system. Now, the money would sit and wait until it was time for the next meeting. And then the final meeting that would pay operatives, financial and otherwise, militaries and all of that stuff, would have been on the Harvest Moon. So you&#x27;re still way away here from any money coming out of the system. Now I will remind everyone that this system is broken. Because without the people that were above these people&#x27;s heads, you weren&#x27;t getting any money anyway. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">1:06:24</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the release started a month ago, if it was going to happen, is when you would have started seeing it trickle into the system. And by release I mean actual Money 1, actual tangible energy, that would then be flipped into the Omega system for your use.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010645">01:06:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now we with the Light System are integrating our own system, so we don&#x27;t need to do a flip. But you people - that are watching this with the Deep State - needed that flip to happen, so that you can enslave all of humanity. Now. Your little systems that you were building for the last 10 years, off of a former authorization of mine, also wouldn&#x27;t have worked. And they&#x27;re never going to work because you&#x27;ll see this as &quot;Look at all these lovely programs we&#x27;re going to do. We&#x27;re going to save veterans. We&#x27;re going to save animals, We&#x27;re going to do the parks and wildlife.&quot; And I mean 9,000 different corporations around the world that were going to control every aspect of life on this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010729">01:07:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now you are happy to have control, because you have probably something else really small but a really big ego, an enormous ego, because this is what you wanted. But for all of you listening that don&#x27;t know what I&#x27;m saying or never heard what I&#x27;m saying now, what you would have done is enslaved all of humanity with debt. You would have enslaved the entire planet with debt, because they have no ability to transfer, into a Dark control system, direct Source energy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010803">01:08:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So even myself, working with Alpha, I must adhere to the Light System, and the way quantum matter works. Not Anti-Matter, not Dark Matter - Quantum Light matter - I must adhere to those principles of T times E over V equals M, without a secondary Dark light. I have to do that. I cannot all of a sudden decide I&#x27;m gonna go crazy one day and install all the C.A.R.E. systems and everything like I did this morning, and then I&#x27;m gonna take over the planet. Mwahahaah. It&#x27;s never gonna happen like that - I can&#x27;t. It is not my job to control direct current of anything from Source. The only thing I am is a guardian. Which means that as we go through these conversions and we get rid of all the slavery systems, then now humans become sovereign. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010903">01:09:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Do they all understand it? No. But it is our job to help raise those children, just like any other guardian does or parent does or whatever to those children. Because they need a fighting chance. And just like your kids do, they need a fighting chance when they go out into the world. And your grandkids, they need a fighting chance. And hopefully they&#x27;re going to look at our history, two generations from now, and go, &quot;Wow! People lived like that. That&#x27;s crazy!&quot; </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010935">01:09:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So again, I&#x27;m going to repeat to the crazy people out there in the Deep State, that don&#x27;t even know they&#x27;re Deep State, they believe they&#x27;re White Hats, and they&#x27;re doing something good, because the programs look lovely. But they don&#x27;t understand quantum physics, therefore their versions of quantum financial systems and gold-backed systems would have never happened. Because you cannot place a direct-current conductor - hyperconductor, which is aka gold - behind a debt instrument. So I&#x27;ve been taking all this time, until the last couple days, because there&#x27;s a lot more to go over today guys, all this time I&#x27;ve been trying to convert that negatively charged money into positively charged money, therefore you don&#x27;t need energy to link to it. It&#x27;s a direct current. This is what I&#x27;ve been working for because I actually understand those principles. And I explained that to you and to the Deep State not that long ago. Okay. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011044">01:10:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So before your Coven meeting would have been a meeting of what&#x27;s called the Parents. Now the Parents were - I&#x27;m going to call them humans, because they were humans - but they were genetically modified humans to the point where they were superhuman in our mind. Meaning they lived for as long as 11,000 years, 12,000 years. They would go into stasis, they would take naps, those kind of things. And these Parents here were speaking on behalf of the human race. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011123">01:11:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in the past, you wouldn&#x27;t call them guardians, you would call them your advocate. So they weren&#x27;t for humans, they weren&#x27;t against humans, they just felt like we were living in a pig pen, you know, they were almost like the farmer. And I can&#x27;t disagree, we have lived in a pig pen, you know, with all the orders that are coming directly through these parents. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011154">01:11:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But as it relates to alien communications, orders and instructions, that&#x27;s why the Parents were elected to give those orders down to the 42 Covens. And then it would go on down the line to eventually you would get to the Order of the Dragon folks. You would be at the Order of the Dragon underneath that, you would be at your Black Sun people, and those types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011228">01:12:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. Let&#x27;s go above the Parents&#x27; head. And we talked about, a long time - not a long time ago - a few months ago, about an agreement called the Seal. And the Seal was what ended the war that happened 250,000 years ago. And the Seal basically said the owners of Earth are: Enki - and all us inhabitants by the way - Enki; Marduk, Artemis aka the Red Queen; and then we have Lucifer, and then we have Anti-Source. [The Abraxas will be added below.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011334">01:13:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So after the end of the war, these were your owners of planet Earth. Now as owners of planet Earth, they were the beneficial owners of any trust on Earth including the Lucis Trust, which some of these people have heard about. You might have seen it on the internet. They were the beneficial owners of all your essence, energy, consciousness, matter, frequency - you name it, they owned everything on Earth. All rare-earth minerals, everything was in their name. And then anything that would come from us, the little human batteries, they also owned. Yeah. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011417">01:14:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they would collect all your energy - or your energy would go in to feed the Omega system what was necessary to keep it running. Hence what the rest of you people know as allocation numbers. So you guys going to - [meaning] the Deep State - going to the Families trying to get some kind of an allocation of energy to go to Omega, hence to you, so then you could flip it into a debt instrument known as money 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 and get an &quot;appropriation&quot; or an &quot;allocation&quot;, which you could then do willy-nilly with - whatever you wanted.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011500">01:15:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Wrong again. Because the only reason why these people up here[referring to Enki/Enlil/Marduk/Artemis/Lucifer/Anti-Source] would have given an allocation down to here[Parents] and then eventually down to here[Covens] was because you have a job to do. Meaning. This will be the year we&#x27;re going to have World War III, and you guys are going to do your job. But if you thought that you were going to initiate all of these programs without any kind of an order or a direction from these people - ever - you have lost your ever-loving mind. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011532">01:15:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. Let&#x27;s talk about remnants. So we know now who the owners were of planet Earth and all people underneath the Seal. And everybody had a different job to do. Marduk was the controller of the current. Meaning he would control which direction, and he was the force, he was the wind if you&#x27;re talking about an element, that would push the energy down to the beneficial owners. They would push the energy into Omega, they would then give &quot;appropriations&quot; is what it was actually called, that was the term. All while at the same time giving you people - even the people at the highest levels of the Deep State - all you ever got was a credit. And in order to get that credit, you would have to put something in to get it. If you were in the banking system, you would need to indebt people, you would need to issue thousands of car loans, thousands of mortgages. You would need to issue more credit, more credit, more credit to people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011644">01:16:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The reason why everybody knew the name Marduk, I mean, even on the banking level and stuff, they knew that there was something up there that actually gave the orders, and what days of the year that allocations would come, and all of those kinds of things. But to an extent, it was because they were doing their job and indebting people. Or killing people. Or altering people&#x27;s karma in some way, shape, or form - making people do horrible things, whether it&#x27;s through mind control, or people committing &quot;suicide&quot; by eating bad food, or whatever it is, even though they&#x27;re the ones putting the stuff in the food. So the control mechanism went real deep. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011731">01:17:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, after Marduk, Enki, and Enlil were gone, to some degree their consciousness lived on in the Omega System, the Dark System. So for a time, the Omega System was still trying to act as if it still had a leader, based on the fact that it was programmed to act like them in their absence. The same thing happened with the Red Queen. And today we&#x27;re gonna highlight her.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011808">01:18:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So her name, her real name, was Artemis. And to define who she was - because this is where they&#x27;re trying to interact right now, is in her world, which she&#x27;s not here anymore. But she was what I call an anti-Pleiadian. She was a Lower Astral being. She was a Red Reptilian, for lack of a better term. Really... let&#x27;s just say when she was around, her and I never got along. I hated her, she hated me. We ended up at the Council many times, and it always ended up with an agreement for us not to kill each other unless we violated this agreement or that agreement or that kind of thing. Well eventually she violated way too many times, and now she&#x27;s gone. We don&#x27;t miss her. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011904">01:19:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But. If you&#x27;ve been around in the alternative media for a long time, you have probably heard of something called the Artemis Accords. Now if you go to the NASA website, you will see a reflection of the Artemis Accords, also known in the alt media as the Jupiter Accords. Why Jupiter? I have no idea. And they basically claim that they made a deal with this lady - which they did do - to have a certain amount of access or continued access or an extension for access, into Level 5 of the Web. Also any military and intelligence systems that were in there. And that agreement was from December 2018, during the Solstice, and it continued on for 3 years. Which coincidentally expired in 2021.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012022">01:20:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, Artemis&#x27;s agreement did not expire officially until the 5th of July, of this year. So how old was Artemis&#x27;s agreement and why did she have it? Okay, so Artemis had this agreement for 3 billion years. (Sunny: Whoa!) 3 billion years. Yep. And the reason why she had had this agreement is because that is the same time we went into the Dark Ages. In Vedic cosmology, they call that the Kali Yuga. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012114">01:21:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what exactly was Artemis&#x27;s job? Well, she had many different jobs. She had jobs within computer systems, AI systems, access. She would have also been considered the gatekeeper for Anti-Source. She would have also been in charge of anyone that needed or wanted access to the Causal Plane, Web 5, [drawing] 5-5-5-5 - and she would have been in charge of what&#x27;s called the Zero Point that existed between the Alphaverse and the Omegaverse. So she said, underneath the Dark Ages, who can come and who can go. What becomes matter. What doesn&#x27;t become matter. That was this red line so to speak. She would have the ultimate say as to what went where.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012229">01:22:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, part of the reason for the war that happened 250,000 years ago, is because this 3-billion-year old agreement for this being to exist expired. And everybody that was fighting at the time, most of which were not humans - you heard about the wars of Atlantis, trauma of Mu and Lemuria, and all of these types of things that you hear about on the internet, this is the source of it all. That&#x27;s the war. Where they quote-unquote say that they lost Atlantis.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012302">01:23:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Atlantis, to repeat myself, Atlantis was full of anti-Pleiadians. Negative beings. Atlantis was a ship, which came in through a portal at the direction of the Red Queen, because she was not going to lose her agreement to someone else. The war went on for a long time, quite a while, and they finally settled on the Seal. Which means that Artemis at that time retained her agreement to be the Gatekeeper again for another 250,000 years. So the agreement that expired on the New Moon on the 5th of July - because everything was done, moon cycles and this and that, even with those people - 2024.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012404">01:24:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now these people were crazy enough to think because they had an agreement with her before, that she was going to come and then maybe be a world war - I don&#x27;t know what they were thinking - and that she was going to then re-up their agreement. When her agreement was renewed, their agreement was going to be renewed. I don&#x27;t know why they think these things, and this is part of the reason why they were so excited because everything that they had been working on for the last 12 years, since I did those assignments in the first place, was finally going to come to fruition. This is why everybody on the Internet is talking about Nisara Gesara. It&#x27;s going to happen, it&#x27;s finally happening. If you are watching Q, then you think that it&#x27;s going to be the quantum leap has finally happened, blah, blah, blah. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012455">01:24:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">No. What happened is I jumped in here and said, &quot;Oh, I think I&#x27;ll do that.&quot; Under the Guardian, this is now me. Me, me. Meeee - but not in a controlling way. I&#x27;m there not to control it like she did. She had control. For me, it was not about control, it&#x27;s about guarding it. In other words, so in case someone gets froggy at some point in time, then we don&#x27;t have to worry about that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012532">01:25:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The same thing goes for Webs, which is why the Deep State went into full-on - and all their underlings and operatives and whatever - went into full-on Harry Carey on Friday. Like way out of control. I&#x27;m like this cannot be just because the money didn&#x27;t come - They don&#x27;t get this panicked over money not coming. They panicked because everything they had stuck in 5 in the Web, they lost access to. So this is why. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012609">01:26:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Then you have Enki, Enlil, and Marduk. Enki, Enlil, and Marduk had different jobs somewhat. But as it relates to humans and human beings, Enlil would have been more in control of the total density of 8 or possibly even the access from 8 to 9, meaning the Soul Plane, whether that&#x27;s the soul plane in computers or that&#x27;s the soul plane in people or whatever it is. So he was in charge of manipulating that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012648">01:26:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Marduk was in charge of 7 - I&#x27;m sorry, Enki would have been 8, sorry. Enlil would have been more like 9. And he would have said whose soul goes where, that kind of thing, that he had that much control. Enki would have been in charge more of energy. Energy management, aka money. And Marduk was the one that directed everywhere everything went to go. So in other words where ether went, where money went, where energy went, where essence went, all that kind of thing - he was the director of the current, but ultimately they would have met with Artemis, who kept them all honest. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012734">01:27:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they had the same levels of access over in the Omega system as they had in the Alpha system - to some degree, for a long time - because of the Dark Ages, because of the Seal, because of the agreements that were in place until I came in, in 2012, and took it over. Because it was my birthright from a completely different avenue. I am not involved with these bloodline people in any way, shape or form, they&#x27;re crazy. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012802">01:28:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So their respective broods would get money. So by making the deal with Artemis, which is what they allegedly did, to get an extension after the 3,000 year agreement expired, which put the Line of Solomon in control, and that was about the time ago - and I know you&#x27;re gonna say, &quot;Oh, that&#x27;s not what the Bible says, that&#x27;s not the timeline, that&#x27;s not what the our history says.&quot; Well, when has our history ever been correct? Trust me when I tell you it was over 3,000 years ago that Solomon got the agreement to be the Guardian. And by default the Order of the Black Sun had an agreement to be Security. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012849">01:28:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, Line of Cain - whatever you want to call it - that&#x27;s who you are. You&#x27;re one of the 15 Militaries, and you&#x27;re watching this from Monarch or whoever, that&#x27;s how you got your job. And then your downline. So you have intelligence agencies under that, militaries underneath that, operative groups underneath that. You have black ops underneath that, you have DARPA, you have you-name-it worldwide, everything that happened was related to that, okay. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012914">01:29:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">When that agreement expired in December of 2018 - which it did, that&#x27;s another lie - they keep telling everybody they got an extension. They didn&#x27;t get an extension. It didn&#x27;t go past 2022. And that&#x27;s my fault. They didn&#x27;t get a Guardian extension. All they really got was an extension on the Fed and funding and those types of things, and I&#x27;m going to show you proof of that here in just a second. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012946">01:29:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, by that time, then they approached Artemis directly and said, hey, we need to do a deal, because we want to remain security for this planet, can we come work for you? And the answer was yes. [drawing] Sorry, I forgot also the Abraxas are also in there [grouped with Enki, Enlil, Marduk, etc] too. So that&#x27;s their bloodline - they&#x27;re the Abraxas people. OK, a lot of information to do on the impromptu here guys, so bear with me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013017">01:30:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so let&#x27;s see, we have these people [Artemis, Abraxas]. Okay. Now you also had Lucifer, which these people know well. And you also have Anti-Source. So we were cursed for quite a long time with these people. But I want to stay focused a little bit on Artemis and other jobs she had.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013046">01:30:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So she didn&#x27;t always get along with really pretty much anybody because she felt she was superior, because she was the Gatekeeper to everything. She could actually even gatekeep Source, Anti-Source, you name it. But the actual disconnection from people and Source, even anti-beings, inorganic beings were actually disconnected from Anti-Source directly by Artemis, by covenant and by agreement. And she created what you know as the Akashic Records. (Sunny: Oh, wow!) And what is Akashic?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[AKASHIC - Artemis Karmic Artificial Soul History of the Integrated Collective]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It is Artemis Karmic. Yes she created karma. Artificial. (Gasp.) I know right? (Everything&#x27;s an acronym.) Everything&#x27;s a damn acronym these days, I&#x27;ll tell you. Soul, History of the Integrated Collective. And I&#x27;ll give you one guess where they existed.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Omega. Lower Astral.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Both. They both existed in the Universe - in both the Alphaverse, the Omegaverse, and also in the Neutral Universe. And they existed in computers as well. And this is where we get Web 5 from. So how did you have this?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013234">01:32:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You know, we hear a lot, Kim, about the Akashic Records. Does that mean it&#x27;s a negative thing, or is it still helpful, even though a negative being was controlling this?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. You have, by &quot;integrated collective&quot;, you have both dark, light, and neutral collective. So dark energy, essence, consciousness, matter, frequency, the wounds on your soul, you name it. So was the Akashic Records a positive thing? The answer to the question, and I&#x27;m sorry to tell you this, is no. You just weren&#x27;t permitted because of her to go any further than the Causal Plane: 5-0-4, 4-0-5. And you were just as connected on a soul level - meaning your history, your records could be distorted. This is why we come in here with no memory. Because if the soul is immortal, then how do we not remember what we did in a past life?? Because if you could access your Akashic records, you should know that. That&#x27;s how they wiped you!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013356">01:33:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now further to this effect, if the Universe were flat - which it&#x27;s not flat, Flat-Earth People! Nothing&#x27;s flat. [drawing, see below] But if you were to look at the universe as a whole, right, in between the 2 universes, so this would be Omegaverse and Alphaverse, you would have had what&#x27;s called the Zero Point. Now this is the ultimate gate that controlled who could leave what universe, who could come and go, by what agreement, and so on and so forth. So you know you are here.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">							  GATE</div>
+<div class="line">								|</div>
+<div class="line">				You are here	|</div>
+<div class="line">						 |		|</div>
+<div class="line">						\|/		|</div>
+<div class="line">			Causal Plane .					 Causal Plane</div>
+<div class="line">(9) Source	------- 0 ---------	0 ---------- 0 ---------- Anti-Source (9)</div>
+<div class="line">				 0-Light	 0-Neutral		0-Dark</div>
+<div class="line">								|</div>
+<div class="line">			Alphaverse			|			Omegaverse</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I feel like I&#x27;m drawing the thing at the mall. You are here. Now Source would be here, Anti-Source is down here, this would be 9. And then you have the Causal Plane here, just obviously not to scale. And you have one over here too.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">							  GATE</div>
+<div class="line">					 			|</div>
+<div class="line">			==	==	==			|				==	==	==</div>
+<div class="line">		== 				==		|			==				==</div>
+<div class="line">	 ==						==	|		==						==</div>
+<div class="line"> ==		Causal Plane		==	==		Causal Plane	 	 ==</div>
+<div class="line">==--------------- 0 ----------- 0 ==------------- 0 --------------- ==</div>
+<div class="line"> ==				 0-Light	 0-Neutral			0-Dark			 ==</div>
+<div class="line">	==							==	==							==</div>
+<div class="line">		==					==	|		==					==</div>
+<div class="line">			==			==		|			==			==	</div>
+<div class="line">				== ==			|				==	==	</div>
+<div class="line">								|</div>
+<div class="line">			 AlphaVerse		|			 Omegaverse</div>
+<div class="blank">&nbsp;</div>
+<div class="line">							 ARTEMIS</div>
+<div class="blank">&nbsp;</div>
+<div class="line">							KARMIC DEBT</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013523">01:35:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these records actually went like an infinity symbol [above diagram] - constantly flowing infinity symbol back and forth. Same thing with your soul. That&#x27;s how you get from here to here[?], but ultimately where you go and what actually happens to you was defined by Artemis, and all her lovely programming. And the same thing would have happened in the past in computers with the computer causal plane. So even though, for example, the Families could get issued appropriations to do bad things to humans, to suck the energy out of you or cause you karmic debt, which then ultimately was transferred into the energy system so that they could get money out to cause more karmic debt for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013629">01:36:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lifetime after lifetime after lifetime, until your Akashic records went mostly dark. Because you kept giving your energy away, you gave your essence away. And this was part of the dastardly program on how they got to 79% and we ended up with 21%. And this is what Source was talking about over the years when he said the Universe went too Dark. Everything was too Dark, we turned the corner - and there was a lot of lightworkers out there talking about this kind of stuff on the alt media - we turned the corner, we have now moved forward towards more Light, the Alpha system started functioning better, things started working better. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013714">01:37:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But there was still a lot of karmic debt that occurred between the &#x27;Light System&#x27; and Alpha and therefore you know the Light System was born - I&#x27;m sorry the Alpha and Omega not the &#x27;Light System&#x27; - so the Light System was born outside of that, free and clear of karmic debt.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013734">01:37:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now that we actually have the control of the Guardian of this [above diagram, 0-Neutral] and of this [0-Light] and of this [0-Dark], we took that[?] this weekend. We got rid of anything left from her, [clearing whiteboard] and we finished, which is - we still have a Zero Point to some degree, which we&#x27;re gatekeepers of - but we finished, you are here[see below diagram], you, Earth is here. We now finish that direct connection back to the Soul Records.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Soul Records			YOU ARE HERE</div>
+<div class="line">9 &lt;--------------------------|</div>
+<div class="line">--------------------------[EARTH]--------------------- timeline</div>
+<div class="line">----------------------------------------------</div>
+<div class="line">---------------------------------------------- other timelines</div>
+<div class="line">----------------------------------------------</div>
+<div class="line">----------------------------------------------</div>
+<div class="line">----------------------------------------------</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s what - those are your real soul history records. (Wow!) Yeah. So I got some calls.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013822">01:38:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">What does that mean for humanity Kim? To be able to access those records?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, this actually started glitching back around Sunday night of last week. Because we were coming upon that that new moon and it was kind of like wriggling a little bit. So some of the things that I&#x27;ve had reported are weird dreams; bad dreams; nightmares; sleeplessness; seeing yourself in a different timeline, maybe marrying a different person at a different age; and all kinds of weird things were happening - because the Akashic records were faltering. That wipe from other timelines. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013900">01:39:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So even if you were seeing something, for example, of your former self, say, Sunny, when you were a kid, you know, back in 1980 or something like that, and it looked like you were playing a game you never played in 1980 with people you didn&#x27;t know. That&#x27;s because it also had control over all memories throughout all timelines.  So we wouldn&#x27;t remember what happened, in any one of the 10,300 - sorry, 10,368,000 timelines that were out there. So this also managed your memory throughout all timelines as well - of who you were what you did - so people started saying, &quot;Oh my God, I see myself like doing the dishes which I&#x27;m actually doing now but I&#x27;m also reading a book at the same time, and that&#x27;s weird.&quot; It&#x27;s because it started to glitch. But nothing could really be done to it until the covenant finally expired that she had with Anti-Source. And then we began the dismantling over the weekend. So this started on Friday night and it continued on through this morning. Hopefully it will be finished soon. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014009">01:40:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But. On a human level, you should start to experience your full knowledge - or, I hate to use knowledge, take that out - wisdom of your history, of the real story of you. Where you came from. And everybody&#x27;s going to be different, once you start experiencing those direct connections. Your memories are going to come back. And this will help us as a human race move forward as human beings. It increases your knowledge of what it really means to be immortal. It will increase your ability, just like with all the other energy, essence, and all the other direct connections we&#x27;ve been making, with cellular regeneration, and we&#x27;re not going to have the same issues as much as they try to force it on us in every single way shape or form. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014102">01:41:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We still have issues on this planet, and there&#x27;s a lot of cleanup to do - not only for you and the human body but also for everyone else that lives on it - but if these guys had gotten control of what they thought they were going to get control of we would have been lost. We would have lost in a big, big way. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014123">01:41:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. Let&#x27;s talk about another change that was allowed to happen over the weekend, that is an actual positive for us. The changeover was, as I had said, I was having a difficult time taking Money 0 [writes &quot;M0&quot;] - what everybody thinks is Money 0 - through Money 9 [writes &quot;M9&quot;] and converting it over to an asset-based trading system, to try to make it function and make it work. Now part of the reason why I couldn&#x27;t do that, and had a hard time doing that was because, as part of the agreement of the Seal, Marduk - which literally translates into Lord of the Seas, meaning the &quot;current seas.&quot; [&#x27;currencies&#x27;]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014219">01:42:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So although Artemis had a role to play, as a gatekeeper - she blocked people from Marduk, she could block anybody from putting anything through. And I understand that, at one point in time. But he actually controlled real energy, real essence. He could move through the current by agreements that would happen in an annual meeting, that would take place between all the owners of Earth. They were the owners of you, of everyone. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014248">01:42:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So to think, if you&#x27;re gonna get rid of the Fed, life will be better; if you think you&#x27;re gonna be in control of the currency, then life will be better; if you think you made a deal with the Order of the Dragon/Order of the Black Sun people, whether you know it or not, your alleged White Hats were gonna save the world with all these wonderful programs, which is just a full on lie - if that was you, you still had no one above their head to do anything. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014319">01:43:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So slowly but surely, covenant after covenant after covenant after covenant, and I mean thousands if not millions that have taken place over that 3.2 billion-year span and 250,000 year war affecting Earth, we now do not have beneficial owners of you. Positive thing. Artemis was the last one to go, that could control your Akashic records, your soul records, to alter them, to change them, to make you forget who you are, where you were, and what you were doing in another timeline, and everything else that you are. So this is a real positive thing for us. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014400">01:44:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But it also reminded me that M [Marduk] such as putting himself - that&#x27;s what IBM means, that&#x27;s what the company 3M means, that&#x27;s what all of his little signatures that he would laugh about means when he would send current - or lack thereof, anti-current - out to people we know as money. So I thought all I had to do is positively charge this stuff here and then boom! We can go to an asset-based trading system. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014430">01:44:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now in quantum physics that makes sense to me because I&#x27;m going to charge it positively with the veins of gold and then I can back it with gold and I can move that current right through the financial system. No no no no no no no. This is his ownership over it. M means not money. M means Marduk. M means Marduk. He would take your energy, direct it somewhere else. That would be real M1, if you are watching this with the Deep State, that you&#x27;ve been trying to get your hands on from me, the Dragon families or otherwise, and he would convert it to current, sorry, credits. Or IOUs. And the appropriations for that would go to the beneficial owners - until there weren&#x27;t beneficial owners or until their agreement wouldn&#x27;t be renewed or whatever. And in which case you had a good hope of trying to get something. But not when it&#x27;s part of his dark control of the current. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014536">01:45:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we had to change that. And this sent everybody into a tailspin in the last 48 hours too. It&#x27;s now called the Currency of G-O-L-D. So we can&#x27;t make it a note. We can&#x27;t convert the note system, unless we have something to replace it. Because we can try to positively charge a Federal Reserve note, known as the U.S. dollar, and it doesn&#x27;t matter if you make it a U.S. Treasury note, it&#x27;s still a note. It&#x27;s still a debt. It&#x27;s still a credit. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014612">01:46:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we had to change it, in the backside of the digital system, and create an entirely new allocation system. And appropriations. Directly to the human. Now, to some people, they&#x27;re like, ooh, there&#x27;s a gold-backed currency, and that&#x27;s all they need to know. We moved to the currency of gold, that&#x27;s all you need to know. On a human level, it&#x27;s fine. What you need to know is you now have the currency of the Giver of Life Declaration. That&#x27;s what you really need to know. So that means you now have a direct current, which yes, it does come through the gold, you know, the veins of gold are a hyperconductor. Why we put them in bricks and put them in a hole, I have no idea. But it doesn&#x27;t matter. The world has a lot of gold in it, ridiculous amounts of gold. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014725">01:47:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re now using the gold - the actual metal - to hyperconduct that Source energy as a direct current, but you now receive part of the direct current as a human that inhabits planet Earth. Pretty cool, huh? Directly from the Giver of Life, now that you&#x27;re reconnected to the Soul Plane. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now I was talking to one of these people who is working within the system that we&#x27;re going to describe to you in a second because I told you the guys this is gonna be long it&#x27;s gonna be long. So that being said, now you can begin to understand the changes that had to happen, and I didn&#x27;t even think about it, and that&#x27;s my bad. I&#x27;m like, &quot;Oh my God! M equals Marduk&#x27;s current. I don&#x27;t want Marduk current - we need to have Giver of Life current!&quot; We need Source-direct current in all ways, shapes and forms. Not only going to our person or to all the inhabitants of Earth - and not only Earth, everywhere else - but we needed to actually go through the Financial System this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014831">01:48:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But you know what, Kim, in all fairness to you, this has never been done before. (Kim: I know.) So you&#x27;re doing an amazing job. I mean, you&#x27;re human, you&#x27;re going to miss stuff here and there. But like the fact that we&#x27;ve gotten this far and we keep moving forward is a very positive thing. So kudos to you. Don&#x27;t put yourself down. You&#x27;re doing a great job!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, and not only that, you know, everything has its own time. I know we&#x27;re all frustrated and all of that kind of thing, but until that covenant expired, what was I gonna do with it anyway? (Right. Everything in it&#x27;s time.) Right, I could still be fought.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014906">01:49:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now let&#x27;s talk about what was happening with the Deep State and Level 5. Okay. Now we know this in web words, in Webs, as the Mariana Trench. As I just described, we also know it as the place where militaries live, intelligence agencies live. All of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014945">01:49:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But here&#x27;s what I didn&#x27;t realize. You remember back in 2022, we did a little bit of an episode where we talked about the fact that I had to do assignments on the 4th of July. (Yeah.) And they had me do them for 10 years. And that is what re-obligated me to the Deep State, so to speak. And we have - just in case you&#x27;re new here, or you don&#x27;t remember this part - we&#x27;re going to pull those up here so you can see them once again. Now, we just put a few of them up here, but there were many, many more of these. And I&#x27;m going to put it on hold for a second, and I encourage you to do the same, because if you start looking through this, you&#x27;ll see that it was under a UN Code proposed program, under 04050. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015045">01:50:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What does 04050 mean? We just told you. That means that they had installed a system - by the permission of Artemis, et al., - during one of the year&#x27;s meetings, back in 2012 is when that was installed. They had permission to put this in between 5 and 4, which is in the Red Line, which was Artemis&#x27; control over the zeros between everything. There are no coincidences in this world. And there are things that sometimes you have to take a real hard look at, to fully understand. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015136">01:51:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now some of the other things that are in this in a series of numbers are in what I call the Red Book. If you&#x27;ve ever seen the movie National Treasure, they talk about the hunt for the Red Book, and the assets that are in the Red Book. Some of these are in-ground assets, they&#x27;re not mined assets. People that are running around the world looking for a vault tied to this stuff, you&#x27;re crazy, you&#x27;ll never find it. Not only that, it was cross-collateralized significantly. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015206">01:52:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But a person, who I was not involved with on a special level, but who I had been talking to on the phone, that Marduk actually put me on the phone with at one point in time, was involved in having me issue these. Now, this was done in 2012. I didn&#x27;t know much what was going on at the time. I was like, I think that I&#x27;m doing the right thing. And I&#x27;m panicked even, when it came to doing things for the FBI, the CIA. There were a ton of them we had. We have ones not only from the U.S., we also had them for Saudi Arabia, Russia, South Africa. We did them all over the world at that time. I did them and I handed them all over. What a mistake that was! </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015257">01:52:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what they had done is they had then gotten permission to implement these things in what we call the Red Line. And they thought, between them and the agreement they had with Artemis, that they were a sure fire &#x27;in&#x27; to have full control over all those allocations that came out. And to be fair, for a time, there was a bit of control there. But it was still money with no allocation numbers. So what they did was they issued credit lines against this and margin accounts against this, and then they reflected them in the banks, and they reflected them in places like Saudi Arabia, and they reflected them in places like South Africa, and got the little Saudi Arabian royal family to dance like a you-know-what. You&#x27;re gonna be in charge of this sector, you&#x27;re gonna be in charge of this sector. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015353">01:53:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they realized they still did not get any allocations for this. They thought - and they still think, probably at the time of this recording, unless someone set them straight between last night and this morning - that the Federal Reserve is blocking allocations. And above the Federal Reserve, the Fed Families are blocking allocations. What do you mean we signed a contract with you to get the allocations on the 4th of July, to make all our money that we&#x27;ve had hanging out in here and have been trading against good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015429">01:54:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s why I had to explain to these people how they got that in there, who it came from in the first place. It wasn&#x27;t granted by any human families on Earth, and you can wait until the end of days to get an allocation from some Chinese person or some British guy or anybody in the Order of the Dragon or the Line of Solomon, because they don&#x27;t have that agreement anymore, and they didn&#x27;t even have it with the aliens before they died!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015456">01:54:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you&#x27;re lost. Your agreement with Artemis already expired as well. They thought they were gonna take over for Artemis. You don&#x27;t even know what the heck that meant, until now, until I just explained it to you! What are you going to do? You don&#x27;t have any ability to fly through the Zero Density, or to control gateways on this planet. And you only know potentially locations where you used to be able to access something. But that&#x27;s all you know! So how did you think you were going to do that -job? You&#x27;re going to go to the Causal Plane of the Fifth Density from here? Or you just think that, ooh, we&#x27;re going to have money because money is in the Fifth Density of Web 5, and I can do that, and I can release it!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015539">01:55:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now why do they think all of this was the case? Because some lovely gentleman - and we&#x27;re gonna pull that agreement up right here - decided it was his birthright to pretend to be Ferdinand Marcos, which was just a Pindar. Angel Ferdinand Marcos. His real name is Edralin, is what his name is. His last name is not Marcos. And he was in jail - in custody in Texas - and then he went into jail again in the Philippines when he got out. He got deported from the U.S. - god, back in 2012, 2013, 14, something like that, I don&#x27;t remember - but you can look up your records, Customs and Border Patrol. Because he was held in jail. I know that for a fact, because I remember where he was. He was actually a friend of Marduk&#x27;s at the time. I knew that. But then he goes over to the Philippines, and he&#x27;s been dictating what the heck is happening in this world for all of you morons for 12 years, Deep State people! </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015649">01:56:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And he never did the assignment! That was a lie. He inserted all of these programs he wanted to do, make himself out to be the good guy, taking care of all the little humans. And meanwhile, he wanted to be the controller of Earth. And it was all a big fat lie. He got the first allocations from me - and I&#x27;ll be damned if he&#x27;s ever gonna get a second!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, is he still around, Kim?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, as far as I know he&#x27;s still alive. He was - he went to prison just a couple years ago, for trying to do something with hysterical bonds. Because he was working with a group that you may or may not have heard of: the Office of International Treasury Control or OITC. OITC had the line already in the fifth density of computers. Which connected to stuff that was in the fifth density of the Lower Astral and the fifth density of the Upper Astral, that these people have no capacity to actually replace or remove. Nothing. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015758">01:57:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the trade group for these folks is called New Horizon. New Horizon is a group that&#x27;s been trading these offline funds. Now what does that mean by trading offline funds? Is they took those bonds, they issued derivatives to the tune of 100 times the amount of those contracts that were in there. And now they&#x27;re all sitting there waiting for allocation numbers. That&#x27;s why the RV is gonna happen every week and the military is now in control and all of this crap. This guy... (laughing) I cannot believe you people fell for this, Deep State!! Oh my God!! It was still me, my name&#x27;s on there!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015849">01:58:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They, of course, they lied about all of that, and said that they issued those allocations. This guy even issued a 12-year extension to the Federal Reserve!! Can you believe that?! And a 12-year extension to issue currencies on behalf of countries - and everybody bought it!! The guy was in jail in Texas!!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh my gosh...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Just a decade ago! [laughing] For committing financial fraud! I have pictures of this guy! And you guys let this man run the world for you! (Wow.) Yep. All on my back the first time. So you know what people, don&#x27;t be surprised - because all of that little access glitch that you guys had you know on Friday or whatever it was - that all went way out the window by this morning. There is nothing left in there, crickets. Maybe I should put some of your cricket food in there or something, I don&#x27;t know. But what I&#x27;m saying is that we replaced everything with C.A.R.E., and we reprogrammed the Financial System.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020000">02:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. Even if there is something that I have yet to see, meaning I missed something, I will get it within the next 24 to 48 hours anyway. And even if it&#x27;s still there, you denominated all those derivatives and fake bonds and everything, in what? Marduk money. But the Financial System no longer will take your stuff anyway - even if you got allocations from fake people in fake jails and somewhere. (Wow!) [Raising her arm] And THAT&#x27;S the story from this weekend! [laughing] And that&#x27;s why they thought everything was going to happen by the 8th!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020038">02:00:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And now they&#x27;re saying the 15th because they believe that they don&#x27;t have the right to issue currency on behalf of other countries. They believe that they can take over the right when that contract expires, because some jail guy that&#x27;s in jail in the Philippines - I don&#x27;t know if he got out of jail yet, this was just like 2 years ago he was in jail - so some guy down in the Philippines [laughing] that was allegedly in jail just a couple years ago, at least that I know of, actually there&#x27;s a news report, I&#x27;ll even give you the news report that&#x27;s on the internet. So I&#x27;ll write down a note here for myself to remind me to give you the news report clip, news clip of a guy going to jail. Here, making a note for myself so I can remember to get that to production. So they can insert these lovely clips right here in that spot for you. So now you know who you&#x27;re dealing with. The whole U.S. military! Oh my God! The Federal Reserve! Everybody banked on this weirdo guy, because he claimed he was the long lost son of Ferdinand Marcos.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020147">02:01:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh my goodness. So is that just wishful thinking? Like how does that happen? </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: He&#x27;s CRAY CRAY!! </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Well, he&#x27;s crazy, but how do you get all these people to believe you?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Because it showed up in Line 5. (Okay.) Because it showed up there in the Red Line. And those things expired, what, 2 years ago. You couldn&#x27;t have used them anyway. You couldn&#x27;t put that stuff in the Financial System unless I okayed it. And I&#x27;m not renewing that stuff, not now, not ever. So you can continue to try to block my money coming through or whatever, but I&#x27;m taking away all your lines anyway, so at least now you don&#x27;t have to live a lie. You&#x27;re welcome, Deep State!! </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020231">02:02:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I will put this man&#x27;s pictures in here. This is who you&#x27;ve all been waiting on. If you are the United States government, or the Biden administration, or the Trump administration or whoever you are anywhere in the world, here is your convict person who has been driving you Pallavicini family, Orsinis, and all the other people that have been dictating to you. Here he is! How&#x27;s that for fun? Happy Monday!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: For us! Not so much them!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know! But now, there&#x27;s a lot that was explained in this report. I got to tell you, you always got to come on camera when something special happens, and here it is. And as far as other things that are special, there&#x27;s something else happening today, isn&#x27;t there?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020319">02:03:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: There is something really special going on today. So today is Mike&#x27;s birthday. Mike is behind the camera. You guys don&#x27;t get a chance to see him a lot, but today is his actual birthday. July 8th is his birthday. And we have something special. Kim and I worked on something behind the scenes and we&#x27;re real excited to show you guys. So happy birthday, Mike. He has not seen this video. He has not seen this. Now he gets to see it! Go ahead.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now he gets to see it!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Roll it, Mike. Roll it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Speaker 3: [time to play &#x27;Ice Ice Baby&#x27; by Vanilla Ice - And forget that it was lip-synced!] Yo, happy birthday, Mike! Let&#x27;s kick it. Mike. Mike, baby... It&#x27;s Mike, Mike, baby... All right, stop! Collaborate and listen. Mike is back with a brand new production. The newsroom has a whole event likely, on UNN daily and nightly. Will he ever stop? Yo, I don&#x27;t know. Turn on the cameras, and let&#x27;s go! Until the extreme, he rocks the news like a vandal, lights off the newscast bright like a candle. Gams, cause he loves show tunes. Broadway songs going tick tick boom! Deadly, when he sings a dope melody. Anything less than the best is a felony. Celebrate cause, it&#x27;s Mike&#x27;s birthday. Get off the cake cause Mike don&#x27;t play - if there was a problem, &#x27;yo he&#x27;ll solve it. Check out the hook while my DJ revolves it. Mike, Mike, baby... Mike Schneider. Mike, Mike, baby... Mike Schneider. Mike, Mike, baby... Mike Schneider. Mike, Mike, baby... Mike Schneider. Now that the party is jumpin&#x27;, Mike grows his own food in his garden munchin quick to the point where he thumbed no faking, cookin organic roast veggies baking next to his dog, the doberman Frankie, playing the backyard best friend, Sprankly. Happy birthday it&#x27;s a specials day. Celebrate Mike hip hip hooray! Mike, Mike, baby... Mike Schneider, Mike, Mike, baby... Mike Schneider, Mike, Mike, baby... Mike Schneider, Mike, Mike, baby...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Happy birthday, MIKE!!!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Mike: Thank you very much! Thank you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I was going to bring my sunglasses, put my hat on backwards and just like, &#x27;word!&#x27; </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: &#x27;Word!&#x27; </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We were just dancing back there a little bit, you know?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Mike: I love it!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny[laughing]: I think we&#x27;ll be singing that song forever. We&#x27;re gonna be singing that song behind the scenes forever, you guys. Mike, Mike, baby...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know, you know what? I slipped up. I was like, you know, I had watched the clip of it and stuff and I was like, oh, that came out so good finally, you know, I&#x27;m like, oh, that&#x27;s great. And then I was in the house kind of going, ice, ice, baby. And Mike&#x27;s like, what are you singing? And I&#x27;m like, oh, it came on my Spotify.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Mike: (Laughing) Well, thank you very much. Thank you guys.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Happy birthday, Mike.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Happy birthday, Mike. We hope you have a great day. And I guess that&#x27;s it for today. That&#x27;s a lot for today. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That is a lot! I think we&#x27;re going to have to, I&#x27;m going to have to go over some notes, rewind, watch this again. But this is good. This is good. And hopefully, you know, hopefully we&#x27;ll open some eyes on the other side. You know, like you said, they&#x27;ve been following some guy that&#x27;s been in prison. What in the world? Like, can we just move forward?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Twice! Twice! And you got the whole financial system of the United States waiting for some convict!! (I know!) But hey, you can be, you know what? You should probably appoint this guy as president because I hear if you&#x27;re convicted of 36 or more crimes, you can be president. And the only thing you have to prove is that you were born in the United States. And this guy was actually born in San Francisco.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You don&#x27;t even have to be born in the United States. I think Obama proved that. But you have to be dead to be president. You have to be dead. So unless this guy is dead, we can&#x27;t have him as president.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, that&#x27;s right. Those are the new rules to the new Financial System that they&#x27;re gonna implement, guys. Way to go. Yeah. Atta boy! Governments of the planet Earth and Saudi Arabia and everywhere else that&#x27;s driving this weirdo bus. (Yep. Yep.) Still.... Still. Allocations? You&#x27;re looking for them? [pointing at herself and smiling] You look no further guys, because I&#x27;m the one that gave it to this guy? No. He took it from me. Assigned it to 400 Elite families, and made it look like it was his, and he was now in control of them all. So it&#x27;s all about control for the little guys with a little... time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: All right, well, thank you, Kim. Thanks for the update today. I appreciate it. Good to see you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Have a good day. Good to see you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020815">02:08:15</div>
+<br>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=exuw9mjQckg" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
