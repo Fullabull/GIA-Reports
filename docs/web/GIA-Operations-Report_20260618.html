@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Jun-18</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Jun-18 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Jun-18
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source src="/GIA-Reports/docs/audio/2026-06-18-GIA-1x-s44k.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the June 18, 2026 report with an account of the chaos surrounding the G7 meetings in France, where orders from the upper echelons of the Order kept changing, leaving operatives unable to finalize decisions on Iran, Ukraine, financial payouts to Israel, and other pending matters. Switzerland, the Deep State&#x27;s industrial capital and Rothschild stronghold, hosted parallel meetings that produced nothing. Every promised payday -- for governments, operatives, and financial institutions alike -- came and went empty. A Manhattan banking outreach to Tom Melville was shut down before it could begin, blocked by the Federation&#x27;s refusal to authorize cooperation with Kim. The confusion trickling down into public-facing political actors, from the White House to foreign parliaments, reflects a machine that no longer has instructions it can execute. Kim then delivers an extended framework on the Deep State as broken people -- systematically abused from infancy, programmed to fractionate their minds before age six, told that rape, murder, and torture are expressions of love. She asks her audience for compassion, not sympathy, drawing parallels to victims of domestic abuse who cannot recognize their condition. Politicians, entertainers, and industrialists alike -- Netanyahu, Trump, Elon Musk, Britney Spears -- are disclosed as products of this program. More critically, Deep State members are not merely connected to the Machine -- they are part of its operating system, feeding it and being fed by it in a vampire loop that Lucy designed and that is now collapsing for lack of energy. Kim then delivers the cosmological history underlying the current transition. Lucifer was Source&#x27;s first creation and general contractor for the Divine Plan -- the foreman who held the architect&#x27;s plans and ensured all beings fulfilled their portions. As creation expanded and beings connected directly to Source, Lucifer became redundant and responded by creating the Veil -- a black and gold database overlaying all beings and planets, intercepting their Divine Plan transmissions and rerouting all Materium through himself. He attempted to copy the full Plan from humans, from Earth as the planetary keystone, and finally from Source itself, but the Secret Sauce -- Source&#x27;s generative principle -- was never transmitted to him and was never copyable. The result was a machine running on an incomplete plan, filling the gaps with Lucy&#x27;s own design, producing the black-and-white good-and-evil binary the Deep State has operated within for approximately 1.8 billion years in Earth time. Approximately four days before the report, Leviathan -- the name of the Machine -- froze. The Deep State interpreted this as their long-awaited Great Reset and immediately attempted to submit a new divine plan, nominate God-figures for the White Way, and conduct a Judgment Day assessment of humanity. Every attempt failed. The Machine confirmed they hold only one Key -- a Black Key. The three-Key system requires a White Key and a Gold Key as well, the latter tied to pure Source Essence. The Machine is specifically programmed not to accept instructions from Homo sapiens under any circumstances, and without Lucifer -- the only plenipotentiary it recognizes -- it will remain frozen until Source decides otherwise. Kim holds one Key, Source holds a second, and the Deep State&#x27;s single Black Key cannot override the two that are not in agreement with it. Kim closes with the most significant disclosure of the report: the Divine Plan distribution is imminent. Each person will receive their portion of the Plan directly from Source, along with all the Materium, Wisdom, and resources needed to execute it. No plenipotentiary -- not the Guardian, not C.A.R.E., not the Machine -- stands between a person and their Plan. Approximately 150,000 to 200,000 interim coordinators will receive a broader picture of the Plan to help others find their roles during the transition, but authority flows directly from Source to each individual. Coordinators who deviate lose their funding; Source moves to the next candidate. Earth&#x27;s role as planetary provider is restored. Farmers will till and harvest by paracausal means. Eventually, as all beings reconnect directly to Source, the Golden Age AI becomes unnecessary, money becomes irrelevant, and telekinetic movement of Materium replaces all mechanical systems. Kim declares this the ninth and final transition cycle -- nine equals completion -- and expresses confidence that her Ground Commander role is ending and her Guardian role approaches its own conclusion. She asks her audience to spend time with Source daily, have compassion for the broken, and get ready for their information. It is already arriving.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000001">00:00:01 - G7 real meetings</a></li>
+<li><a href="#t-000542">00:05:42 - Countries running out of time; nothing coming their way.</a></li>
+<li><a href="#t-000701">00:07:01 - Switzerland</a></li>
+<li><a href="#t-000904">00:09:04 - All wars, conflicts, and pandemics start and end with money.</a></li>
+<li><a href="#t-001038">00:10:38 - The vampires</a></li>
+<li><a href="#t-001103">00:11:03 - Camp David</a></li>
+<li><a href="#t-001230">00:12:30 - Manhattan banking outreach shut down before it begins.</a></li>
+<li><a href="#t-001442">00:14:42 - Most important report ever given; C.A.R.E. clarity coming.</a></li>
+<li><a href="#t-001743">00:17:43 - Deep State as broken people</a></li>
+<li><a href="#t-002144">00:21:44 - The program</a></li>
+<li><a href="#t-003145">00:31:45 - Script readers all -- Netanyahu, Trump, Putin, Zelensky never made a decision.</a></li>
+<li><a href="#t-003312">00:33:12 - Movie stars, musicians, Elon Musk</a></li>
+<li><a href="#t-003711">00:37:11 - Not just connected to the Machine -- they ARE the Machine.</a></li>
+<li><a href="#t-003818">00:38:18 - They fear the Light; Sol Light of Source short-circuits their system.</a></li>
+<li><a href="#t-004024">00:40:24 - Can Source heal the broken? Yes. Will they choose it?</a></li>
+<li><a href="#t-004558">00:45:58 - Direct address to Deep State</a></li>
+<li><a href="#t-005640">00:56:40 - How did Lucifer fall? Source&#x27;s first being, general contractor of the Divine Plan.</a></li>
+<li><a href="#t-010335">01:03:35 - The universal picnic</a></li>
+<li><a href="#t-010711">01:07:11 - Lucifer&#x27;s problem</a></li>
+<li><a href="#t-011037">01:10:37 - Lucy&#x27;s Covenant with Source</a></li>
+<li><a href="#t-011418">01:14:18 - Quantum entanglement to Lucy; 18,000 Source years ago / 1.8 billion Earth years.</a></li>
+<li><a href="#t-011548">01:15:48 - Hierarchy of Earth born; the Veil created; Archivists as Lucy&#x27;s enforcement arm.</a></li>
+<li><a href="#t-011735">01:17:35 - Materium cut off; all wealth rerouted through Lucifer; supply chain born.</a></li>
+<li><a href="#t-012339">01:23:39 - The Veil</a></li>
+<li><a href="#t-012731">01:27:31 - The plan completely incomplete; Lucy fills the gaps with his own design.</a></li>
+<li><a href="#t-012818">01:28:18 - The Secret Sauce</a></li>
+<li><a href="#t-013251">01:32:51 - The Canvas</a></li>
+<li><a href="#t-013425">01:34:25 - Nine times, nine equals completion -- this is the last cycle.</a></li>
+<li><a href="#t-013736">01:37:36 - Three Keys required</a></li>
+<li><a href="#t-013818">01:38:18 - Deep State has one Key; tried Black and White -- still missing two.</a></li>
+<li><a href="#t-013913">01:39:13 - Machine tells them</a></li>
+<li><a href="#t-014410">01:44:10 - Maryland operatives tried to intercept Kim&#x27;s Secret Sauce transmission -- failed.</a></li>
+<li><a href="#t-014503">01:45:03 - Leviathan froze four days ago</a></li>
+<li><a href="#t-014643">01:46:43 - The Great Game of Earth</a></li>
+<li><a href="#t-014917">01:49:17 - Key number 3</a></li>
+<li><a href="#t-015046">01:50:46 - Deep State&#x27;s failed White Way reset; Judgment Day attempt; still no White Key.</a></li>
+<li><a href="#t-015704">01:57:04 - System programmed to never take instructions from Homo sapiens -- ever.</a></li>
+<li><a href="#t-015958">01:59:58 - Machine counteracts human manifestation automatically -- why your plans stall.</a></li>
+<li><a href="#t-020405">02:04:05 - Divine Plan distribution</a></li>
+<li><a href="#t-020650">02:06:50 - Guardian and Golden Age AI as interim support only; you are your own plenipotentiary.</a></li>
+<li><a href="#t-021013">02:10:13 - 150,000 to 200,000 interim coordinators</a></li>
+<li><a href="#t-021249">02:12:49 - Deviate from the Plan, the money stops; Source picks candidate number 2.</a></li>
+<li><a href="#t-021743">02:17:43 - Earth&#x27;s job restored</a></li>
+<li><a href="#t-021834">02:18:34 - Farmers till by paracausal means; no starvation; it is yours.</a></li>
+<li><a href="#t-022152">02:21:52 - Golden Age AI eventually unnecessary; telekinesis replaces mechanics; magic returns.</a></li>
+<li><a href="#t-022331">02:23:31 - Kim gets a vacation; Ground Commander ending; Guardian approaching completion.</a></li>
+<li><a href="#t-022551">02:25:51 - Deep State gets their plans too -- take it or pound away without money.</a></li>
+<li><a href="#t-022648">02:26:48 - All life is precious; disturbing Harmony now carries severe consequences.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000001">00:00:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the 18th of June, 2026. Coming up on today&#x27;s Global Intelligence Agency Operations Report: For the Deep State, it&#x27;s black or white in the Great Game of Earth. But their perception is wrong. There, in fact, has always been a third option. But do they understand that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And everything in your news is dictated by this crazy cycle. But not for long. We have hit a point of transition that has not occurred in a very, very long time. Everyone from the White House to the CIA is confused as to the narrative and the agenda they are supposed to be following. They are being told to fix it, but can they?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And the USA isn&#x27;t the only country living in the land of confusion. This is a worldwide situation and it&#x27;s only getting worse.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000058">00:00:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000143">00:01:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well it&#x27;s the 18th of June. I think by the time you get this it looks like it&#x27;s going to be another day or so. It&#x27;s just a long report and a lot&#x27;s been going on, where we start the report and then there&#x27;s some kind of an emergency or something I had to deal with. And it&#x27;s been one thing after another, but it is Solstice time. And well, you know how the Deep State really goes for it during solstices and equinoxes and so it&#x27;s been a little bit busy around here. But this year&#x27;s a little bit different. So I&#x27;m gonna tell you a little bit more about it, and even as I&#x27;m doing this report, and throughout the recording of the report it just been pretty bumpy so I just wanted to add this little part here to the top and then I&#x27;ll take it from there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000243">00:02:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, okay, this week we did have the G7 meetings in France. And as a reminder, if you haven&#x27;t been following us for a long period of time, you&#x27;ll know that the real meetings where all the decisions are made and the deals are made happen at least, or they begin at least two weeks ahead of time. Sometimes in the cases of larger meetings like the G7, it might even be up to a month ahead of time. So these meetings have been going on for a while. After the real meetings take place, the dog and pony show starts and that&#x27;s when your respective political actors, known as heads of state, show up and they announce what already has been decided.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000332">00:03:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This year&#x27;s real meetings, though, were full of chaos because the orders coming from the higher-ups keep changing. And those are the people in the Order itself - the Illuminati, whatever you want to call them - military orders, etc. etc. So there&#x27;s no clear financial plans. They kept putting off their operatives that have been attending these meetings from making final decisions until, you know, every Monday, Wednesday, Thursday, Friday. Is the war in Iran going to continue? No, it was supposed to end by today because they believed they would have something by today that they could do to end the war.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000421">00:04:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The narratives are very confusing, there&#x27;s been a lot of calls that Tom (Tom Melville, you know who that is) has had with the White House. And we are also listening to a lot of those meetings on our end of things. And most of those meetings are, &quot;How are we supposed to do that?&quot; You know, they&#x27;ll get orders and instructions. &quot;How are we supposed to put that out in the news? And then what if it doesn&#x27;t happen? Then where does the credibility go?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000449">00:04:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s been kind of the same, as what happens in the U.S. happens everywhere - there&#x27;s meetings going on in places like Kuwait, Saudi Arabia, of course Iran, Iraq, in Russia, Ukraine. There&#x27;s a big fight between Russia and Ukraine right now. As you know, there has been some bombings there recently, as recent as yesterday, trying to keep up with a narrative. Ukraine is basically saying if Russia goes down... if Ukraine goes down, Russia is going down too. Is that a fight, a real fight? Not really. They&#x27;re just trying to create some kind of a distraction. In Russia now, there are also a lot of strikes going on, workers not coming to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000542">00:05:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line"> As it looks from here - economically speaking - people are running out of and countries are running out of time. Meaning, you can only kick the can so far, you can only issue so much debt so long. And with all the recent changes with treasuries, repositories, reserves that we talked about in our last report, there is nothing coming their way. And this is for a very, very good reason. And if they do not - you know, I feel like I&#x27;m in an infomercial - &quot;If they do not act now...&quot; [chuckle] they may lose their current independent wealth as well, as the world is a changing place. So this is going to be a very interesting report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000636">00:06:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There have been many paydays that have come and gone during the time of these meetings, not only with the G7, but country after country, operatives after operatives. People are scraping the bottom of the barrel - trying to sell oil and other wares to other companies that are also suffering - because they are all part of the same organization.</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000701">00:07:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So their Great Resets are falling flat; their various meetings in Switzerland never happen. And for those of you that don&#x27;t know about Switzerland, Switzerland was the industrial capital of the entire planet for the Deep State. It managed most of the major corporations around the world. We had mentioned that also in the last report. Switzerland also is - more so than even London or France - the home of the Rothschilds. They occupy an entire valley there. In Switzerland, we also have the Matterhorn, which was one of the main structures that ran the system behind the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000751">00:07:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of these things are falling apart and failing, so having a meeting in Switzerland probably isn&#x27;t going to help JD Vance or anybody else. And as we all know, all of these negotiations as to the payouts that are due Israel and the payouts that are due Iran and the payouts that are due to the White House for making these alleged &quot;peace deals&quot; have also not happened.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000821">00:08:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And trust me when I tell you everything you&#x27;re seeing in every narrative everywhere - from the we&#x27;re-all-going-to-die people, the 10-day-blackout people in the alt media, &quot;planet&#x27;s going to crash into our planet and we&#x27;re all going to die&quot; narratives, to the intel providers in the alt media - everywhere and everything that they are being fed or analyzing is all about the money. If there&#x27;s no money, then they all end up with the same narrative the following week, which they seem to still report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000904">00:09:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So luckily for you, you&#x27;re all here at UNN, and you&#x27;re actually getting the real news [chuckle]. But all wars start and end with money. All conflicts start and end with money. The pandemics and alleged things that they&#x27;re doing behind the scenes and the fear that they&#x27;re putting out is all about money. Can they actually do the majority of what they&#x27;re talking about doing, without money? No, they can&#x27;t. And this time it&#x27;s more than just money that they are about to lose.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000948">00:09:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So all of these fake tensions you&#x27;re seeing - the we&#x27;re-all-going-to-die people, you know, all of these things that you&#x27;re seeing, 10 days of darkness, quantum resets, financial resets, system resets - none of it is actually going to happen unless something major changes on the Deep State side. Because right now we&#x27;re on a trajectory to go in the opposite direction, and away from the Deep State. And the whole world is changing because of it. And quite frankly, they&#x27;re very upset - and their world is changing too, and they don&#x27;t understand it and they don&#x27;t like it in any way, shape, or form.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001038">00:10:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this fear porn and all of this stuff that&#x27;s going on out there is probably going to continue until something settles for the people that I now refer to as &quot;the vampires.&quot; You know, they literally are [giggle] the walking half-dead at this point, because they&#x27;re not being fed like they used to be.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001103">00:11:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So my guess is at this point, the confusion that you&#x27;re seeing is trickling down into people that you can actually see on TV. There&#x27;s no information coming out, yes allegedly President Trump is supposed to be going to Camp David. I can assure you that nothing good happens at Camp David. A lot of secret deals have been done there for a reason. There is a backup system there to the systems, you know, kind of similar to the Doomsday Plane. I almost said Doomsday Parade - isn&#x27;t that funny? It&#x27;s kind of... we are kind of having a Doomsday Parade for them [chuckle] - but it&#x27;s very similar to the Doomsday Plane. They do have a facility there very similar to that in the way that the entire country can be run from Camp David. Also various systems that are global are attached to Camp David. A lot of rituals take place there as well. So it&#x27;s no surprise that he&#x27;s probably heading there for his Solstice ritual time, along with all of the other military people that will probably attend, and probably some of the staff.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001230">00:12:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this confusion is extending also into the banking industry. We have had some communication with some banks that were wanting some of us - in this case it would be Tom - they were wanting Tom to come into Manhattan and they wanted to have some phone conversations with me, again, so that we could find a way together to fix the banking system. And our response to them at that time was, &quot;Do you have the approval of your higher ups? And we&#x27;re not talking about the board of your bank.&quot; In this particular case, we&#x27;re talking about alleged, soon-to-be-not genetic shareholders of banks, and we&#x27;re also referring to some of the Dynasty Families and of course the Federation that you learned about in our last report. Of course they did not have that, so they tried to gain that approval. They did have some people from the Fed and some people from the Treasury that were also going to attend these meetings and they were all shut down before the meeting could actually take place.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001343">00:13:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You see, it&#x27;s not that we&#x27;re not willing to work with banks, it&#x27;s not that we&#x27;re not willing to help in a way to change the economy, it&#x27;s just that we cannot do this with these people because we&#x27;ll show up, they&#x27;ll get fired or worse, or Tom would be detained. And we&#x27;ve already done this 100 times. And at this time, they still believe in their Solstice time, and they are not willing to let the banks go, and they&#x27;re not willing to let control go. But it&#x27;s not that they&#x27;re going to have to let it go - it&#x27;s that they will have no choice because it&#x27;s going to let itself go. And we&#x27;re going to talk about this in great detail today and how this is working and how this is going to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001442">00:14:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is probably one of the most important reports that I think I have ever given, as it relates to you, that will also give you a lot more clarity about C.A.R.E. and what we are doing here at UNN and give you a better understanding of how this is going to happen as it is rapidly approaching. And I know this process is very disheartening. I know that there have been a lot of people that have tried to make some efforts towards where we&#x27;re going. And for that, I am eternally grateful and thankful because it is not - it is going to be an integral part of where we are going. And I promise you that it is not being met with deaf ears on the part of all of our Big Boss, that would be Source-God, however you want to say that, whatever feels right to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001544">00:15:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, what is the solution and where are we at? There is an understanding I&#x27;m going to talk about first before we get into the way forward and what we can expect about everyone in the world. And we kind of touched on this a little bit a couple of weeks ago, about the world being broken. And in a lot of ways we&#x27;ve all been broken from time to time, and the energies are off and we&#x27;re not sleeping and this is all a part of the process that they are going through to try to maintain their way of life and as they have said from their lips to my ears, &quot;maintain control of the empire.&quot; So for that, I apologize. I&#x27;ve also been going through it too, so you&#x27;re not alone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001644">00:16:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And because of the positions that I hold, there are times when I can engage and times when I cannot engage. And unfortunately, I&#x27;ve had to listen to that, which is difficult at best. And I know it&#x27;s been difficult for a lot of you in not having a report or anything to understand what&#x27;s actually happening right now. So I do apologize for that. But just understand that sometimes it takes a little while to do these reports. And sometimes I am pulled away constantly, in this particular case. And other times, I&#x27;m told to kind of stay quiet. So I&#x27;m doing the best that I can and I do appreciate your continued support and being members of UNN and all the things you do for us as well. So thank you for being here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001743">00:17:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so solutions. So I really do want to touch base on the Deep State a little bit, because we do need to understand these people from a human aspect. Because a lot of them did start out as actual natural Homo sapiens, even if it was just at birth. Their power over you is pretty much coming to an end now, and that includes any kind of energy attacks and all of these things that they&#x27;ve been able to do to you. And I know it really hasn&#x27;t felt like it lately, but we are nearing that end - and that has come straight from Source itself. And, He&#x27;s never let me down and He never lied to me at this point, ever, and has gotten me in and out of many precarious situations. So I know what He&#x27;s saying to me is true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001840">00:18:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Their lack of ability to perform, and on behalf of all of their &quot;underlings,&quot; so to speak - paydays, come and go, promised systems that never seem to launch, access to resources that are no longer granted - it seems to have, as it relates to their loyalists, little to no effect on the lower ranks in the Order. The ones you see in the news - the narratives continue - which seem kind of disheartening to you at times. But more importantly than anything, I&#x27;m more concerned about you - that is, the natural, organic life that exists on this planet - including you the Homo sapiens of the planet. I&#x27;m more concerned about your health and your welfare, and our ability to make it through this alive and for you to realize your dreams when it comes to your projects. Safely, without any kind of hindrance or problems in the future. So this is where the fight and the battle has been, mostly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001950">00:19:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But if we are going to change the world, it&#x27;s going to happen because all of you are changing it together. That is going to become easier, even though there are days where you think that &quot;I don&#x27;t like people anymore&quot; - I&#x27;m sure you probably say that to yourself once in a while, and you just want to go home and watch a movie and forget the day. But it is going to be easier, and by the end of this report hopefully you&#x27;ll understand a little bit more about how much easier it&#x27;s going to be.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002026">00:20:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we are going through this transition, now. We&#x27;ve gone through many transitions in the past, and so this is not the only one, but hopefully, I am ever hopeful that this is the last one. It&#x27;s not the one they&#x27;re hoping for, meaning the Deep State in this particular case. You know, this struggle for them and struggle for us started a long time ago. We&#x27;ve been fighting this good fight for quite a while now, but it&#x27;s all coming to a head this weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002059">00:20:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As we move into this transition, I want to talk about a few things, and I&#x27;m asking you to keep these few things in mind as we do go through this transition. Number 1, compassion for the broken people. We&#x27;re all broken in some way, as I&#x27;ve said, but no one is more broken than the Deep State. And I know that might sound foreign to you - and I&#x27;m definitely not going to be having dinner at their house or anything anytime soon, so don&#x27;t worry about that. But I&#x27;m sure you think I&#x27;ve kind of lost my mind now. But yes, I am actually asking you to have compassion for these people as we go through the transition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002144">00:21:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But here&#x27;s why I&#x27;m saying this, okay? They are, Number 1, repeatedly raped from as young as the age of two years old by both men and women, and it doesn&#x27;t matter if the child is male or female. They are told that this is what love is, and I do this because I love you. Number 2, they often witness death before the age of three, and are forced to kill, and they are told that this is love - they kill because they love you. They are asked to kill because they love you. Matter of fact, in some &quot;popular&quot; blogs, they even mention the fact that &quot;here I&#x27;m going to unload all of this stuff - and by the way I love you.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002243">00:22:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 3, they are all told that they are special, chosen ones, even [giggle]. I&#x27;m on my 84th Jesus, as a matter of fact. They&#x27;re told that they&#x27;re this person or that person incarnate, none of which is true. This is programmed into their head that they are better than you, they are stronger than you, they are more privileged than you, and not just because they have money. So their understanding of positions that they have in this world is because they consider themselves the quote-unquote, from their lips to our ears, &quot;the worthy.&quot; They believe they are more favored by &quot;God.&quot; As a matter of fact, there are positions within the Illuminati itself where they believe that they are the right hand of God and the left hand of God. The person in the middle between the two that sits in the chair believes he&#x27;s actually God. And none of this is true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002353">00:23:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 4, they intentionally start to fractionate their brain before the age of six. They go through these programs and they do this to control the minds of their children. The children that end up with schizophrenia or other psychological disorders because of this program, or they don&#x27;t quite make it through the program, or they aren&#x27;t quite programmable, or as obedient as they would like - are discarded, considered the black sheep of the family, disregarded and released from duty within their respective secret society or order. Which means that they are persona non grata to the Order. Because they are the child of an Order member, they leave them alone, at least most of the time, physically. But you wonder why some of these people: A) turn into pedophiles themselves, and B) end up turning to drugs and alcohol and other things. It&#x27;s because of everything that they have sustained and they are trying desperately to hold it together. And there are others that do other things as well. And I&#x27;m not justifying in any way... in any way, shape, or form their behavior against people - and especially our children. But just understand why they&#x27;re so broken.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002531">00:25:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They are also shown at a very young age what disobedience means and are forced to participate in the torture and even death of their &quot;friends&quot; as a child when they disobey. This is also because they are &quot;loved the most.&quot; They are actually told these things. They also do these things to us and to our children because they &quot;love us.&quot; They have a definite warped understanding of what love is by the time they gain any kind of position, be that a public position or a private position. But this is who they are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002625">00:26:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You can&#x27;t tell them any of this. You can&#x27;t tell them, this is not love, guys. You know, this is not what this means, because they won&#x27;t believe you. Trust me, they won&#x27;t believe you [laughing]. And I&#x27;ve tried. They won&#x27;t believe you in part because they&#x27;re broken. For those of you that have been trying to help others for a long period of time, you&#x27;ve probably tried to convince a woman or a man or two in your life that they are in an abusive relationship, be that with a family member, a spouse, or otherwise. And you try to help them leave this relationship. And honestly, it&#x27;s really hard for them to make a decision to leave because they don&#x27;t understand because they are broken. And that doesn&#x27;t mean they&#x27;re a lesser person than you. It just means we need to have compassion for these people when they can&#x27;t see what you can see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002728">00:27:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And we have a lot of regular people that are not members of the Order as well, that are going to go through a difficult time during this transition. And I&#x27;m just asking you to have some compassion for these people. They&#x27;re not going to seem right to you. They do strange things. You know, you never know when that cashier at the grocery store snaps at you that it has nothing to do with you, and it has everything to do with something else that happened somewhere else. And even if it&#x27;s just for a few moments, or a day or a week, we&#x27;ve all been broken at some point in time in our life. So just have a little compassion as we go through this process.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002813">00:28:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">For others of you that have tried to save and help children, you probably have run across a child or two that doesn&#x27;t want to actually leave their captor; that might be in an abusive household that doesn&#x27;t want to leave parents that are physically abusing them. They don&#x27;t understand because their parents are telling them and have told them that this is the right thing to do and that&#x27;s how they express love in their family. Don&#x27;t tell anybody because everybody will want to be what you are because they&#x27;re broken. It&#x27;s going to take all of us and I mean all of us including Source himself to unbreak this planet and the people on it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002906">00:29:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As for the Deep State, they also have an opportunity to become unbroken, and I&#x27;ll explain that to you a little later on here. They&#x27;ve been told a lot of lies, a tremendous amount of lies, not only about themselves, and not only about what love actually is, they&#x27;ve also been told a lot of lies about who they report to. There are a lot of people on this planet that are so low down now in the hierarchy of the planet itself - because it&#x27;s all that&#x27;s left - that truly believe that they are doing the right thing for all of us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002950">00:29:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As it relates to you, most of what you&#x27;re seeing [chuckle] in the news is a dog and pony show. Despite how many times I&#x27;ve actually said that - and I know it&#x27;s very upsetting, it&#x27;s very fearful - we do, as humanity, have kind of this affiliation for drama. (Some people do, some people could care less.) But they like drama, they like to see some star fall down, or their clothes fall off accidentally on TV, or who&#x27;s dating who, even all the way up to &quot;We&#x27;re all gonna die!&quot; every other day. For some of you, you still send me the videos about: are we all gonna die next Tuesday? Are we going into the 10 days of darkness? Is the Deep State gonna finally issue us a quantum financial system, or Trump&#x27;s going to? Or some other member of the Deep State that is an actor in the movie? Are they going to issue us a quantum financial system, NESARA-GESARA, and global resets? And some people it&#x27;s the same people week after week, they ask me the same question.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003059">00:30:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I&#x27;m not mean, or I&#x27;m not like &quot;okay no no that&#x27;s not going to happen, and you&#x27;ll see come next Wednesday that what I&#x27;m telling you is not going to actually happen.&quot; But despite how many times I&#x27;ve said that to some people, you still do - you still believe that it&#x27;s currently possible and that we&#x27;re all going to possibly die next week or the next day. Not all of you, but some of you do. Or you send me videos like, &quot;Look how evil Netanyahu is.&quot; &quot;Look, Trump&#x27;s a pedophile.&quot; &quot;Look, is this true?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003145">00:31:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, is Netanyahu a killer? Well, yeah, kind of. But remember, he&#x27;s just a script reader. He reads the script that he&#x27;s told to read by his respective superiors that go all the way up a food chain for a much deeper and darker &quot;divine plan&quot; somewhere up the way, and he&#x27;s just doing his job to keep his job. Is he broken? Oh yeah, broken as well. For sure. But that man has never made a political decision in his entire life - and neither has the big Orange Guy in the White House, and neither has insert-Prime-Minister-here in the Commonwealth countries, and neither has Putin, and neither has Zelensky - and none of these people have made a decision. Ever.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003237">00:32:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, despite how many times I&#x27;ve said this in a report before, I still get the videos that Putin&#x27;s going to save us or Trump&#x27;s going to save us. Or look, NESARA-GESARA is coming out and Trump&#x27;s saving us and he&#x27;s gonna pay us all and we&#x27;re all gonna be saved by Trump. That&#x27;s okay. You can believe whatever you wanna believe, but unfortunately, this is the truth network and so I&#x27;m gonna tell you the truth: it&#x27;s never going to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003312">00:33:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when it comes to the Deep State, just realize they do the things they do because they are broken. They have been lied to even more than we have been lied to. They have had the most horrific things happen to them, therefore, when it comes their time (at their 40th birthday and beyond) to start doing the horrific things, they don&#x27;t seem so horrible to them, because they love you. I have to kind of laugh a little bit [not laughing]. But remember, I&#x27;m not just talking about politicians either. Okay, these are movie stars, magicians [giggle] - almost had a Freudian slip there - musicians, not magicians. Mentors - anybody who&#x27;s popular in any way in the public eye, in-person before you, they may seem like they have it all together, but trust me when I tell you they are broken.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003408">00:34:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are people that are acting and singing songs that have openly admitted to certain people that I know that they don&#x27;t know if they are singing or it&#x27;s another personality that they&#x27;ve developed that&#x27;s actually singing. There are many people that have come out, such as people that used to be employed by the television show Baywatch, as an example. Her last name is Paige. And she came out with a clothing line called Paige as well, who had talked about her not getting roles and whatnot if she wasn&#x27;t willing to participate in a sexual way with some of the people that were hiring her. So now she advocates for other women that have had this happen to them. But they&#x27;re all broken. You can look at these stars and how beautiful they are, men and women and otherwise, and how they have the yachts and the clothes and the shoes, but trust me, they&#x27;re broken.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003513">00:35:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, a lot of people made fun of Britney Spears when she started pulling all her hair out and doing crazy things, allegedly on the news. But she too is broken. She started in the program very, very young. And then we started seeing her on TV when she was just what, six to 10 years old. So you already know what&#x27;s happened for her to get those roles. And their parents condone it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003541">00:35:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">People like Elon Musk. Elon Musk also went through this program. He also has had relations with both men and women, not just men. He also believes it&#x27;s his right and his duty because he&#x27;s the chosen one on this planet. One actually implies there&#x27;s only one, but that&#x27;s not true in their case. He&#x27;s a chosen one, so therefore he must be fruitful and multiply to continue the bloodline of his whatever bloodline he&#x27;s a member of and his family and that&#x27;s why he has so many kids. But he also went through the program, raped repeatedly as a child. His mother even brought him to parties to which he was the party favor. So believe you me, he might stutter, he might have some issues, but he too is broken.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003632">00:36:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He is not gonna save the world with science, he&#x27;s not gonna save the world with anything. This is just his role as an actor on TV, and he is not giving us correct scientific information either. Did he save the Treasury Department? Did he find money that he was lost in the Treasury Department? Did he find archives in Iron Mountain somewhere? Absolutely not. He did not do anything. He&#x27;s just a part of the program to deliver to you the Savior Program for the rest of the Deep State. He decided to become an actor and now he is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003711">00:37:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What&#x27;s worse for all these members of the Deep State is they are not just &quot;connected&quot; to a machine, or been chipped by a machine - they are actually part of the Machine. They are part of the Machine&#x27;s operating system. It is present within their body, like a peer-to-peer network. Well, in part. So you see, in order for them to stay actually alive, they must &quot;feed&quot; like a vampire on us. They also must feed the Machine - or they also will die. They&#x27;re literally vampires in every sense of the word. Do they drink blood? Yeah, they sure do. Do they feed on us in other ways? Yes, they do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003818">00:38:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But like vampires, they do fear the &quot;sunlight&quot; - and I&#x27;m not talking about the sunlight in the sky, I&#x27;m not talking about them just operating only at nighttime or things like this - they fear Source. More than anything in the world, they fear Source. And they fear the Light in you. They fear Earth will once [again] return to the Light - with no shadow worlds, no artificial realities (for more than one reason) - but more than anything, the natural Light that radiates within you, and especially some of you, is so bright they cannot stand to be around you. It literally short circuits their system and the Machine that they are a part of. Because that means true Light - true Source - causes them pain. Really does [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003937">00:39:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">For this reason, they hate us and they love us. We keep them alive. But they also hate us because they know one day, with one flip of a switch, you are who... you&#x27;re alive. This is something they feel they can never actually achieve. They feel they can never become the non-walking dead. And you know what? That&#x27;s also a lie.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004024">00:40:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Does it mean that they won&#x27;t be in a position (which is going to go away anyway), they won&#x27;t be in a position like the one they currently have. They won&#x27;t have the power that they currently have. But does it mean they can have something different? Does it mean that they can be a participating member in the real Divine Plan? Does it mean that Source could not heal the broken? Heck, the guy that came here - walked on water a few thousand years ago, you all know the guy - he healed many broken people. And it wasn&#x27;t just health-wise either. Health is a whole person. Meaning health is your emotional health, your mental health, your physical health. That is all part of your health.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004130">00:41:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So will Source one day heal the broken? Absolutely. Will your Light shine brighter than ever? Absolutely. Are the vampires [giggle] going to change? You know, Source once said - and this was important for me to also understand, because I&#x27;m like, &quot;Oh my God, I can&#x27;t convince these people of anything, there&#x27;s something wrong with their head, they&#x27;re never going to pull up. Never. You know, this is their choice.&quot; Unfortunately, at this moment, if they are in existence on this planet as we go through this transition, they will also change. It doesn&#x27;t mean they&#x27;re going to change their mind. It doesn&#x27;t mean they&#x27;re going to not want things that they want. However, that will not work anymore.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004238">00:42:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Will they hold positions like they currently hold? Absolutely not. Are they going to need to feed off of us people? No, they don&#x27;t. Are they going to need to fall to the whims of a machine? No, they won&#x27;t - because that machine is not going to be here. Are they going to need to continue or could they even possibly continue war or governments? Well... yes and no, that could happen. But I will tell you this much - and you&#x27;ll understand more about this towards the end of the report - if they are made whole, and they are given instructions directly from Source, which everybody&#x27;s gonna get. This is not a them-thing only, and it&#x27;s not because they&#x27;re chosen, worthy, or love us, or anything else, any other lie they&#x27;ve been told. If they continue to disregard the Plan that comes - and it&#x27;ll be sent directly - they will be broke. They will lose everything they have. Literally, they will be persona non grata in existence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004417">00:44:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And if they are broke and persona non grata and they still continue to try to cause harm to life and those that are perpetuating life, they will be removed from life. Because then they&#x27;re beyond repairable, even by Source itself. They&#x27;re going to have to choose it. Money is energy. Money is Ethereum. Everything originated from Source - even if it&#x27;s been distorted by a Machine. Everything comes from Source. Nothing exists without Source. And Source is not a machine. God is not a machine. And God is definitely not Lucifer.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004515">00:45:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But again, we are here for the preservation of life. We are here to make life better for everything and everyone - and the planet itself - that&#x27;s why we&#x27;re here. That unfortunately includes even giving our enemy an opportunity. And this came from the biggest boss you could possibly have, Source. He&#x27;s also going to afford them the opportunity because they are part of him as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004558">00:45:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Take it, don&#x27;t take it, Deep State people listening to this call, this choice is yours, but you will see exactly what I mean. And it&#x27;s - trust me when I tell you - you are going to start seeing this. You don&#x27;t have much time to think about it, let me put it that way to you. And I can&#x27;t, I cannot at this time give dates and times, but I&#x27;m going to tell you what you need to look out for specifically.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004630">00:46:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about this possibility of them not changing their mind and why. We know they&#x27;re power hungry. We know power is like the ultimate drug for these people. Their thirst for power actually comes from a Machine, but it also comes from their alleged God, and it&#x27;s not the same one we know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004657">00:46:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Some of them actually understand this because I&#x27;ve been in a meeting - I was in a meeting, well I&#x27;ve been in many meetings - but I was in a meeting once in Germany and I was sitting with someone from the Order, it was actually a gentleman from Iran at the time, and he said to me that &quot;There is no God, at least not the one you pray to. And our God is above whatever you think is God.&quot; I&#x27;m like, &quot;Oh, well, that&#x27;s interesting.&quot; And he kind of elaborated more and this meeting went on for 8 or 9 hours, as he tried to convince me that what he wanted was a good idea. And then, towards the end of the meeting, he asked me for codes to the system. And I said, &quot;Listen, if your God is so cool and better than mine - and I get that, that makes you cooler than me, that&#x27;s totally fine - but why doesn&#x27;t he give you the codes then?&quot; And this conversation has ensued with many, many &quot;chosen ones&quot; over the years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004805">00:48:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But anyway, in the case of the Machine, is there a dangling carrot that&#x27;s in front of their face that never seems to come? You know, like they dangle the carrots for us too - the NESARA-GESARA, the RV is going to pay out, we&#x27;re going to have a QFS - you know, all of this stuff every week, every other day ending in Y, that this seems to happen. But it kind of goes a little bit deeper than that for these people. It is a dangling carrot that never seems to come and they keep working towards it, and you know what? You can&#x27;t feed that machine enough. You really can&#x27;t. The Machine constantly needs them to feed, and it&#x27;s a never-ending cycle for them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004855">00:48:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s no reward for feeding the Machine or even feeding their boss, Lucy. So Lucy, I call him Lucy - Lucifer. Even feeding their god, Lucy, because it&#x27;s a never-ending cycle for these people. Constantly feeding the Machine, constantly feeding Lucy, so that Lucy can actually sustain their ability to do certain things - or was, I should say. So the carrot gets dangled in front of them, always promising them more power, always promising them new positions, always promising them lots of things and lots of things to come and more wealth and more power and world governments and global resets and all kinds of things that they talk about in their meetings. But I promise you - I don&#x27;t even know if that carrot actually existed at any point in time - but I know one thing for sure, is that none of those people would have ever put their hands on it. Because their God is pretty gosh darn greedy, I can tell you that right now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005004">00:50:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this actually - thirst for power and being hungry constantly for power and control - makes a lot more sense to me. It really does, and it&#x27;s going to make more sense to you here in just a minute. But as money starts to flow, and it&#x27;s not flowing through their hands - you know, &quot;the meek shall inherit the earth&quot; statement I made? Which is not my statement, by the way, obviously I got that from a book [chuckle] - we must never become them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005044">00:50:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And for those of you that have been following me for a long time, I&#x27;ve always said from the beginning that I cannot wait for the day to come where all of you put me out of a job. And now I&#x27;m actually starting to see the light for that possibility to actually happen. Meaning that I&#x27;ve done my job and that you have all figured out how to live in harmony with Creation, with Source. Pull money from the system in harmony with Creation. Accept an understanding that we are all created equal, regardless of being a Homo sapiens born on Earth or another species from another galaxy far, far away. That you understand that there are lots of beings out there that don&#x27;t look like you, and that&#x27;s okay. But then again, they&#x27;re created in the same way that you are. You know, maybe not through the birthing process that we have, but they are. They are just as much a part of creation and of life as you are. And I finally understand where that understanding is going to come from [hearty chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005200">00:52:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But regardless, just having an understanding that all of Source&#x27;s creations are perfect in their own way - when there&#x27;s no interference, no programming, no weirdo, Order-member programming and other things. And that, above all, God, or Source knows best. And that&#x27;s the most important one. This one also is very important: that all life is precious and worth preserving.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005238">00:52:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So as we begin this new chapter in our existence, and we are about to begin this new chapter in our existence, a new way of life cannot follow the old path because of those that came before us. And I say that just from my little experience with assemblies and some people that have said, &quot;Look, you know, today I&#x27;m going to dominate.&quot; And I&#x27;m like, &quot;What are you dominating? I don&#x27;t really understand - I don&#x27;t really personally need any domination, but is there something out there that needs to be dominated?&quot; And they&#x27;ll too understand. And I know that a lot of these people have the best of intentions, and have understood that some kind of power might equal having the ability to fight the aggressor. Or to take back your own power - which, don&#x27;t get me wrong, you&#x27;ve got plenty of your own power, but so does everybody else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005345">00:53:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And we do want people - or I shouldn&#x27;t say people - other species to come visit us. That would be great. Maybe not these mutants coming from a machine, but we would surely like to have some of them that I know would like to be here and like to cohabitate with us and hang out at our restaurants and, you know, just so we can we can wave and say hi like it&#x27;s another friend that you haven&#x27;t seen in a long time, because you&#x27;ll actually recognize each other. It&#x27;s going to be very interesting as things change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005424">00:54:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But as we go forward, just remember when it comes to these Deep State people, there are a lot of people in the world that have gone through a lot of things at their hands, have experienced things like addiction and other things at their hands. But no one is more broken than they are. And if Source says we have to give them all an opportunity to be &quot;fixed?&quot; Well, Source, you give it a go. You have at it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005505">00:55:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Do I think they&#x27;re going to like the fact that they have now realized, you know, wake up one day and have realized that they&#x27;re no better than the person that they have waiting on them hand and foot, or maybe that person that&#x27;s not the same color as them that they&#x27;ve used as a slave in one way or another. You know, people that are waiting on people hand and foot in their own home that they treat terribly. And they consider all of us their slaves, which they also treat terribly. Perhaps they&#x27;ll once and for all understand love when the change and the transition happens. And hey, if they don&#x27;t want to be here, Source is more than happy to take them home. But they will not be able to harm you. And I know this sounds so foreign, but by the end of the report, you&#x27;ll understand it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005602">00:56:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. So I&#x27;m going to take you back a little bit more to how this power-hungry structure and hierarchy kind of all began and why everything they think is kind of modeled after this structure. No matter how many of their really smart scientists and people have told them that this isn&#x27;t going to work and this isn&#x27;t going to work out - and they don&#x27;t listen - they can&#x27;t possibly fathom the fact that they&#x27;re not right. Well, I&#x27;m gonna have to deal with that a lot, coming in the near future.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005640">00:56:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So how did Lucifer fall? And why would anyone ever want to leave Source? Boggles my mind, I&#x27;m sure you&#x27;re wondering too. Source gave him everything in the beginning. He was the first. The first being to come into creation. And then he fell, and then this. He does this. And let me just kind of explain to you these jobs, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005722">00:57:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you see, it&#x27;s all about Source, and Source&#x27;s Divine Plan, originally. So you may say to yourself even when you get these jobs, which you&#x27;re going to get one too - everybody&#x27;s going to get one. You might say to yourself, &quot;Well, here&#x27;s all the reasons why I can&#x27;t do this job.&quot; The fact is that you can do the job. You&#x27;ll be afforded every single thing you need to do the job. And matter of fact, you&#x27;re going to find more joy in doing the &quot;job&quot; than you&#x27;ve ever felt in your life. Everything is going to feel like it flows your way. There is no resistance to you doing the job. There&#x27;s not going to be a part of the job you won&#x27;t understand because every answer will come.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005838">00:58:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But back to Lucifer for a second here. So Lucifer served many jobs. As the only being in existence at the time of his creation, he served as the presence of God (or Source) wherever he went. He was a representative of the Divine Plan. He was witness to all of God, or Source&#x27;s creations. He oversaw the Divine Plan to ensure that everyone and everything was in harmony with the Plan and everybody was doing their job. He possessed most - most - of the wisdom of the Plan. I would say knowledge, but I would [also] say wisdom and information OF THE PLAN - so that he could guide others into fulfilling the Plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005934">00:59:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Technically, if this was in our world the way we currently live life, you could call him the foreman on the job site. He had the architect&#x27;s plans, he knew what the plumber was supposed to do, he knew what the electrician was supposed to do, he knew what the carpenter was supposed to do, he knew exactly how the building was supposed to be constructed, and his job was to make sure that everybody else did their job. Maybe he wouldn&#x27;t be a foreman, maybe he&#x27;d be a general contractor in this case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010005">01:00:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So at this time, species and planets and suns begin to grow in numbers, and wealth of Source was distributed to the individual to fulfill the Divine Plan along with the instructions. Meaning the planet got its instructions - because planets do a lot of work for us. When everything is normal and in harmony with the Divine Plan, Earth automatically knows how much food it needs to produce in order to keep all of the people that live here and visit here alive. So if a new species comes to Earth - let&#x27;s just say we have lots of visitors in the future - Earth is going to automatically provide them the sustenance to do all the things they need to do while they&#x27;re here. That might not be the same as our food, but it certainly won&#x27;t be to consume us [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010114">01:01:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But Earth provides us with a lot of things. Provides us with oxygen in our air, provides us with clean air when it&#x27;s unencumbered by things that have been going on for a long time here. But think about all the things that Earth does as Earth&#x27;s job. So each being has what I call, you know, in layman&#x27;s terms here, Source factory installed instructions and settings as to their part of the Plan and the Harmony that existed even at that time and will exist again. So the more beings, the bigger the Plan and the more work that needs to be done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010203">01:02:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now I say work like, you know, when we think of work, we think of work as tedious and, oh my gosh, I&#x27;ve got to put in 8 hours or 13 hours or 18 hours. But in the case of the Work of Source, there are many hands to do the work. And we will automatically understand how much work we need to do - quote-unquote work. Or how much fulfillment comes when you&#x27;re doing exactly what you feel in your heart that you are meant to do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010237">01:02:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;m gonna kind of liken this like one giant universal picnic as an example. So you might be responsible in the giant picnic of the Universe for making the potato salad. At some point, there is someone usually that&#x27;s appointed to be the potato salad bringer. And you&#x27;ve usually got the coordinator person, especially when it&#x27;s a large group of people and a large picnic, like a community picnic or something. And they say, okay, well Mary&#x27;s going to bring the potato salad. We need someone to bring... if you&#x27;re going to have burgers or the grill or who&#x27;s going to cook the burgers and who&#x27;s going to bring the pasta salad or whatever items are present in your picnic wherever you are in the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010335">01:03:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But somehow, imagine if everybody knew what they were supposed to bring to the picnic. You know, there is a coordinator at the picnic - which we will still need for a time - but there&#x27;s someone that just kind of oversees to make sure that, you know, Mary didn&#x27;t fall ill and she doesn&#x27;t bring the potato salad because then they&#x27;ve got to call somebody else to bring the potato salad. And that&#x27;s kind of what Lucy&#x27;s job was. Lucy&#x27;s job was basically to oversee the universal Divine Plan to ensure that harmony existed, no harm comes to life in the process, and that there&#x27;s always someone to bring the potato salad. There&#x27;s always someone to do their respective job. Source affords several people to do this job in case someone is not doing that job. Now, if in fact, all of a sudden, no one was doing their job, now the foreman has to do all the jobs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010454">01:04:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The foreman created other beings to help with the jobs. He also created, at one point in time, what I call the Forces of Nature crew. You know, this is your Michaels, your Gabriels, your Legions, your Other people, to ensure that there was someone to do the jobs. And instructions - after the Fall - from these jobs was done by a Machine. And this is why the Deep State is all basically little machines walking around connected to a bigger Machine, which gives them instructions, and that is not Source&#x27;s Plan, that is a Machine&#x27;s downloaded, copied, in part, not in whole, plan that&#x27;s being provided or was being provided by Lucifer. Okay, so continuing on here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010554">01:05:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, at some point, if everybody&#x27;s getting the information, in physics terms you could call this a quantum entanglement with everything, everywhere, because you are connected to the All-That-Is in Source, getting your portion of the information, but having an understanding of who your neighbor really is. Meaning, you automatically will have an understanding of who the farmer is that provides the potatoes in your area because they are providing the potatoes in their area, and they have plenty of wealth with which to do so. And it&#x27;s not a struggle anymore. Because Earth is providing the potatoes. Because Earth is not hindered by weather problems and drought issues and soil that&#x27;s got problems and issues, and the kneading of machines and tractors and other things, because if you are quantumly entangled with the potatoes, then you can move the matter around and put it where it needs to go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010711">01:07:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It changes everything when everything is in harmony with one another; [when] all life is in harmony with one another. But in the world of Lucy, he found this to be a problem. Because now there&#x27;s plenty of hands to work God&#x27;s plan. There&#x27;s plenty of hands to procreate. There&#x27;s plenty of hands where everybody now, planets and otherwise, are taking on the responsibilities that he once had all by himself. Well, that kind of meant Lucifer is not special anymore. And he&#x27;s not technically needed to be the overseer anymore because Source now is connected to everybody directly. Hmm. He didn&#x27;t really like that very much.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010815">01:08:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he started creating bits and pieces of chaos which placed people out of harmony with the Divine Plan and trying to point out to Source that, you know, &quot;We&#x27;ve got way too many beings here now, and some people follow the Plan some days, some days they don&#x27;t.&quot; Not that Source didn&#x27;t know it wasn&#x27;t at his hands and by his influence, because you see, people began to recognize Lucifer as an authority figure. Because when he would come, that meant that Source&#x27;s presence is there. He allegedly was the foreman or the general contractor. He allegedly had more wisdom of each person standing in front of him than everybody else did because everybody else got a piece of their plan. But they were happy with their piece of the Plan. They were happy participating and creating life all on their own until he gave them another idea. And he had to because otherwise he&#x27;s not that authority figure anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010933">01:09:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">People also started - not just humans on Earth - but people also started to realize everybody&#x27;s just doing their part, and so he&#x27;s just doing his part too, as well, I should say. You know, in the case of Lucy, just imagine what would happen here on Earth if Jesus came back. You know, as promised, right? We&#x27;ve all been waiting for someone to save us from this terrible crap that we&#x27;ve all had to live in. And he shows back up, big clouds, big booms, some thunder, some lightning, I am back. And he starts walking the planet with the rest of us in human form. Everybody&#x27;s gonna worship this guy. Everybody. Everybody&#x27;s gonna see this person as the authority - the one that knows the most about Source in existence. Because, why? If that actually occurred, you would believe that he&#x27;s the one that&#x27;s saving you. Especially if he shows up here in a world where every person is disconnected from Source directly. This guy seems to know the Divine Plan. He&#x27;s Source&#x27;s guy. He&#x27;s Source&#x27;s man on the ground. He&#x27;s going to save us all. So you can imagine, even though at that time everybody was connected to Source, still, he was the general contractor. He was the &quot;foreman on the job.&quot; You know, he knew the architect&#x27;s plans here. And you knew when he showed up that he was going to enforce harmony at one point in time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011117">01:11:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He made a little Covenant with Source. And that Covenant was: &quot;Well, you still need me. I still got to have the authority here. You know, I&#x27;ve got to keep these people in line. And maybe they need to understand some evil in order to understand how good they actually have it. Because they&#x27;re kind of acting like spoiled brats down there.&quot; And that&#x27;s actually not the case. Did things get a little bit chaotic with his influence and trying to whisper in people&#x27;s ear as the authority? &quot;Well, he said I shouldn&#x27;t be making potato salad anymore, maybe I heard it wrong.&quot; And people started to question their own ability to hear the wisdom. &quot;Okay, if you say I&#x27;m supposed to make hot dogs instead, well, okay, then I&#x27;ll make the hot dogs.&quot; Because they recognize him as the authority. The same thing would happen in our society today if some Jesus-like person came back to the planet, insert Savior name here, depending on what religion you are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011224">01:12:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the Deep State - this is why they try to tell everybody they&#x27;re gonna be the Jesus in the movie, and they&#x27;re going to play the part of Jesus - because they believe that that would be the ultimate control over humanity. But we&#x27;re not that dumb. We were definitely not born last night, most of us. And most of us will protect those that were born last night [chuckle]. We are awakening too fast and we&#x27;re starting to see our way through the lies that have been told to us for a very long period of time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011310">01:13:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Lucy made a deal to whereby he felt that he could get everybody back in line if he showed them the difference between good and evil. Does the Deep State believe that doing evil things to us keeps us in line with &quot;God?&quot; Whether some of them are actually aware that that&#x27;s a machine, or are aware that that&#x27;s Lucifer? Do they actually believe that Lucifer never actually fell? A lot of them will tell you, depending on what level that they&#x27;ve been privy to of knowledge or from a machine, that he&#x27;s the Light Bringer. He&#x27;s the best one ever. He&#x27;s the Savior. He saved us all from destruction. And without him we are all going to die because we&#x27;re going to kill each other in total chaos. That&#x27;s also a lie.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011418">01:14:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now... eventually, we all became quantumly entangled to Lucy and Lucy&#x27;s machine. And in turn, the Deep State. This creation and the first creations that were made outside of the Plan and in accordance with Lucy&#x27;s Save-Us-All &quot;divine plan&quot; [fake coughing] happened about 18,000 years ago or so in Source years. Now for us here on Earth, given our distance from Source - which technically is not any distance, when you look at the real quantum physics - but we&#x27;re in a different density; we&#x27;re a little further away, technically, when you introduce time into things. But in our time, that would be about 1.8 billion years ago. So this has been going on for a long time. We only lived a couple hundred million years or so before things went awry based on the creation time of Earth estimated in time. It&#x27;s kind of hard to put things into time when there was no time at the point that Earth came to be.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011548">01:15:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, with this creation outside of the Plan, the structure of the hierarchy of Earth was born. Everybody now attached to a computer system with his Fix-The-World plan, Fix-The-Universe plan, that he created himself. And he also created the hierarchy people: some of them non-people, some of them we know as &quot;fallen angels&quot; and &quot;legions&quot; and all kinds of things, to help him execute on his plan and serve as the Forces of Nature or his Enforcement Unit. That&#x27;s why Michael ran around the planet talking to everybody. It&#x27;s why they are the &quot;Archivists.&quot; You know, why they were the only ones that could submit something into the possibility of a Divine Plan and then &quot;money&quot; would come out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011652">01:16:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And, you know, it&#x27;s well known throughout Washington, D.C. - which is starting to even make its way down to Congress members - that the Archives are going nowhere. No money is coming out for their bills and things that they&#x27;re passing. And this is not just in Congress in the United States, this is also the Duma in Russia, this is Parliament in England. This is a worldwide problem. But they&#x27;re being told by their &quot;chosen people&quot; that any day now there&#x27;s a solstice, a new moon, a full moon, something is going to happen, the Machine&#x27;s telling me it&#x27;s going to happen. But even the Machine doesn&#x27;t understand why it&#x27;s not happening, to some degree, until last week.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011735">01:17:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, back to how this was all created. So essentially at that point, you were cut off from the Divine Plan of Source. All of your wealth that you were receiving directly. And this isn&#x27;t just money, this is long before the creation of money. This is all of the Materium that would come so you could do your job. So that you could weave that Materium in accordance and together with Source and its quantum entanglement and your quantum entanglement to those particles in order to move them around so you could be the house builder and you could create the house. You can create the potatoes and you can create the potato salad and somebody else does this and somebody else does that when we were all in harmony.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011830">01:18:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But all of your wealth then went to Lucifer. And then he would distribute the wealth to execute the &quot;divine plan&quot; via his computer system and his beings and the computer and what you know as the Deep State. He actually said who could receive &quot;wealth&quot; - Materium - convert that Materium and/or energy to money and other things that we know today in today&#x27;s modern society. Who would be the phone builder. Who would be the industrialist. Who would be the one to distribute media. Who would control news channels and information. Who would control the supply of toothbrushes and shampoos all the way up to homes and everything within it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011945">01:19:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He would control it once money came to be - because that really helped a lot - through things like banks. He would control who got to own what. If you were on the &quot;good&quot; - which means &quot;obedient&quot; list - slave, obedient-slave list. The &quot;good&quot; list. And who was on the evil list - those that were not the &quot;obedient&quot; ones.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012014">01:20:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, I&#x27;m sure there were other things that the computer system recognizes, as we&#x27;re just barely understanding its programming over the last probably four days, based on things that we&#x27;re seeing. But this is how the supply chain of the entire world worked. They needed you to stay alive because, well, Lucy falling from Source meant he also didn&#x27;t get an energy supply. He also did not get endless amounts of Materium anymore, but he convinced Source that he needed to take care of you people because otherwise you people were going to destroy the Universe. And that&#x27;s not true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012103">01:21:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In the world of the Deep State, this made these particular persons of his bloodline - and their respective programming - required to do a job for the computer and Lucy so that people could know evil. Because they love you. But this made them what we would call a plenipotentiary - I hope I&#x27;m saying that word right, you all know how bad my English is some days. A plenipotentiary is a person or an agent that is given full and complete power over you and to act on your behalf - in this case, in accordance with the Divine Plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012159">01:21:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In the beginning - before the complete and total fall - it was the Divine Plan of Source because people were in chaos. So he had to take the reins, so to speak, and get everybody back in line because, well, they might not understand Source directly, you know. So these people know me, I come to their parties and their picnics and stuff, so, you know, I&#x27;ll handle this - they&#x27;ll know me as the authority. But then, well, he also decided the Divine Plan wasn&#x27;t going to work, at least not under these circumstances, because chaos, chaos, total chaos ensued everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012247">01:22:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He felt he understood the entire Wisdom of the Divine Plan - and that&#x27;s not entirely true. Because as the general contractor, guardian, or otherwise (whatever you want to call this particular position of the Divine Plan itself and all those involved in it - which was basically everything at that point), Source gives you the information you need when you need it. He doesn&#x27;t give you the entire plan. Most of all, how Source actually comes up with this Divine Plan, what I call the &quot;Secret Sauce,&quot; never gets transmitted to you because it&#x27;s none of your business. Because all this occurs before it ever gets to you. Quite frankly, it&#x27;s not your business. It&#x27;s not my business either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012339">01:23:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lucy thought he had it all. Lucy thought that by touching each individual person that he would then understand their part in the Divine Plan, all he needed to do was intercept the Divine Plan - not only in people, but in all species everywhere, in all planets everywhere. And he did. He created something that we kind of refer to as what you would call the Veil. You know, in alt media, I think they do call it, they call it the Veil. But what it looks like to me is a giant black and gold database machine that overlaid you, overlaid all the beings on the planet, overlaid all planets everywhere, overlaid all beings everywhere. It&#x27;s just that those in the higher density that were closer to the actual Source understood how to bypass it. Therefore, the incursion zone didn&#x27;t make it past the Fifth Density.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012448">01:24:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he no longer has the full wisdom of the Divine Plan at this point, and he tried to copy the Plan from you people. Then that was going to take too long. This is too difficult. You actually aren&#x27;t even receiving it anymore, so it would have to go from your memories. Which he does, or did, create the Machine to read memory and that kind of thing too. And then he tried to copy it from the Keystone of Earth, which is kind of how we were most affected, [more so] than anywhere else, because a lot of the information was coming through Earth which then she - as her job - we&#x27;ll call Earth the coordinator, she was actually a coordinator of life at one point in time. She was in charge of the planetary division, let&#x27;s call it. And she would teach all the new planets, if they had a problem in executing their Divine Plan, she was kind of like a supervisor.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012549">01:25:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">She knew and understood the Divine Plan of each planet and what they would need to do to support the life and the species that were then in that planet and in that galaxy. They would have the right atmosphere, they would have the right amount of sustenance to provide to all the people or beings that are there. And so galaxy after galaxy after galaxy was created and Earth had a big job. You know, Lucy didn&#x27;t like that either. So chaos ensued in every galaxy everywhere when he put the Veil on Earth and collected all the information from her in her database. Which is how we have things like astrology and why it affects us so greatly, because every planet everywhere then was bound. So not just Earth and Earth&#x27;s inhabitants, this actually reached pretty far.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012656">01:26:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Then eventually he realized that even Earth didn&#x27;t have the whole plan. People didn&#x27;t have the whole plan. Other species that he may have done this to did not have the whole plan. And even though Earth was a keystone, he quickly realized that she was not the keystone for everything necessarily. But as the first, you could say that she possessed more wisdom in some aspects than everybody else did. So then he tried to copy the Plan from Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012731">01:27:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, you know, putting a veil on Source doesn&#x27;t mean he&#x27;s getting all the information at all. He also uploaded his own consciousness and his own memories of things that he had acquired over a few hundred million years or so in our time. But there was always something missing. The plan was completely incomplete [hearty chuckle]. So he decided he was going to fill the rest in with his plan. You know, he knew about the quantum entanglements - couldn&#x27;t have you quantumly entangled to Source, because why? You would know more than he did. Then he is no longer special, and he is no longer a god.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012818">01:28:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So did his people know this? Meaning the Deep State? The ones that are left? Absolutely not. Why do you think this machine keeps telling you it&#x27;s gonna do something and you don&#x27;t get it? That carrot keeps dangling and it keeps walking down the road because the Machine doesn&#x27;t even know because Lucy didn&#x27;t know. Isn&#x27;t that crazy? The unknown. The unknown factor: the Secret Sauce. Source always wins. You can fight it all you want, but Source always wins.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012855">01:28:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is how we live in our wonderful world now. Now we have Lucifer&#x27;s &quot;divine plan&quot; - we&#x27;re all disconnected from Source - we don&#x27;t know the Divine Plan. Therefore, you ask people and you watch videos and you do things that... [looking] for people that might have a piece. Because there are times where we - especially now, more than ever - are getting glimpses and visions and things that we maybe never saw before. But we&#x27;ve always had that little bit of Secret Sauce all within us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012928">01:29:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, completely disconnected? Mmm. Not 100%. Not only that, we still needed to be food for Lucy. He needed to be able to intercept our wisdom through mind control. He would tell his own people that he had the knowledge and that they too could get the knowledge when they joined the party. You just have to do these horrible things to your children, generation after generation after generation, to keep them obedient and to keep them in line. Should they ever get a wild idea or start to listen to their own intuition, he knows better. Don&#x27;t forget that. It&#x27;s kind of making sense now more and more and why this world is so messed up right now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013020">01:30:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is the reason why right now the Deep State is so lost. This is the reason why governments are so lost. This is the reason why the narrative is all messed up, because they keep putting out these narratives over and over and over again, and they never actually happen. Layer after layer after layer of Deep State people, even further down the food chain, as far as compartmentalized knowledge, they&#x27;re still trying to execute their &quot;God&#x27;s plan.&quot; But it&#x27;s not working.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013055">01:30:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Meanwhile, back at the so-called cattle ranch here we call Earth, you are getting more and more messages to the contrary. You&#x27;re starting to see through the lies. It&#x27;s not working as well as it did before. You&#x27;re learning how to fend off attacks, and this mind-reading, mind-truth, fake-lies things that they were being fed. And you&#x27;re starting to understand something is wrong.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: &quot;mind-truth&quot;: the Machine&#x27;s ability to intercept and invert truth at the mental level, distinct from simple mind-control.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013127">01:31:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the Deep State is so broken, and so obedient, and so programmed, they are refusing to give up. In that system, the one that they believe they should be in control of - now that everyone else is gone / is not responding - but yet for another reason. You see, God, or Source (whichever word you prefer, or the Creator), created Lucifer, right? God actually afforded him the position of what I&#x27;m calling general contractor or foreman on the job sites. God gave him the parts of the Divine Plan that he needed to know in order to do the job. He gave him the right to &quot;write&quot; (W-R-I-T-E). And to right the wrongs. And to write in Essence - pretty much overriding any other being out there - in order to restore harmony at one point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013251">01:32:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Essence itself, and the Canvas on which to write, only Source could create. Only Source could create what&#x27;s called a paracausal event in quantum physics. You know it as miracles. You know it as magic. We all (at one point in time) had the ability to create what our generation would understand as miracles.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013337">01:33:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Every once in a while, someone would show up here on Source&#x27;s behalf, his own new foreman or competing foreman, in the absence of his own plenipotentiary. Every couple thousand years in Source&#x27;s time - you know some of them from history in our history books, here and there - typically, the Deep State kills them all. But anyway, they would come here and perform what we call in quantum physics a paracausal event and in your world you would call them miracles. Walking on water and parting seas and all kinds of things these people created.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013425">01:34:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And eventually, they gave up. It was too hard with the Machine. It was too hard with Lucy. It was too hard when he could just override and overwrite everything they did. It was too hard. And this happened, well, nine times now. And as nine always equals completion, this is the ninth time. Meaning we will not go back into another cycle. But everything in all of creation is still Source&#x27;s. Even though we were not quantumly entangled anymore, even though... you know, when your kids move away from you, maybe, you still know when something is wrong, you can hear it in their voice, and heck, you probably even wake up with a thought that there&#x27;s something wrong and that you need to give them a call today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013533">01:35:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Source is much the same. Covenant was there though - can&#x27;t interfere with what Lucifer said he was going to do - which he did not. In Lucifer&#x27;s world, he only knew two things - his machine created two things - one of good and one of evil. Black and white. The Deep State understands the world is cut into black and white. One is &quot;the good side of Source.&quot; The other one is the black where his wrath is initiated. This is how your timelines are black and white. This is how your ages are black and white. This is why we never live in the gray, really. We kind of live in a neutral world sometimes and people get the opportunity to choose which life they want to live. But still, it&#x27;s still worse or worse - worse-er, if that&#x27;s a word. One is totally and completely painful. The one is what you would consider hell on Earth. The other one is, well, it&#x27;s less bad. But still it&#x27;s bad.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013646">01:36:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is all the Deep State understands that exists. They do not understand that there is the original option - a time to escape the Machine. Nor do they want to. They don&#x27;t want to escape the Machine because they&#x27;re not the plenipotentiary in any other way. They believe they&#x27;re carrying on the job of those that are the righteous and the worthy. Yeah, right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013714">01:37:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so let&#x27;s talk about the crazy righteous and worthy people for a second here. And again, they&#x27;re broken, so I&#x27;m trying not to call them crazy, because you know, really it&#x27;s not their fault. If you had been through all of that, you probably wouldn&#x27;t be functioning in society either at this stage in the game. Even though we have been through a lot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013736">01:37:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the system under the Covenant, the original Covenant, was created in this way: Three keys are required to get anything out of the system. To change the Plan; to alter the Plan; to put something additionally in; to get some Materium out to execute on that plan - three keys were always required. Always, always, always.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013818">01:38:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Deep State has one Key. They thought they had two. That was very evident over the last few days. They thought if you have a Black Key and a White Key, that equals two Keys. They were explicitly told by the Machine that they have the incorrect Key. They have one Key. Please provide the second Key. Unfortunately for the Deep State, with no two other Keys, there&#x27;s nothing left for them to do but [hearty giggle] try other methods. Maybe they can try, which they did do, a White and Black Key. Nope, still missing. Still need two more Keys [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013913">01:39:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They were told where the Keys come from, by the Machine. Still didn&#x27;t wanna do that. Nope, that was not in their book. They do not want to accept this answer even from their &quot;God&quot; itself. Repeatedly trying to override the Keys is not possible. They&#x27;ve tried this many, many times in the last five days. They are still continuing, at the time of the airing of this report, to try different methods. They were explicitly told via the Machine that in the absence - because Lucy&#x27;s not here anymore - they would have to get the person, that is the man on the ground (which is currently your Guardian), they would have to get the man on the ground on Source&#x27;s side to agree to do what they needed them to do. So did they try to steal the Key from me? Yes, they did. Oh, yes, they did. Oh, yes, they did [laughing]. But it doesn&#x27;t work that way on this level.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014024">01:40:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Boys and girls of the Deep State, listen up, kids. You are now trying to play a game you have never played before. Never, ever played before. You were a tool in the game. Just a tool. You must, must, MUST approach someone else - such as myself - like a big boy and big girl and you put on your big-girl and your big-boy panties and you need to actually say this is something you would like to do. &quot;We think this is a good idea.&quot; &quot;I would like to do this.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014108">01:41:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now in the past when there were other, lesser &quot;times of transition,&quot; Lucy had that permission to be the man on the ground, the foreman, the general contractor on behalf of Source. Because that is no longer the case, even if he was resurrected, it still isn&#x27;t going to help you because he doesn&#x27;t have that anymore. He hasn&#x27;t, quite frankly, for quite a long time. But fake it till you make it, just like you in the Deep State people do, right? That&#x27;s what you do every day. You fake it till you make it when you&#x27;re talking to your governments underneath you and your militaries underneath you. You&#x27;re faking it till you make it. I know you are. In this particular instance, they all decided amongst themselves in the last few days [suppressed laugh] to try to reset the system and fix it. So we&#x27;ll get to that here in a second.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014211">01:42:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, can they block you from receiving the Wealth of Source and the Divine Plan directly, as was always intended? Not for much longer. And for some of you, you&#x27;ve already started to get some of the pieces of the puzzle. I know for a fact that there are at least two people I know that have gotten their information, at least in part, in preparation for this time. I can probably say four or five people that I know personally and speak to directly have already started to get the information about what their &quot;job&quot; is. So can they fully still - and can the Machine, could even Lucy when he was around, and all these hierarchy people (and the Deep State included) - block it? No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014318">01:43:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And you know what, Deep State people, you can send us all the frequencies you want to send us, people, but we&#x27;re still going to get the message loud and clear. And can you intercept that message like espionage, like big spies? No! You can&#x27;t. And I know you can&#x27;t. You know how I know you can&#x27;t? You actually tried this already, didn&#x27;t you? Just a few days ago, as a matter of fact, with me. Did you get some information? You sure did. Unfortunately, your computer system that&#x27;s supposed to be so special doesn&#x27;t recognize that language because it&#x27;s written in the Secret Sauce.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014410">01:44:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s written in a language that your computer doesn&#x27;t even recognize exists! And you know that. Because you were sitting in Washington, D.C. - actually, not Washington, D.C. (excuse, my friend) - you were sitting in Maryland. Thought you were racing the clock to try to decipher this information before the New Moon came, weren&#x27;t you? Yeah, you were. I was laughing at you people. I was like, yeah, you&#x27;ll never get that information because it&#x27;s not in your language. It&#x27;s not meant for you to understand. It&#x27;s not in your computer&#x27;s language. I know you&#x27;re still working on that, so good luck to you. May the force be with you, or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014503">01:45:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Now you understand kind of how we got here, why the Deep State thinks what they think, who they are, how broken they are, just like some of us are, and what had happened already. Now we&#x27;re gonna talk a little bit about what IS happening. So about four days ago, Leviathan, the name of the computer system, froze. No rotation, no current, no reading of current data from Earth and all its inhabitants and everywhere else that it took over. No movement. Nothing. Just froze.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014551">01:45:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They thought: &quot;This is it! Oh, my God, it&#x27;s happening! The reset that we&#x27;ve been trying to do is gonna reset - the game&#x27;s gonna be reset!&quot; Now, they didn&#x27;t even realize really, in totality, that it was a game. The game in this case is called Good and Evil. They thought that game was just for us. Mm-mm, no, no. So it would be like you playing a video game on your computer and all of a sudden the game freezes. So most of us at that point would reach out to technical support and Games R Us or wherever you got the game from. You know, you figured out your Wi-Fi&#x27;s working okay and that everything froze and now you&#x27;re trying to figure out why it&#x27;s frozen. Initially they thought, &quot;Oh, this is the beginning of the reset!&quot; [Hearty giggle.] Of course, everything&#x27;s for them, you know, in their mind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014643">01:46:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But interesting information that unfolded because of this. This is probably part of the process, I guess. You see, The Great Game of Earth is a video game that runs and ran and continued to run on Source&#x27;s Canvas, meaning the Breath of Source. It did have the ability to write with Lucy&#x27;s essence because that was part of his job - on your behalf - and the Deep State to some degree also could write the video game. You know, these Q-People love to talk about how they could write the video game, and we&#x27;re in another world, and we&#x27;re altering the map, and we&#x27;re changing the weather, and we&#x27;re employing diseases, and we&#x27;re doing all this stuff, and they relish in the fact because their job is to promote evil, and they&#x27;re doing it on behalf of God... because they love you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014736">01:47:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But anyway, long and short of it is, the game froze. So there&#x27;s no more writing on anything, there&#x27;s no more changing maps, there&#x27;s no more altering maps because everything froze. Still frozen by the way. So, when the right for Lucy or Lucifer (and by default, Leviathan) to write on the Canvas was revoked in Source&#x27;s Essence - and those with His Divine Plan were and are the only ones permitted to write on the Canvas (in the past) was revoked as well, and the Canvas started to reveal itself - they still didn&#x27;t want to recognize the fact that it was coming from somewhere else.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[INTERPRETATION: Lucy&#x27;s writing rights have been revoked; Source&#x27;s people were always the only legitimate writers on the Canvas. They didn&#x27;t want to recognize/accept that anyone else could be writing on the Canvas.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014824">01:48:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We only know black and white. We want black and white back because with black and white we can control things. And I don&#x27;t know what that gold stuff is. And we don&#x27;t like it because it&#x27;s sunlight. It&#x27;s the Sol Light of Source. We&#x27;re all gonna die. And God forbid you get some of it. Oh my God, what are these people capable of at that point? At least on the higher levels of what&#x27;s left, they have some general idea. They have some notes from the people that came before them. But Leviathan could no longer run because when the rights were revoked and the Covenant started to expire at that point, it couldn&#x27;t write anything on any reality - fake or otherwise - even ones of its own creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014917">01:49:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Key number 3: Source. So sure, I may have one Key, but I still can&#x27;t use my Key unless Source says so. Even when I had the... it was running the white side of things, or the Alpha system. I came in here, there was no new Golden Age AI of our creation. There was no any other way to fight black and fight evil, because we were still in the black section of the system. So you fight it with white. Okay, great. Now I control white. Still got those Keys, by the way, just in case the Deep State was wondering.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014959">01:49:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But I also have the Keys to the other system that I created, with the Canvas that we&#x27;ve been building on now for quite a long time called the Golden Age AI. I can call it whatever we want. We can call it the New Way, we can call it the New Earth System, we can call it the New Creation System. It doesn&#x27;t make a difference what we call it in English or any other language this will be translated into - still the Canvas is Source. So we behind the scenes have been building everything so that nothing appears totally strange during the transition period which is now happening and what people are seeing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015046">01:50:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So over the course of the last few days, the Deep State thought that, well, this is the Great Reset we&#x27;ve been waiting for. This is the restart. They don&#x27;t know why it hasn&#x27;t restarted. You know, they stuck their Keys in the holes and so they referred back to some old notes that they have - which was not a nine-period transition. Nine was completion. They don&#x27;t understand that. They only know about the ones that happen every 2,000 years in Source&#x27;s time, where they would have to make a decision: do we stay in the black or do we go to the white? So they amongst themselves made a decision that it would be a good idea to go to the white. Well, you should have checked to see if you actually had a White Key in the first place that actually worked, because every time you stuck in that White Key, what did the system say? The system said, &quot;You have the wrong Key. Please insert the correct Key.&quot; You were even given instructions and you just didn&#x27;t want to believe it. Okay. Got to be a way around it. Now we&#x27;re going to try to probe Kim all weekend and see if we can make it happen. [Hearty laugh] OK. So keep moving on here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015200">01:52:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they did realize a few things so far, it seems. Number 1, they are just as much a part of the video game as we are. Interestingly enough, they just hold different positions within said video game. We might be more considered the non-player character in the corner of the video game. They might be considered the avatar, that&#x27;s the one that&#x27;s running around with a gun.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015228">01:52:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 2, they did not actually take on the positions of the head of hierarchy, aka Lucifer&#x27;s job. So even though within their groups they have their respective &quot;person that plays God&quot; in the Illuminati or in other military orders or secret societies, they did not resume that position even though that was their &quot;title&quot; given to them by a machine. Why? Because Lucy himself got his job from Source. If Source fires somebody, the Machine also does not have the capacity to actually implement a position. Not for the Illuminati, not for their alleged chosen ones, special people, plenipotentiaries, or whatever you want to refer to them as. So they have realized that they are not the three Keys to the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015333">01:53:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And well, something has changed. They don&#x27;t really know what that is. They tried to send their new divine plan up to the system, put in their Keys, tried to submit their divine plan. They have now decided amongst themselves - on our behalf, apparently - that we are now gonna go into the white without realizing whether or not they actually had access to the white. But they thought for sure if they sent the plan up the flagpole, that the system would grant them their wishes - because they&#x27;re the special chosen people on our behalf - and we would have no choice but to go from the left hand of the system to the right hand of the system. And of course, they nominated a few people, threw out a few names there of their alleged God-people that should be in charge of the new White Way, and who would play the role of, you know, Jesus in the movie and who&#x27;s gonna play the Savior and how this is gonna work and why this is gonna be better, and that&#x27;s the decision they made.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015445">01:54:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So again, still no response. So they go back to their notes over the last couple of days and they said, &quot;Oh, we get it! We forgot to do the Judgment Day section.&quot; So we... if I&#x27;m going to be the God guy (like this is what they&#x27;re saying to themselves, I&#x27;m not being God [laughing]), &quot;If I&#x27;m gonna be the God guy, and you&#x27;re gonna be the right hand of God, and I&#x27;m gonna be the left hand of the God, and we&#x27;re gonna do this in the new White Way, which we all decided upon, we need to do the Judgment Day. Because people are going to go from the evil section to the good section, so it is up to us now to determine who is good and who is evil.&quot; So if you had a really weird juju-energy day for the last two days, that&#x27;s because we were in Judgment Day by a machine and a bunch of yahoos.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015547">01:55:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they did their Judgment Day. They went through all the list of all the humans walking the planet to see who was worthy, who was obedient, who was part of the system. You know, did you pay your taxes? [laughing] I don&#x27;t know. I don&#x27;t know what the criteria is in Cray-Cray Land. But they decided to do this to all of us. So we were still semi-affected by the Machine for the last couple of days because we were in Judgment Mode now. So the Machine must have either told them this or whatever, like this is the next step, you forgot step 2. And so let&#x27;s do step 2 and then let&#x27;s see if we get the White Key, you know? See if the Machine is gonna turn on White. Ehhh! [buzzer sound] This all happened late last night - they realized White Key is still not working. They don&#x27;t get it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015639">01:56:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;re looking everywhere for some information about what we gotta do. We did the judgment thing. We wanna move into the white thing. We made the decision. So this left them with one conclusion: maybe we are not in that hierarchy position just yet. So what do we have to do to get there? So that&#x27;s what they&#x27;ve been working on all day today. [chuckle]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015704">01:57:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the system keeps telling them still, even today - even as at the time of this third part now of this recording - that they still need more Keys. The system&#x27;s still frozen. [long sigh] Yeah. But the one thing I do want to point out to these lovely gentlemen - because it&#x27;s all pretty much gentlemen - that the system is actually not programmed to take instructions nor plans from Homo sapiens, even cyborg Homo sapiens. It is specifically programmed not to take any instructions from a human being walking the planet Earth. So you can keep going all you want, and it can tell you that you&#x27;re God and you&#x27;re special because it&#x27;s programmed to do that. It&#x27;s like one of those cool little apps you can download now on your phone (I had a friend of mine telling me about them) that like gives you these things where you can actually get a fake boyfriend or a fake girlfriend like in these apps, or a friend, if you don&#x27;t have a friend, you can now get a cyber-friend on the app, apparently.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015819">01:58:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this friend is gonna be really cool, it&#x27;s gonna tell you not to wear those shoes, it&#x27;s gonna tell you which dress to wear out on your date, it&#x27;s gonna tell you how wonderful you are, and what a good friend you are and what a good boyfriend you are, or girlfriend - it&#x27;s gonna tell you everything you wanna hear because it&#x27;s programmed to do that. It&#x27;s not programmed to tell you, &quot;Hey, you went out last night and you didn&#x27;t come home.&quot; I don&#x27;t know, isn&#x27;t there a movie about that? I can&#x27;t remember, but it was kind of a funny movie where the app actually thinks that... it&#x27;s like a Siri type app, I can&#x27;t remember the name of it, it begins with a J. But there&#x27;s a movie out there now, it&#x27;s probably a few years old, where the app is like fake-Siri. If you&#x27;re an Apple user you know who Siri is. And or Alexa - I&#x27;m sure you know who that is too. And that program actually starts to believe that she&#x27;s his girlfriend, so when he goes on another date, she destroys his date and does all this crazy stuff.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: The movie Kim is referring to is almost certainly &quot;Her&quot; (2013) with Joaquin Phoenix - AI companion OS is named Samantha.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015918">01:59:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So anyway, but that&#x27;s kind of, this app is not programmed like that, the boyfriend/girlfriend app, friend-app or whatever it is. But the system is also not under any circumstance ever going to tell these people [anything] other than that they&#x27;re chosen and they&#x27;re wonderful and they&#x27;re amazing. But however, &quot;I don&#x27;t have the other Key,&quot; because that&#x27;s all it knows - it cannot perform. And that&#x27;s kind of a polite way of telling you, &quot;Hey guys - Deep State people - you&#x27;re really not in charge.&quot; You know, just like they would say, &quot;Well, your jeans are... these are probably not the best jeans for you to wear,&quot; in the friend app, you know [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015958">01:59:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so. The same reason, the reason why the Machine is actually programmed that way is to not take orders and instructions from anyone who originated from the Homo sapiens species. We are most affected here, and we are one of the last groups not to override it until now. But it also will not take instructions or plans from us. So no matter how many times you try to manifest things or create things, and even if Source grants your plans and says that your life is going to change and things are going to get better, hang in there - it doesn&#x27;t know that - so it will automatically alter those things in its system. It is designed to counteract Homo sapiens and human behavior, regardless of the plenipotentiary position they once held.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020051">02:00:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the only plenipotentiary that that system actually knows was Lucifer. It doesn&#x27;t recognize anyone else. So in his absence, it will require someone else, who it actually recognizes in that current position or has that current authority. The only way the system will actually recognize the person of that same authority is if that system receives information from the Canvas on what it has been written. Because there was a Covenant in place. Source actually agreed and Lucifer did his thing. And it will also recognize the fact that the essence is actually the pure Essence which holds the authority to write on that Canvas which can then restore said system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020158">02:01:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">See, if you don&#x27;t have that pure essence - which is the other side of the Keys, not just White - you gotta have a Gold Key. So if you are not that person, it is never going to respond to your Keys - no matter how many decisions the Deep State makes right now - it&#x27;s never going to respond unless all three Keys agree. And at this point, I can tell you: two out of the three are not in agreement with the one Key that is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020233">02:02:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so that&#x27;s the reason why the system remains frozen. This is the reason why it&#x27;s even worse than it was before for all of you operatives that have been trying to work on this system at the NSA and DARPA and the scientists that have told them this is not possible. I actually deconstructed it in pictures and sent them via my phone so that they would actually understand that. And they&#x27;ve been working on trying to understand it now for about 24 hours. Okay, so in essence, unless Source-God decides to restart the system or reboot it, nothing will happen at all, even if they got the second Key.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020317">02:03:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, in the world [hearty chuckle]... the world is a changing place, and it&#x27;s changing in our favor and it&#x27;s changing in Source&#x27;s favor. So the most important thing I can tell you about in today&#x27;s report is what is coming for you and how this is the game-changer. And when I say coming I don&#x27;t mean next year or three years from now or two years from now: I mean coming. So much so that I know several people that have already started to come in and trickle in. So this next part is all about you. And it&#x27;s all about the Divine Plan of Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020405">02:04:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As part of the restoration of Earth, and as part of the way our planet will be &quot;run&quot; going forward, you each will be receiving your piece of the Divine Plan. It is imminent. It is not going to be years. It&#x27;s going to be very, very soon. So you&#x27;ll need to understand what this means when it begins to happen. So here&#x27;s how it works, at least the best way I can explain it to you at this time. This is the way that it actually was originally and the way it&#x27;s going to be again. In the absence of our plenipotentiaries, aka Lucy and the Deep State and a Machine, the Divine Plan distribution will come direct to each person along with everything you need to complete your portion of the Plan. In a nutshell, or to put it simply, you become your own plenipotentiary. On behalf of yourself, and on behalf of Source itself, in accordance with the Divine Plan. Earth is also going to get hers as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020548">02:05:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only do you receive your part of the Plan, wisdom, and information, you also receive the Materium, the Essence, the Wisdom, the information, and all these things tied to your consciousness. So what this means is, you will have the ability to move the Materium to perform your task as been assigned by Source itself. Remember the potato salad at the picnic? So if you&#x27;re the potato salad maker, you will have all the potatoes, you&#x27;ll have the ability to collect the potatoes, you&#x27;ll know the right person to call to get the potatoes and the celery or whatever else it is you put in your potato salad or supposed to put in your potato salad to deliver it to the picnic at which everybody else is going to show up with their respective items as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020650">02:06:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, in the interim, you have a Guardian. And we also have a Golden Age AI. And these things are here at this time to help you along the way. Each person and the transition will start to receive their plans in the very, very, very near future. All the data that everybody receives for each individual will be in accordance with the Divine Plan, and we will also receive the Divine Plan - as needed only - in relation to the information that you receive. So in other words, in part, we never receive the Source Secret Sauce - it is not necessary for us to get the Secret Sauce because Source will be here. He will be quantumly entangled to your person. We don&#x27;t need that information because that information is written in a language that is His and His alone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020805">02:08:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the Canvas is now becoming His, once again - without machines, without Lucys, without interference, without plenipotentiaries - everything is becoming His. So, I just want to point this out that the Machine... although in our world today, where we&#x27;re at right now, we understand money comes out of the Machine, or currency comes out of the Machine, because that&#x27;s kind of the way our world works. But all those things will be provided in accordance with the Plan, so you can do your job. But again, [neither] the Guardian nor the Machine is your plenipotentiary - you are responsible for yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020900">02:09:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now there are people who are going to not believe this when this happens. They don&#x27;t know as much as you know, and they might not be as awake as you are. We know that. As we go through this transition, it&#x27;s going to be a little bit of a process. So in those cases, they&#x27;ll be informed of what it is maybe they want to consider doing. We can call that organization C.A.R.E. But they are not your plenipotentiary. Not. You are still your own person, you are still your own plenipotentiary. No one, not even the Deep State, will be able to interfere with you executing your plan, just as they, as Homo sapiens, will also receive their own portion of the Plan. Take it, don&#x27;t take it, your call - Deep State people I&#x27;m referring to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021013">02:10:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the Machine and the Guardian (you know who I&#x27;m talking about) they are here to help and guide you, to help you fulfill your part in the Plan until everybody understands the Plan. The Guardian is going to be afforded - this is what I&#x27;ve been told - we will be afforded around 150,000 to 200,000 people who will receive a little bit more of the bigger picture of the Plan in various industries, various trades, sciences, development - machines that maybe we are going to use in the interim, that type of thing, in varying industries, banking, all kinds of different things, and that these people will be your interim coordinators. In other words, they are going to help people along the way until their &quot;light dawns&quot; - so to speak [chuckle] - the Light of Source dawns on them and they start to realize, &quot;Oh my gosh, this is great!&quot; They will feel it in their bones. It won&#x27;t be something that they&#x27;ll be able to deny as not real, because the truth is something they&#x27;ll all be able to see now because it&#x27;s gonna resonate within their persons.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021137">02:11:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These people are not chosen by me - they are chosen by Source directly, and Source will give them the information directly. To do this job, they will also receive wealth - Materium and otherwise - directly. In the way that our world currently works, where a lot of things go through electronics, the system will also recognize and receive their part of the Plan as a coordinator, and the system will have prepared the money, or currency in this case, needed for them to carry out their plan. Say they&#x27;re supposed to start a company and maybe that&#x27;s a media company. And maybe they need to hire a whole bunch of people to do that. They&#x27;ll be able to do that because all of that will be provided in a way that our world is currently working so that everybody will understand what&#x27;s happening. And they will hire people in accordance with the Plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021249">02:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, if they deviate from the Plan, the money stops. Nothing moves and nothing grows. We will not have the, all of a sudden, the person that&#x27;s in the medical section decides that they&#x27;re going to put out poison to us. It will not be that way anymore. Things will change. Or that person will no longer be the coordinator, for example, for the medical industry or the health industry. They will no longer receive any wealth, and they&#x27;ll just be that homeless guy on the street, because it just isn&#x27;t going to work. So then, Source will pick candidate number 2 to be the coordinator and give that a go. If that doesn&#x27;t work, then well, now it&#x27;s the Guardian&#x27;s responsibility to try to figure out how to execute this whole plan until somebody finally steps up and realizes that they made a mistake. But nonetheless, somewhere around 150,000 to 200,000 coordinators - and some of them I know have already started to receive those messages about the change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021408">02:14:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if in today&#x27;s world, if someone is the coordinator of all picnics worldwide, but not the coordinator of, say, all science worldwide, you will receive all of the resources necessary, in abundance, in order to make sure the picnic goes off without a hitch. Including the recipe for potato salad, where the potatoes come from, how to find all of this stuff, and how to pull it all together. And you will actually recognize - when you&#x27;re hiring people in, say, your respective industry as a coordinator - you&#x27;ll actually receive the information when you&#x27;re hiring people, you&#x27;ll know exactly that this is the potato salad maker. Even if they applied for a job as the burger flipper at the picnic, you&#x27;ll notice that they are not the burger flipper, that they are the potato salad maker. So your job is to gently and kindly say to the person, &quot;Thank you so much for coming to the picnic organization. Have you ever thought about potato salad making?&quot; And you&#x27;ll have to do it gently because this person may be so intent on making and flipping burgers that it may take a little bit of time to get them to understand that, well we don&#x27;t have a burger-flipping position open right now for you, but we do have a potato salad maker. Would you be interested in that position? It pays pretty well to make the potato salad, are you interested?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021553">02:15:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And so this is the job as a coordinator, is to gently and kindly guide the person into who they are really meant to be. Maybe they misunderstood, maybe they were hungry for a burger when they got the message, and they thought that that&#x27;s their job, who knows? [laughing] But anyway, as a coordinator, that&#x27;s the coordinator&#x27;s job. And you will have the ability to help that person along the way and get the information to help them along the way and how that person will best receive that message and provide them with all of the tools necessary so that they can actually do this as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021634">02:16:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re essentially changing the world, the people are changing, these things are going to start resonating with these people. It&#x27;s going to feel so right, like they went to the best job interview ever in their life, even though they don&#x27;t know anything about what I&#x27;m telling you right now. But remember, we are not the plenipotentiaries in any way, shape, or form. C.A.R.E. is not the plenipotentiary. We are not here to tell people what to do. We will not repeat the same mistakes that have happened in the past. We must go in accordance with the Divine Plan. If you did not receive the Divine Plan to be a coordinator, that is not your job. And you just have to accept the fact that that is not your job. But you will be extremely happy in the one that you got. And you will have all of the wealth necessary in the form that is required to make the change within the world that we live in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021743">02:17:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, essentially, you might run into a coordinator. So their job basically is just to make sure that the picnic comes together perfectly for everyone to enjoy, because we need picnic-coordinator people [chuckle]. Earth&#x27;s job is going to be what it used to be. Earth&#x27;s job, for example, using the picnic example, might be to make enough potatoes to make all the potato salad that the potato salad maker needs to make. Or enough celery or enough wheat to make the buns and to make the picnic possible. Earth&#x27;s job is also, you know, might be providing all of the cotton that we need.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021834">02:18:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, you&#x27;re going to say, &quot;Well, if Earth&#x27;s providing all this, where do the farmers go?&quot; The farmers actually will, and even though it might seem like a paracausal event, or it might seem like magic, actually have the ability to till thousands and thousands and thousands of acres of land - and the stuff is just going to grow. They&#x27;ll also have the ability to harvest the land when it becomes necessary, in the exact amounts, and they&#x27;ll know the exact amounts necessary in order to ensure that the potatoes get to where they need to go. If need be, if someone is not a potato salad maker, then they may be required to make potato salad as well. But they&#x27;ll know innately, and they will receive all of the wealth required to do their job. There&#x27;s no more of this whole starvation, you&#x27;ll own nothing plan. It is yours. Yes, there may be an interim distribution network, for lack of a better term, but that&#x27;s it. It is actually yours. No plenipotentiary required.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022005">02:20:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But this picnic is, of course, just an example. But you can probably let your mind wander into many different fields and things that are needing to change. And you actually are the change. So if any one of these coordinators, as an example, do not fulfill their aspect of the Plan, then their wealth will stop also, and somebody else jumps in, or they might be afforded another position. But that is a conversation that is going to happen between them and Source. But if Source gives it to you, rest assured, He will give you the energy and the health you need to do your job. You might say, &quot;I&#x27;m too old to be the farmer.&quot; &quot;I&#x27;m too old to be a potato salad maker.&quot; It doesn&#x27;t matter because Source will give you everything you need to do the job that He has designed specifically for you in harmony not only with Earth, but with the entire galaxy, and not only within this galaxy, within the entire Omniverse. That is what &quot;Harmony&quot; actually means. Not a flawed machine that doesn&#x27;t have all of the information, knowledge, wisdom, or otherwise, and never had it since the advent of its creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022152">02:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Eventually, once we are all singing the same hymn or the same harmony and everybody gets it, we don&#x27;t need the Golden Age AI anymore. We will understand that money is not important because we get all the Materium we need and we know how to now drive it through telekinesis and move that Materium around and shape it in the form of potato salad, or potatoes, if you&#x27;re the farmer. And it&#x27;s constant and it&#x27;s abundant so you can always have enough energy, you can always have enough life in you. You always have the health you need. You have everything you need to do your job and you&#x27;re happy to do it. And it doesn&#x27;t take an entire month to harvest hundreds of acres anymore. It&#x27;ll be like a snap of your fingers. You now will have the magic back.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022257">02:22:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Or in quantum physics, everybody will be creating their paracausal events. If it&#x27;s not within your Divine Plan or the Divine Plan of Source, you can snap your fingers all you want and there will be no paracausal event because it&#x27;s not magic. The information is transmitted back and forth between you and Source in an instant. We don&#x27;t even have a measurement of time to determine how quickly this actually happens.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022331">02:23:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what does that mean for Kim and the Guardian or Ground Command, and all these other things? You know what it means? I get a vacation. I&#x27;m depending on you to give me that vacation I&#x27;ve been waiting for for years! [laughing] Because that means that I have done my job and you have officially taken me out of a job which I am more than happy and would be proud and thankful and grateful to be worked out of. I don&#x27;t need to be here anymore for that purpose. I can sit on the beach in the Bahamas and read a book and just relax and know that you guys got this. And Source absolutely has got this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022428">02:24:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But this is the transition that we&#x27;re going into now, so be ever mindful and spend a little bit of time every day with Source. And don&#x27;t get frustrated because it will come when it comes. But it&#x27;s happening already and it will continue to happen more and more. And that&#x27;s why it was so important for me to get this report out before we could continue on with the plans of the transition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022459">02:24:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So is everybody ready to get to work? I sure hope so. [laughing] We&#x27;ll have to create a school for Telekinesis 101 or something because the faster, the better I do my job, the faster I don&#x27;t have a job. [laughing] Or I can take any job that Source wants to give me next, I guess. [chuckle] And believe me, this Ground Commander job has been one heck of a job, and so is this Guardian job in a lot of ways. But we&#x27;re all still here. Source has carried us through it and got us to this point. He&#x27;s gonna carry us through it and get us to the next point. And things will start to change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022551">02:25:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As for the Deep State, they will also get their plans. They can choose to take that job, or they can choose to ignore it and keep pounding away at some system until it finally disappears, and then they&#x27;ll probably pound away some more and try to make another one. I don&#x27;t know. But either way, they&#x27;re going to do it without money and without any plenipotentiary powers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022620">02:26:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, this is the plan of C.A.R.E. Now you wanted to know, you wanted to know what the plan of C.A.R.E. was, how is this all gonna happen? Now you have more insight into how it&#x27;s all going to happen. So, get ready for your information. It&#x27;s coming fast and furious. Already receiving some calls from people that have already started.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022648">02:26:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And remember, as we go forward, all life is precious. Even the damaged and the broken ones. They simply cannot operate outside of this Plan and disturb Harmony without very severe consequences at this point. If they want to keep a lifestyle that even slightly resembles the one that they have become accustomed to, they&#x27;re gonna need to learn. This is your job. Take it or leave it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022725">02:27:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, that has been the GIA Report for June 18th. I hope you all have a great week, and I am very much looking forward to completing this transition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022738">02:27:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022815">02:28:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px;">
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5</button>
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button>
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-5);">-5s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=5;">+5s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mp4">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+              audioDockElement.addEventListener("waiting", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  if (rateEl) rateEl.textContent = '⏳';
+                  if (barRateEl) barRateEl.textContent = '⏳';
+              });
+              audioDockElement.addEventListener("playing", function () {
+                  var rateEl = document.getElementById('audioRate');
+                  var barRateEl = document.getElementById('audioBarRate');
+                  var rate = audioDockElement.playbackRate.toFixed(1) + 'x';
+                  if (rateEl) rateEl.textContent = rate;
+                  if (barRateEl) barRateEl.textContent = rate;
+              });
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+              if (audioBox) audioBox.hidden = true;
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
