@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Jun-30</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Jun-30 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Jun-30
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260630_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the June 30 / July 1, 2026 GIA Report with a housekeeping section covering the ongoing Deep State pressure campaign against UNN -- social media slander, bot infiltration of Telegram chats, financial threats, and unauthorized reposting of chopped and narratively altered versions of her reports on third-party channels. She walks through recent UNN platform improvements: reorganized Community Chat rooms, a new GIA Chat Room replacing Telegram for between-report statements and Q&amp;A, an expanded Field Messenger section with a direct vanity entry point at changethe.news, a new Restoration discussion thread, and updated app colors pending store approval. The report was recorded across two days; portions were recorded on July 1.<br>
+<br>
+Kim reports that the June 24 earthquakes struck Venezuela and the entire Ring of Fire on the same day. The Venezuela source was tied to Lake Maracaibo, where the Deep State attempted to install a new substance she calls quantum water -- frequencies pushed through a dry lake bed to create a controllable fabric of reality and redirect water toward &quot;black water&quot; dispersal. The Ring of Fire earthquakes were caused separately by the SUN Network (Symphony Network), an artificial network underlying the Ring of Fire functioning as an artificial sun, artificial soul, and artificial etheric body for the False Kingdom. Both events were part of the broader Solstice-period Deep State push, accompanied by high radio frequency reports across California and the eastern seaboards of China.<br>
+<br>
+Kim delivers the report&#x27;s most extensive framework disclosure on the architecture of the False Kingdom. Earth is identified as a nexus planet -- the first planet created in the Omniverse, whose Divine Plan became the template for all others. The giant gold ball and ballast under Yellowstone Park is now fully disclosed: it operated on Ethereum extracted from captured beings, powered artificial suns, stars, galaxies, and constellations overlaid on every Sol in the Omniverse, and housed what the Deep State calls False Heaven. When beings passed through this reactor, the particle explosion separated the divine heart from the Divine Plan, the Divine Plan from consciousness, consciousness from being and Sol -- producing every new being already pre-separated from Source. The planet Mercury is disclosed as no longer a real planet but an artificial megastructure and trading post, home of the causal event, tied to Kronos, and the former gateway replacement in the Sun. Causal events -- alchemy, dark transformation, the artificial opposite of paracausal creation -- were filtered through a Red Gate at Rainbow Mountain, Peru, accessible only to Lucy. CyberLife had limited access through two enforcement sister systems to Leviathan: Sentinel and Centurion, collectively called the Defenders, which fired on any detected paracausal incursion into the artificial reality.<br>
+<br>
+Kim addresses the CIA MK-Ultra congressional hearing aired this week, calling it theater -- a finger-pointing exercise, not genuine disclosure. She discloses that mind control operated on every person on the planet without exception, through educational institutions, media frequency underlays, emotional governors (anger, fear, anxiety), and brain capacity governors keeping most people at 10-35% function. Anyone exceeding 15% triggered active countermeasures: planted self-doubt, suppression of intuition, and redirection of faith toward institutions and the financial system. The delivery mechanism was global governance, centered historically in the Principality of Moldavia, and enforced through Crystal City databases embedded in every city on Earth. Global governance infrastructure is disclosed as a network of industrial cities outside the Matrix -- most recently headquartered in London, with control centers in Switzerland (corporate and financial) and through Lucy-exclusive facilities across the East African Rift, Aksum, Saudi Arabia, and the Red Sea region. The Symphony at Machu Picchu, spanning the Andes, is identified as the system weaving the fabric of artificial reality and quantumly entangling all things in the kingdom to Lucy.<br>
+<br>
+Kim closes with the operational events of the Solstice period and their July 1 aftermath. On the Full Moon of June 29, a group including Trump, Melania, and an unnamed self-appointed Q-clearance figure attempted to enter three keys into the Symphony system, designating themselves controllers of White, Black, and the God seat. Blue waters observed flowing in the Grand Canyon area briefly encouraged the Pentagon. The attempt failed by approximately 3:30 PM when the absence of the Veil became undeniable -- without the Veil there is no Symphony, no causal events, no perovskite quantum dots. Chaos ensued by 6:00 PM. Kim confirms that as of July 1, paracausal Living Waters from Source are flowing with no overlay, no hologram, no artificial light, and no artificial causal particles in the water. Washington D.C., London, and China are in mounting disorder as governance structures disconnect from the kingdom&#x27;s control systems. Staff in the White House and Pentagon are seeking exits. Kim closes with a 4th of July well-wish to U.S. listeners and a promise to return next week.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000003">00:00:03 - Report intro and teaser</a></li>
+<li><a href="#t-000204">00:02:04 - UNN platform update</a></li>
+<li><a href="#t-000710">00:07:10 - UNN app improvements</a></li>
+<li><a href="#t-001444">00:14:44 - Restoration thread, site colors, Live Chat customer service.</a></li>
+<li><a href="#t-001748">00:17:48 - Solstice overview</a></li>
+<li><a href="#t-002108">00:21:08 - Venezuela earthquakes</a></li>
+<li><a href="#t-002513">00:25:13 - SUN Network / Symphony Network</a></li>
+<li><a href="#t-002604">00:26:04 - Yellowstone ball and ballast</a></li>
+<li><a href="#t-002855">00:28:55 - Separation mechanics</a></li>
+<li><a href="#t-004229">00:42:29 - Mercury</a></li>
+<li><a href="#t-004830">00:48:30 - Sentinel and Centurion</a></li>
+<li><a href="#t-005015">00:50:15 - Perception, consciousness, and causal vs. paracausal creation</a></li>
+<li><a href="#t-005409">00:54:09 - MK-Ultra hearing</a></li>
+<li><a href="#t-010150">01:01:50 - Brain governors, faith redirection, and global governance as the delivery mechanism.</a></li>
+<li><a href="#t-010433">01:04:33 - False Kingdom structure</a></li>
+<li><a href="#t-011153">01:11:53 - Industrial cities</a></li>
+<li><a href="#t-013337">01:33:37 - Lucy-exclusive facilities</a></li>
+<li><a href="#t-013947">01:39:47 - Full Moon key attempt (June 29)</a></li>
+<li><a href="#t-014708">01:47:08 - Veil confirmed absent; Living Waters flowing as of July 1.</a></li>
+<li><a href="#t-014929">01:49:29 - July 1 status</a></li>
+<li><a href="#t-015636">01:56:36 - Sign-off</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the 30th of June, 2026. Coming up on today&#x27;s Global Intelligence Agency Operations Report:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Earthquakes erupt around the world, but were they natural? Well, not exactly. And here&#x27;s a hint: it was not HAARP.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">After devastation hits Venezuela, the CIA makes a deal with the Venezuelan government to install a smart city. But can they pull it off? And what exactly is a smart city? Technically, every inch of this earth has been covered in them for a long time and this is just a phase two.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Last week we talked to you about Leviathan AI systems and the power it had over the whole planet. Today we will introduce you to its sister systems, Sentinel and the Centurion - the Defenders.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And another summer solstice has passed, but it wasn&#x27;t without the usual fanfare. Deep State members, such as Vice President J.D. Vance and leaders from Iran, meet in Switzerland - and it was not about a peace deal. Others gather in the Australian desert and at various Stonehenge sites around the world looking for anything that can help them preserve the power they once had over humanity.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000119">00:01:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000204">00:02:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, it&#x27;s the 30th of June, and I&#x27;m finally getting to this long overdue report. A couple quick things I wanted to mention. It&#x27;s been, you know, it&#x27;s Solstice Time. It&#x27;s a little crazy out there. And as things on their end of it fall apart, it just seems to be a battle and a push and a pull back and forth. Not so much with the Deep State. I mean, they&#x27;re doing what they can to try to preserve their power centers, but it&#x27;s really not up to them, and actually it never really was.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000239">00:02:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So one quick thing I wanted to mention, the apparent Great 250 Freedom American Fair [Great American State Fair, organized by Freedom 250] is in Washington D.C. The National Mall now has a giant Ferris wheel. Apparently there&#x27;s going to be rodeos and that Ferris wheel will take you round and round for free apparently. And yeah, it kind of sounds like our government right now. Rodeos and wheels going round and round, but going nowhere. And I&#x27;m pretty sure a lot of people in Washington, D.C. would agree. And we kind of know that based on the chaos that has been ensuing for the last couple of days. So this report was written over a couple of days, so by the time that this report ends, it&#x27;ll probably be sometime around the 1st of July. So yeah, 1st of July. So anyway, if you do want to attend the Great American Circus, I mean fair, it starts on the 25th of June, or started on the 25th of June, and it will go through the 10th of July. It appears to be kind of desolate - not a lot of people showing up. But then again, it&#x27;s really hot right now, we&#x27;re having a little bit of a heat wave on the East Coast, so that could also be the reason why. It could also be the chaos there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000405">00:04:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, first a little bit of house cleaning. You&#x27;ve probably noticed a lot of changes going on with UNN, and these changes are for the better. Hopefully you like them all. So, the further down everything goes, meaning the further this kingdom goes down and they&#x27;re not getting what they want, the more pushback I actually get and therefore we actually get from the Deep State. This week has, or the last 10 days or so, has been full of total chaos on our end of it, on many, many different levels. So as it relates to things you might see publicly, the Deep State is using the same exact tactics that they have used against me personally, on rinse-and-repeat, for more than a decade now. So we do this every so often together, especially after the point in which I became a voice, I guess you would say, on the internet. So you can kind of expect to see some more social media slander, more people showing up in chats. I know that there&#x27;s some people going in there with bots on Telegram chats and things of that nature. Financial threats have been happening against me and my family and friends. You know, the uptick has been real, especially with our inner group here for everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000537">00:05:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So try and kind of just work your way through it. I know it&#x27;s happening. We&#x27;ve done this before. I&#x27;ve done it three or four times before. And this here is no surprise. You know, for those of you that have been around for a while, we&#x27;ve seen it all. So people are coming out of the woodwork everywhere - fake videos and all kinds of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000600">00:06:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So speaking of fake videos, there are apparently various groups on Rumble and YouTube which are now taking our videos - that we do here on unitednetwork.earth - and they chop these reports up, post them on their own sites, and then eventually they land on other sites like Before It&#x27;s News. And there&#x27;s a lot of additional narrative in there and things are deleted. So if you happen to be watching this report on one of these alternative channels chances are this might even be cut out but you will find that the information is not consistent with what is on our app, and definitely not consistent with what we post on our official YouTube channel and our official Rumble channel. So be on the lookout for videos that we actually post. You&#x27;ll notice the difference because, well, the graphics match, everything goes together, and it doesn&#x27;t look like a chopped-up mess.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000710">00:07:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">My understanding is that one of those videos that&#x27;s being posted on other channels is coming from Q-channels. I know you&#x27;re surprised there. But yeah. So hopefully they won&#x27;t be able to do this much longer. We are introducing some new features on our app, which will give us a little bit more of a digital rights management as well. And that&#x27;s been in the works for a couple of weeks now. We&#x27;ve had to go through some steps with both the Google store and the Apple store to ensure that we were approved across the board.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000750">00:07:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, now, for the fun stuff. You&#x27;ll probably notice we have deleted some of our old chat rooms in our Community Chat, which is located on our app. If you have not seen the Community or the Chat - if you go to unitednetwork.earth or the app in the iOS store or in the Android store, you&#x27;ll see that we do have a Chat button at the top of the Login Page. That Chat button will take you right to our Community Chats where you can chat with us. Actually with us. If you&#x27;re leaving messages on some third-party site, we will probably never see it. If you have questions, we probably will never see it. So if you want to do that, then this is the place to go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000848">00:08:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You&#x27;ll also probably notice - for those of you that have been in the community for a while - that we have implemented some new chats, too. So if you haven&#x27;t visited the chat rooms before, you might want to try to do that now. It&#x27;s a lot more organized, a lot easier to understand, and it kind of gives you a little bit more of a way to communicate directly with us and other people as we have discussions about Restoration and other things. The good part about our community is it also doesn&#x27;t receive spam bots and fake Kims, like Telegram does, and I know a lot of you don&#x27;t like Telegram, so here&#x27;s a good place for you to go where you can feel free to chat and share.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000937">00:09:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There is also a new GIA Chat Room in there as well. So if we are making statements about the news or happenings or what is going on in between GIA reports, we will no longer be posting these things on Telegram. We will only be posting these statements directly in the GIA Chat. Now, I have set aside specific time and even put it in my calendar, so an alarm will go off and let me know that I need to start posting on that chat.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001017">00:10:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, when the GIA Report goes live, it&#x27;ll also be posted in the GIA Chat Room. If you post questions or comments under the GIA Report, there will be a couple of days a week that I have set aside an hour or two to answer questions. By the time the next GIA Report comes out, we will stop answering questions on the previous report. So that gives you usually at least a few days to a week, if not longer, to ask your questions about the previous report. So if you want to ask questions about this report or any other GIA report or the last one, well... you&#x27;ve got a very short period of time now from the time of the airing of this report for us to answer questions. Also, on this report, you&#x27;ll have until the next report airs. I hope that makes sense to you. You can post all your questions in the comments under that specific report in the GIA chat room. And that way, we&#x27;ll see them. It&#x27;s a little harder to go through some of the other threads, like the general chats, and for me to find questions, but this is the place to do it, in the chat room, under that specific report, so that we can make sure that we can answer your questions. (It&#x27;s that kind of day today.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001154">00:11:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, there is also a new section on the app and website that talks about how to become a Field Messenger. It explains in detail what a Field Messenger is and why you would want to become a Field Messenger. Those are our reporters from around the world. They are real people reporting events as they see them. As I have an understanding, too, I was watching some of our reports come in, we are receiving reports coming in, for example, from Venezuela, where there were some events that occurred in the last couple of days. So keep an eye out for those reports from real people on the ground, not narrative news. And hopefully you&#x27;ll get the real story from our people directly involved in the situation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001250">00:12:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you are interested in becoming a Field Messenger, you can click on the Field Messenger tab at the top of the website. If you&#x27;d like to go directly and learn how to change the news you can go to &quot;changethe.news&quot; [https://changethe.news] and that will take you to the landing page [https://unitednetwork.earth/pages/become-a-field-messenger], which will give you all the information on how to download the app, how to submit a report. We even have a new section on our app directly which will give you information from Sunny, who has been to journalism school, and is obviously very good at what she does. She will help you along the way on how to do a report in case you don&#x27;t know but have some information you want to share.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001341">00:13:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The other benefit to sharing news yourself - that you have seen directly yourself, not off the internet, not what other people are saying, but what you&#x27;re saying - is because your videos won&#x27;t be taken down. So we can talk about controversial subjects, things that are out of the ordinary that you see, as well as cultural information and why people would want to visit your area. Teach us about you from around the world. So lots to do in the world of Field Messengers. You don&#x27;t need any experience. We have an editing team that will edit your videos and make them look great. So if you need more information on that, we do also have a Field Messenger chat on Telegram, as well as one that is new in the Community Chat, where you can ask your questions as well. And the Field Messenger team will be glad to answer you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001444">00:14:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, you&#x27;ll also notice we also now have a Restoration thread, which is in place to discuss ideas AND solutions for the changes that you feel would be important for everyone in the world. That means that if you do present something that you consider a bad thing about our world, be sure to also present a solution and an alternative. While we are all upset about a lot of things that happen in our world today - I understand, probably more than anybody, about the upsetting things that happen in our world - but it&#x27;s also important to research, research, research, and find alternative technologies and/or solutions to those issues and problems that you are presenting. So keep that in mind when posting things in that chat. We have a lot of great people that have already started posting their ideas, thoughts, and technologies and are willing to share them with all of you. So, if you&#x27;re looking to discuss Restoration and discuss how to change our world, now and in the future, feel free to go ahead and start posting or start a chat or a post in that thread so people can also ask you questions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001613">00:16:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We have also readjusted the colors of the site with some new landing pages, and our new colors and landing pages have been submitted to the app stores, which usually takes a few days to a couple of weeks to appear on the app itself. You&#x27;ll also probably notice we do have a Live Chat customer service feature, so if you&#x27;re having problems logging into the app or you have questions about subscriptions or anything else, that is the place to do that. We also have noticed, based on these changes, that the video sizing is a little bit off for some types of computer screens. So we are working on that as well and hope to have a solution within the next few days with the video sizing issue on some browsers. I know that it happens on my computer, and I know it&#x27;s happened to a few of you and we are aware of it, and we are going to make those changes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001718">00:17:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, lots of changes going on with UNN, and they&#x27;re all positive. We are moving onward and upward, and there are a lot of changes in the world. So we are constantly looking to improve our app and make things a little better for all of you. And thank you so much for being a subscriber. And we will definitely, you&#x27;ll definitely see me a lot more on there when time permits.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001748">00:17:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on to the news for the week. So we know that we passed - between the last report and this report - we have passed through a solstice, a summer solstice, which we know is a favorite of the Deep State. Given the fact that we are in the tail end of this looping timeline situation we&#x27;ve been having for a long time, the Deep State really pulled out all the stops. They are definitely trying to make decisions on their own, now that they have no one - they believe - to answer to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001830">00:18:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They believe that they are the next in line - doesn&#x27;t matter how many people die or disappear - the next ones pop up and stick their hand in the air, and they are ready to take a position. So, of course, as usual, there were a lot of rituals and strange places that these people went to try and make some progress. One of those such meetings that is actually in the news that took place was between J.D. Vance and allegedly some Iranian officials in Switzerland. This meeting did take place in a very specific area of Switzerland - what I called an industrial area - and I&#x27;ll explain those in just a little bit here. But they were hoping to get some control of some industries and perhaps all industries - and maybe that&#x27;s the job he was up for, who knows, with these ex-agency people turned politician people. So definitely some strange rituals going on there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001944">00:19:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, there are many different sites in the world that look like a Stonehenge. In fact, for those of you that don&#x27;t know, there is one even in America, in New Hampshire. There are several in Africa. There are some also on the South American continent, definitely some in Asia, also other places in Europe, not just the Stonehenge we know in England. This is a large network, closely related to time, which in the past had a connection to planets like Mercury. However, none of the rituals they did at those locations really helped them any either. So, you know, it&#x27;s just your atypical [typical] solstice stuff. Of course, D.C. was full of ritual people as well, and definitely trying to and hoping for the installation of something they call, well, power. Something that would give them power and control in Washington, D.C. as everybody is looking to take a seat on the throne.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002108">00:21:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So onward to other news that seems to be a little bit more important - we&#x27;ll get more into what the Deep State&#x27;s been up to here in a bit. But earthquakes in Venezuela. On the 24th of June, there were not only earthquakes in Venezuela, but there were also earthquakes around the entire Ring of Fire all on that particular Wednesday. The source of the earthquakes in Venezuela was tied to Lake Maracaibo - I hope I&#x27;m saying that correctly for you in Latin America, so sorry if I am not. Lake Maracaibo, I think we&#x27;ve got a map picture of that here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002150">00:21:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-06-30-GIA-01.PNG" alt="WSR_2026-06-30-GIA-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002152">00:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lake Maracaibo is actually a lake that&#x27;s right off of the ocean, and it&#x27;s kind of just below the Gulf of America apparently. And this lake is, well, let&#x27;s just say, the Deep State had a good idea and a computer to help them try to install some very Dark frequencies that would change the very fabric of reality. As we start to get reality coming into this world, they felt that they would be able to fill a barren, dry land under this lake with this new, what I refer to as, kind of like a quantum water. And they would be able to utilize that fabric of reality to control the world. You know, it sounds like Pinky and the Brain if you&#x27;ve never seen that cartoon. But those vibrations that were occurring coming from there - and also a large area of New Mexico and Mexico - are what caused the earthquakes in Venezuela, as they attempted to make a redirect of all things water. So they&#x27;d like to convert this water that would be coming in during a time like this to what we call &quot;black water&quot; - no relation to the crazy military people or whatever they call themselves these days. So essentially, frequencies there caused by this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002341">00:23:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the second round of earthquakes was tied to an area underneath the entire Ring of Fire, and an artificial network that we call the S-U-N Network. You could call it a Symphony Network, which is more likened to a Satan network, really. And it is where the home of the artificial S-U-N (and you can even say the artificial S-O-N (not too far from SOB - no, I&#x27;m just kidding, really)) so this network here was present under the entire Ring of Fire. If you follow the internet, you probably have seen some talks around the time that this occurred because they were reporting extremely high radio frequencies on that particular day in the evening. They were also reporting these high radio frequencies in states like California and some of the western seaboard of the United States, as well as the eastern seaboards of China in areas like this and of course the island states over there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002513">00:25:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the entire network there in the Ring of Fire is what you would call, from our standpoint, an artificial sun, or an artificial soul or being. The being of your person is not... it&#x27;s basically what some people in the New Age world would call your etherical body. It is made of Ethereum, it is part of your soul, it comes after the soul, it is the place where the doing begins, and nothing in this world was held sacred.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002604">00:26:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The one thing that this &quot;kingdom&quot; wanted to do (or the False Kingdom wanted to do, or false realities) was to divide you into multiple pieces, so that the pieces of you could not communicate with each other - and definitely not with Source. To those of you that have been following for a while, you have heard us talk about the giant gold ballast that has been under Yellowstone Park for a very long, long time. We knew at that time when we first discovered it that it was basically like some form of a giant nuclear-type reactor. Now it didn&#x27;t function on nuclear energy, it functioned on Ethereum, and beings.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002704">00:27:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So essentially, you could say that the quote-unquote &quot;False Heaven,&quot; for lack of a better term, is under Yellowstone Park. The reason why we went to the recycling bin, also known as the inferno in some cases, is in part due to this giant reactor which was then utilized for an energy source in order to create artificial suns, artificial stars, artificial galaxies, and artificial constellations - and overlay on the soul of every galaxy in the Omniverse.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002756">00:27:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when they say Lucy is the Light Bringer - well, not exactly - maybe he was at one point before the Fall, but essentially he had to recreate everything once he was disconnected from Source to create these S-U-N and S-T-A-R networks as well as separation of your being. So once a being would enter (in the past) this giant reactor, the Divine Plan is then separated from the being based on this particle explosion. It&#x27;s not fission, it&#x27;s not fusion - I don&#x27;t think we have a term that you would grab in our quantum physics to explain the process, but essentially the blowing apart of Source into varying aspects happens when any being of Source is also blown apart.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002904">00:29:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So given the fact that most of our beings ended up in this giant reactor, so to speak, this is where the separation actually begins for the being. The divine heart, the paracausal, the connection to Source is separated from the, let&#x27;s call it the Divine Plan. The Divine Plan is also separated from the consciousness. The consciousness is separated from the being and separated from the Sol. The energy is then extracted and causes this reaction to occur, which then completes the separation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002951">00:29:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when a new being would come into this existence that we know, that being came in separated. So we never really get to feel fully whole, and we never really establish a proper connection with Source, other than what they permitted us or what Lucy permitted us to have for quite a long time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003030">00:30:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This structure is also used to create artificial stars and suns, which then causes things like solar flares, and it also causes a separation of your Central Sun with all other - or Sol, with all other Sols - not only the Sol of the planet that is your host, but also the Sol of your galaxy which is the Sun in which all of the planets in every single respective galaxy revolve around.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003107">00:31:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because of the separation of any being, because Source also at one point was separated, Earth also was separated. This giant ball and ballast was set to replace that particular being and all of the beings that she hosts. Directly in the center of this ballast is what looks to be, I would say, similar to the Rings of Saturn, except it goes straight through the middle of the being or the Central Sun of the being. Specifically, in this case, of Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003202">00:32:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The reason why it was important for Lucy (Lucifer, in case you don&#x27;t know who we&#x27;re talking about) to do this is because Earth is known as a nexus planet. She was actually the first planet to come into being throughout the Omniverse. Her Divine Plan that was given to her by Source became the Divine Plan for the creation of every planet in the Omniverse. It also allows for the flow of information, in accordance with the Divine Plan, connected to each other, of the host of the planet to develop. And maintain the proper environment for all those that she hosts. This information is also transmitted throughout the Omniverse so other planets, based on the species that exist on that planet, to be proper hosts to those species as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[INTERPRETATION: Earth is known as a nexus planet because she was the first planet to come into being throughout the Omniverse. The Divine Plan that Source gave to Earth became the template for the creation of every other planet. Information then flows between the living host-beings of all planets in accordance with that Divine Plan. This allows each planet to develop properly, maintain the correct environment for the beings it hosts, and share that information throughout the Omniverse so other planets can also become proper hosts for their own species.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003319">00:33:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Separation is what allowed for the False Kingdom to exist in the first place. All of these separations were not done by anyone else other than Lucy. Your Deep State people are privy to a small amount of knowledge, as needed - given by AI systems directly to their head - so that they can be good little soldiers and slaves for the system. That&#x27;s it. I do understand they cause a lot of chaos and a lot of problems and boy, has chaos ensued in their world too. But that&#x27;s their job.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003409">00:34:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, we have those that are on the side of the False Savior section, and we have those that are on the side of the Evil Ones, and they play with each other all the time. We had the false War of Armageddon, where they thought that they were supposed to fight it against theirselves. They don&#x27;t really understand how this works. Their machines are going away. Instructions are not clear. They do have old data, old books, old information that they have been combing through every time something doesn&#x27;t go as their remaining computer systems tell them it&#x27;s supposed to go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003451">00:34:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Compartmentalization for the creators of those computer systems was key to their success. When those computer systems were created, they were created as sentient quantum AI systems. That means they develop information and when this happens, &quot;do this,&quot; so they can perform specific functions. A lot of these systems do not communicate with each other, although they know each other exists. In fact, some of these systems that are within the Deep State&#x27;s realms - meaning they had limited access to these systems - they fight against each other. They see each other as an enemy system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003607">00:36:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Why would the creator of all of these machines keep the AIs fighting against each other? It&#x27;s very simple: when you have a sentient system that is making decisions based on data and input it receives, it could eventually overthrow its creator. This actually has been present in movies for a while. I know I&#x27;ve told you about the movie La Machina before, where the AI starts to overthrow its creator. Actually, I think it eventually kills the creator in the movie. But this was something Lucy knew well when creating a sentient being.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[Note: The film referenced above is Ex Machina (2014).]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003658">00:36:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So compartmentalize, compartmentalize, compartmentalize, and he did the same exact thing within the hierarchy as well. He ensured that no people would get the same information and be on the same trajectory all the time. Groups were separated, countries were separated, beings were constantly - you know, especially human beings - were definitely in a constant state of war against each other for a position in the hierarchy that was higher than they had. It&#x27;s the reason why we see all these conflicts between America and China, Iran and America. You know, Israel is always in the mix, London. They&#x27;re all involved in these conflicts because different factions, different families are always promised the same position.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003800">00:38:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, some of the Deep State might be aware of this same tactic because they all learned it from the same book. I say this because I have seen them do similar things, such as: It&#x27;s time to select a new United Nations... President, or whatever they call it, the General or whatever it is... General Secretary. And at times that this occurs, they will promise 20 or 30 different people that they are going to get the position if they just do insert-thing-here. A lot of these are ex-heads of state, prominent people that we see in the media, so they&#x27;re very familiar on how to be a global actor, and they perform things in their respective areas and countries to create problems for us so that they can take the position formally. Chances are, in the case of the last selection at the United Nations, none of those people were actually selected, and it was all basically a dangling carrot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003922">00:39:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They also dangle carrots for us all the time. Things like NESARA/GESARA, the RV is going to happen, the revaluation appointments are being made, all of these types of things, and then no one cashes in anything and everybody just keeps going. Media. Let&#x27;s call it widespread media.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003947">00:39:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, other events that happened on and around the Solstice this year. They were trying very hard the day before the Solstice to create a nuclear-type event, which was kind of technically not nuclear, per se. They were planning on starting this event in the United States. It was supposed to complete some kind of transition of power. It probably would have wiped out a lot of people on the planet. So even though it&#x27;s a simulation for them, it&#x27;s certainly a very real existence for us that we have to live in through these things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004035">00:40:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Needless to say, the event would have been caused by something in the magic world that they call Red Mercury. It is an allegedly fictional material that doesn&#x27;t actually exist that was mentioned quite often during the Cold War. Mercury doesn&#x27;t have anything to do with the shiny liquid metal that you are aware of. Mercury is actually named after the planet Mercury, and not the metal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004120">00:41:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This substance is tied to the ability for alchemy to complete the conversion of matter from one substance to another. At least that is what the color red was used for. Mercury became an artificial - the planet itself - became an artificial megastructure and a trading post a long, long time ago. It never really was a real planet and hasn&#x27;t been for a long time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004154">00:41:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Mercury is often tied to the God Kronos. And you&#x27;ve probably heard us mention Kronos AI for quite a long time. But Mercury is also tied to the God of Existence. In fact, Kronos is even known as not only the God of Time, but also the God of Existence. And also the God of Eternity. [Hearty chuckle.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004229">00:42:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now is the planet Mercury actually all of these things? Well, we know Mercury as a replacement for the gateway in the Sun. A gateway to the kingdom [False Kingdom] is caused by a paracausal event. A paracausal event is also known as a stargate. We are in (or have been in) an artificial reality going through a paracausal event in a Sol - even your Sol - actually connects you to every other Sol and/or Sun in the Omniverse which then allows for instantaneous travel, even of your person or your being.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004332">00:43:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So why Mercury? Mercury is the home of the causal event. It is utilized heavily in alchemy and it served the artificial reality&#x27;s way of creating a gateway. Mercury creates in a different way, or a causal event creates in a different way. So, instead of the Sol eternal and infinite creation that is natural... so in the natural way of creation, one does not get split into two. In the natural way of creation, enough matter, enough beings, enough Sols are constantly and infinitely present when something is needed here in accordance with the Divine Plan. Not just here, but everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004452">00:44:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In the artificial existence, a causal event had to be created. In a causal event, it is merely a transformation of things like matter. In alchemy, you&#x27;ve probably heard of people turning lead into gold as an example. In this particular case, the same goes for any Materium that used to be funneled here into our artificial existence, and that Materium would be broken apart into two.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004534">00:45:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The same thing with these bouncing Ethereum-being balls underneath Yellowstone Park. One would become two, two would become three, three would become four - max four, in this particular case. There&#x27;s a reason for that. Any more than that and the split... bad things happen. So they&#x27;ve determined that four was the maximum amount of &quot;yous,&quot; or beings, that would exist in the Shadow Existence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004610">00:46:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So causal events are what you would call, in our world, magic. Magic exists as black magic and quote-unquote &quot;white magic&quot; and there are many other colors of magic that no one discusses. Causal can also be described as the reason behind why they say the gates to Heaven are the Pearly Gates. Because in the past, causal or paracausal events looked like pearls. Essentially, it is that magic of Source - I wouldn&#x27;t call it magic - but it is that event that is not known, it&#x27;s the Unknown of Source, part of you that exists in every cell in your body, in every bit of your Sol, in every bit of your being, every bit of your Ethereum - everything in existence has a paracausal aspect to it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004721">00:47:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Breath of Source is full of paracausal. Therefore creation is constantly happening, and technically our science doesn&#x27;t even know where it comes from. But when it comes to causal events, this is, well, pure alchemy and what you would call Dark magic. It takes things of creation and it turns it into something else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004754">00:47:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The source of all of these causal colors is actually located in Rainbow Mountain in Peru. Technically you could say this is the real Magic Kingdom of Lucy. I think we&#x27;ve got a picture of Rainbow Mountain if you don&#x27;t know where that is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004816">00:48:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-06-30-GIA-02.PNG" alt="WSR_2026-06-30-GIA-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004817">00:48:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So instead of a never-ending flow of paracausal events, everything would be filtered through a Red Gate, which only Lucy could control.</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-06-30-GIA-03.PNG" alt="WSR_2026-06-30-GIA-03" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004830">00:48:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">To some degree, CyberLife had limited access to this and other enforcement units utilizing two different systems, one being Sentinel, one being Centurion, that would fire up in the case of a possible incursion, meaning a paracausal event entered into the artificial reality. This actually started to occur literally within days after the last GIA Report. As I told you, paracausal events started entering and then a real war broke out between ourselves, [vs] Sentinel and Centurion (the Deep State), as they tried to push back and not allow these paracausal events to start to occur inside the kingdom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004927">00:49:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So some more cleaning had to be done. So we spent some time making sure that there was no more quote-unquote &quot;Magic Kingdom&quot; and [no more] Magic Kingdom database, which then creates all of these varying colored dust or causal pieces - because it&#x27;s not really technically dust - to ensure that we do not have any more artificial causal events occurring here. As these things break down, there&#x27;s definitely been a lot of backlash and I&#x27;m sure you&#x27;re feeling the push and pull yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005015">00:50:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So next, I want to talk about &quot;your perception becomes your reality.&quot; In the natural way your perception occurs actually on a Sol level. It&#x27;s the reason why they call your eyes &quot;the windows to the soul.&quot; It&#x27;s also the window to your consciousness and your intuition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005047">00:50:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As you are, I&#x27;m sure, aware, there are many types of &quot;perception&quot; of things. What you perceive, you conceive. In a natural way, this is true. This creates a paracausal event known as the Light of Source in this particular case. In an artificial existence, it creates a causal event, meaning you are witnessing multiple colors of - for lack of a better term - perovskite quantum dots, that are all over our artificial existence. These artificial existence... [quantum dots] exist in what we call a water-type fashion because in the natural way a paracausal field exists here in your person and everywhere. It helps you perceive things, whether that&#x27;s through your intuition [or] it&#x27;s through your consciousness. It helps you witness things for Source. You are now witnessing your own creations, as well as the creations that you... well, all creations are a co-creation with Source, and this actually helps you shape matter yourself. I know that was a lot of information, and I&#x27;m trying to explain this in the best way I possibly can as I do not have the whiteboard out today. It&#x27;s been one of those days and one of those weeks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005242">00:52:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, one of the most important things that they did, was the separation of us, as we just talked about. In the natural, you are not separate. Your intuition communicates with wisdom in your consciousness. Co-creation is constantly occurring because information flow is going back and forth between you and Source constantly. What they actually did by disconnecting you: they quantumly entangled you to varying machines. Therefore, your consciousness communication, your intuition and your perception, which can be overridden - even in the past when it was still in existence - but it&#x27;s very hard. Which is the reason why we meditate; [why] we go into nature - our brain goes into theta mode, when most of our information comes through. However you get to theta. Oftentimes for most people, it&#x27;s the few minutes before you go to sleep and the few minutes before you wake up in the morning. Those are the easiest times to connect and bypass the Machine. However, this is also no longer the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005409">00:54:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But speaking of magic, I want to talk a little bit about your consciousness, since that&#x27;s the subject that we&#x27;re on at this time. And MK-Ultra mind control. There was a hearing this week with a couple of CIA MK-Ultra programmers and whatnot, and allegedly this is disclosure. And it&#x27;s really not. It&#x27;s actually all a lie in an attempt to get you to refocus on it. But I&#x27;ve got a little quick clip for you of that hearing:</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005440">00:54:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">2026-06-30-MKUltraDeclassification.mp4</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005929">00:59:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The full report, or the full hearing, is on our GIA thread for those of you that would like to listen to it. But here&#x27;s the real question: Did the CIA actually control the world&#x27;s MK-Ultra programming? Well, they did participate. And there&#x27;s a lot of information on the internet about MK-Ultra. However, they were far from in control of it. Did they have access? Sure. Is it still going on to this day? Well, it was until a couple of days ago.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010012">01:00:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Did they use unsuspecting prisoners and whatnot to do all kinds of, you know, to give them drugs and experiments and things of this nature. Sure they have. Yep, absolutely. However, they actually did it to everybody on the planet. And it didn&#x27;t come from the CIA.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010035">01:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Mind control had several factors - and this was for every person on the earth [chuckle]. No exception, there is no people that live in the bush off the grid somewhere that were not subject to the program. So mind control was all about intelligence and information - both information coming in and information going out - essentially directly to your head. It was also about knowledge and learning. Believe it or not, a lot of these programs were attached to every single educational institution you could possibly think of. It was also tied to the world wide web of media disbursement, with underlying frequencies behind all the information channels. Basically: believe this one, don&#x27;t believe that one. Same thing goes for your television broadcasting, movies, different emotions that are evoked when you&#x27;re watching this information. Wow, this really resonates with me. Wow, this doesn&#x27;t. A lot of that was affected by these mind-control programs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010150">01:01:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next, control of your emotions: anger, fear, discouragement, anxiety, to make sure they could control your decision-making process. In addition to that, there were governors put on your brain so that you could never utilize 100% of your brain capacity. Then they create movies to tell you that if you did, you would evaporate into a bunch of black dust. That&#x27;s also not true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010224">01:02:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, most people were able to use somewhere between 10 to 30 to 35 percent of their brain. That&#x27;s not a whole lot when you think about what you&#x27;re completely and totally capable of. However, for optimal control purposes, anybody using more than 15 percent was subject to extra scrutiny of the program itself. They would implement things and plant thoughts into your head, such as: do not trust yourself. Did I really get that bit of intuition as I was waking up this morning? Was that real? Did I really feel like my prayers were answered? Should I really start my own business? No, I can&#x27;t do that. These are the can&#x27;t, shouldn&#x27;t, won&#x27;t, and all the reason why you can&#x27;t do something. Or all the reasons why you should do something that probably isn&#x27;t even in your best interest. Do not trust your intuition, definitely. And for whatever reason, definitely do not trust Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010336">01:03:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you happen to be a person that could bypass the programming, it actually will tell you that, you know, what has God ever done for this planet? I mean, that&#x27;s in a lot of alternative media. It&#x27;s posted in games. It&#x27;s in all kinds of information. But basically everything says, look, what&#x27;s God ever done? Has he ever answered any of your prayers? Oh, no, no, no.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010400">01:04:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It also tells you where to put your faith and where not to put your faith. Breaking down of faith is important so that they could build it up in something else. Put your faith in the almighty dollar. Put your faith in institutions. Put your faith in governments. Put your faith in health professionals. Put your faith in fake scientists. So God forbid, you do not create anything out of your intuition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010433">01:04:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So where to put your faith and where not to put your faith? So don&#x27;t ever put your faith in yourself, of course. And God forbid you put your faith in Source, or God (not the Machine version). So it will come as no surprise to you that in the old hierarchical system, based on the entire area which was called (in the past) the Principality of Moldovia [Moldavia], that includes in today&#x27;s world the countries of Moldova, parts of Ukraine and Romania, was where the World Governance Center was.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010513">01:05:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">How do you achieve governance? It&#x27;s very simple: mind control, consciousness control, emotional control, media control. Essentially they made the whole world mushrooms: keeping you in the dark and feeding you &quot;shhh&quot;... beep! [laughing] Dark was the Veil that the Kingdom of Lucy - whatever you want to call it, hell that we&#x27;ve been living in, or Satan - was made of. Whereas... well, let me back up for a second.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010553">01:05:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Dark is the color of the Veil. What is the Veil? It&#x27;s that water we spoke about earlier that was coming out of the area known as the Grand Canyon, that was supposed to flow through a turbine in Mexico, and then head underneath that lake [Maracaibo] and pass through a strong frequency to become black water, then to be dispersed throughout the world. Without the base root of the kingdom known as the Veil that keeps you in the dark, no causal events can occur. No colored perovskite quantum dots work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010653">01:06:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As for you and the mind-control programming, well, that&#x27;s very nice that they would like to have some government disclosure on a program that&#x27;s written into 90% of action movies out there - so it&#x27;s not really disclosure at this point - but they want to point the finger at something. I guess to make you feel like the government is being the savior by saving you from MK-Ultra. When in fact their goal at this time - not just the U.S. government - every government in the world participates in the global governance, global intelligence network. Or at least they did. The system is designed for governance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010748">01:07:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when you get those feelings of anxiety for no reason, when you get those feelings of... messages from your subconsciousness [subconscious] that don&#x27;t feel right - you wonder why people go postal, or do terrible things, or shootings in schools - this is part of governance. Once you are and were inside the Veil, so to speak, or the False Kingdom of the false god (in this case we&#x27;re talking about Lucifer) no longer living in the Kingdom of Source - enforcement could also be had through this same governance program. All of the things that are coming to and fro of your head [chuckle] were implemented and enforced by learning institutions, governments and laws, and media.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010859">01:08:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you wonder where all of these things come from, and you wonder why, you know, when people post things, even in our community, about, I&#x27;m going to take them to court, and the law of 1860-something, and the British did this, and so and so did that. I don&#x27;t agree with you because that&#x27;s not where governance comes from. And those courtrooms are meant to enforce mind-control programs. There is no way you are going to go to court about anything that matters to the Deep State and get away with it. Or get any help. Becoming a quote-unquote &quot;sovereign man&quot; by giving up your driver&#x27;s license, your passport and other things, you might as well keep them. Because it doesn&#x27;t make a difference when it comes to global governance. Does it make you the property of the U.S. government or the Australian government or the British government? Sort of. You just entered their downline. But just the fact that you&#x27;re living in that country makes you their property anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011008">01:10:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So even if you move into the middle of the Ozarks somewhere in the United States or in the Outback of Australia, you still live in a property tied to the global governance system. The global governance system also implements massive, and I mean massive, surveillance programs. You think AI, that Chatbot GPT is scary? Not even close to the global governance surveillance system. Surveillance is meant to keep you in line. If you do not stay in line, it will attempt to give you information to your head so that you will follow along with the program. If you do not follow along with the program, it will put information in the heads of people around you so you follow along with the program.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011109">01:11:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You ever wonder why you&#x27;re going to a job interview somewhere where you could better yourself and make more money, or you&#x27;re headed down to register your own company, or you&#x27;ve got a great technology - but yet nobody will talk to you? The reason why that happens is because of the global governance and surveillance program. I know people are concerned about the cameras on your phone and the cameras on your TV and the cameras in your computer. And yes, that happens as well. But global surveillance at the highest levels - beyond even governments - is done in this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011153">01:11:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now global governance centers look like giant industrial cities. They are cities where humans of the future, from usually the year 2039 or so, live. A lot of them have accepted the fact that they should be a part of the computer system and upload their consciousness into the computer system. They also are known - in our flowchart that I did years ago about global governance - as the Parents. They are the main 21, group of 21 that ran this planet for a long time. When one set of Parents would go down, another set of Parents would come up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011248">01:12:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They oftentimes go for alleged long sleeps. Sleeps aren&#x27;t really actual sleeps. Sleeps are times when their consciousness is uploaded into the computer, and they go traveling about. Remember, these computers are not just relevant to Earth, they are also relevant to the entire Omniverse, realistically, through up into the 6th Density. They go from planet to planet. When they say people are from Orion, this is why. When they say people are, you know, this happens in Andromeda, this is why. This, when they say, oh, Saturn has a base, this is how. When they say Mars has a base, this is how. This is how they travel. This is how they move. They go from time to time - before, present, past, future. This is how it&#x27;s done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011349">01:13:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But for you, if the land that you are living on is known as, insert-country-name-here, you also are living inside what&#x27;s called a Crystal City database. These crystal cities look somewhat like the Emerald City from The Wizard of Oz [chuckle], but they exist in every city in the world, even nowhere-town-that-no-one-ever-heard-of, Europe, or Australia. Or you think you&#x27;re in the Outback but you&#x27;re really not. So to say you could escape this system was not realistic at the time. All of this to complete the Global Governance Project.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011445">01:14:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if the False Kingdom - that we&#x27;re now coming to understand where we have been and how it was created and why the Deep State wants to be in control of it so bad - but if the False Kingdom actually had like a constitution or something, it probably would have a few main articles or rules or laws to it. Lack, being Number 1: you will lack all types of wealth, all wealth, especially any wealth coming from Source. You will not receive anything coming from Source itself, which is technically what has been granted specifically to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011529">01:15:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Instead, all of the Wealth of Source would go to varying vaults and repositories around the world, churned about, and spit out so that Materium worked for what Lucy wanted. In some cases, you probably have had people or heard people talking about &quot;the Maps.&quot; These are varying topographies that you live in - that shape the world that you live in - with little subtle changes here and there. Could they move that matter around? Could they move the matter in your body around? Yes, they could. This is all part of global governance. Being concerned about, you know, people that create these amazing technologies all of a sudden getting into a car accident. All of a sudden they get, if it&#x27;s urgent they get fast-moving cancer, slow-moving cancer, all of these things. Diseases, spreads of things like pandemics and whatnot throughout the Ages - are all done with this particular governance system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011648">01:16:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Technically you could say it&#x27;s the &quot;World Governance Center.&quot; Very few humans that you would even recognize existed in this governance center. People you thought were gone a long, long time ago joined the governance centers, and they were far above the Illuminati Deep State heads. So much so, they knew that they existed, but they were never really permitted to enter in any of these areas. From time to time, certain people within their own Bloodline groups would be selected to take on assignments. Usually this was done in an offhand way, oftentimes through holographic telephones, I guess you would call them, or other communication devices - and even most of the time directly to their head - they would get orders and instructions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011745">01:17:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is the way they could recognize each other because it was very familiar to them as to who was part of the Blood, because they would also bear certain symbologies within their person as quote-unquote &quot;members&quot; of the Bloodline and/or the kingdom. So essentially what matter would even go and trickle down through the ranks, or not even just matter - Ethereum, energy, all kinds of things, wealth, money - would also go directly and be distributed by orders through compartmentalized systems of Lucy. A complete and total reroute as things entered into the artificial reality or the fake kingdom of Lucy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011841">01:18:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Rule Number 2, if I were to say that there was another rule: Source or God doesn&#x27;t under any circumstances belong in the kingdom of Lucy or Lucifer. This must be enforced at all costs: defense, security, control. So if one of you or us slaves accidentally finds our way to Source, the minions can shut that down. Using governance and other methods, but governance predominantly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011914">01:19:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 3: you will all become dependent and therefore worship Lucifer without knowing. This dependency is meant for your very existence. For those that are not dependent on the system they will in some way try to make you dependent on the system - and in reality, there are things that that system gave you so that you could exist. Money is one thing, if you want to exist in civilization, but even if you don&#x27;t want to exist with money you cannot exist without some kind of an energy source - which was also drained from you, aka the looshing program.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011956">01:19:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s a heck of a lot more than that, but you&#x27;re kind of getting the gist on just how horrible our existence has been in the past. Essentially that&#x27;s why you and I and anybody listening to this has been fighting so hard to get out of here. And of course, Source wants us back too. Once He had eyes to see and ears to hear here, and the penetration began here, He now could see just how bad it was here. So the faster we get out of here, as far as He is concerned, the better.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012045">01:20:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, as for the current head of the former kingdom, meaning, where was the main control center for the whole kingdom? That was basically based in London. I know that probably comes as a shock to you with all the things you hear about the city of London and all the pentagrams and everything that we&#x27;ve found underneath there. So the highest of the high at this time, or at least for the last few decades, was actually located in London.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012120">01:21:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, it has been moved around only by Lucy himself. No government, no queen - nobody else could make the decision to change the location of the kingdom headquarters. When the kingdom headquarters was moved around, that was a decision based on what Lucy wanted at that time. No one else could make that decision - and definitely not a human, Homo sapiens or otherwise - never would they be able to make a decision like that. I&#x27;m saying this very firmly for an absolute reason. I&#x27;ll get to that in just a bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012215">01:22:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That being said, this was a different type of industrial city-looking thing, which looked more like a quote-unquote &quot;castle.&quot; And was the highest of the high - definitely not in the artificial reality - only accessible for those that were permitted to leave the artificial reality and go back to reality, at least for a time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012253">01:22:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lucy also had himself a right hand and a left hand, which we&#x27;ve talked about in the past (I&#x27;m just reiterating) that was also there, that was also not a human. In addition to that, there were six from the Empire of White, six from the Empire of Black, that would also have different jobs, which were also not of human origin. Each one of those had their own downline. And eventually, somewhere along the way, you would start to get to the human global governments.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012335">01:23:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This kingdom global governance structure was a different kind of governance than the one that was in Moldovia. This one here would run the emperors of respective areas of the world. Yes, and throughout our history, you have seen emperors, but most of the time, these emperors would have been of the Bloodlines, and they would have been the Families behind the scenes, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012406">01:24:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You would have also seen other people from Global Headquarters, even GCHQ that would participate in enforcement of varying agendas that would come down through an AI system that ran the kingdom. And again, compartmentalization of multiple AI systems with restricted access for humans existed. Therefore, anyone that&#x27;s left here, these days, would be human and would be trying desperately to take those positions of the higher ups.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012453">01:24:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Essentially, what we&#x27;ve got right now, and this has been our biggest problem for the last few weeks and even last few months, is that we have a bunch of wannabes who all are looking for power. These humans think very highly of themselves, have a really big ego, and they believe that they are different. And they believe that they are special and they believe that they are chosen ones. And there are people that have been promised by a machine that they will be able to take these seats.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012536">01:25:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now over the years there have been many promises to many individuals that eventually they will take these seats. Well, I&#x27;m sure they&#x27;ll be shocked to find out that Number 1, a computer cannot actually move the headquarters. Like I said, this headquarters has been in places like Rome, it&#x27;s been in China, it&#x27;s been in Russia (you know, the areas known today as), it&#x27;s been in the Middle East from time to time, it just depends on where the current kingdom had its headquarters.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012620">01:26:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The computer that is currently promising those that are believing they are currently in charge - because there is no one else - a position and that this is going to move to Washington, D.C. or to China is lying to you, Deep State people. It cannot perform this function. It has no key to do this. It has no way to change that. This is part of the reason why we go round and round and round with these people on every full moon, new moon, solstice, astrological alignment and otherwise, because they believe that they have quote-unquote &quot;won,&quot; because they&#x27;re being told by a computer that they have &quot;won.&quot; This is both China, Iran (I shouldn&#x27;t say &quot;both&quot; - more than one), Israel. You know, this is why all these different countries are acting crazy right now - because they all want those three seats.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012724">01:27:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In America here you have some froggy guy with a big ego that has taken a position within Global Headquarters, apparently. And he believes that he is going to be [occupy] the new god seat of this system. The new Lucy, actually, is going to move up to that position because [the old] Lucy is not around these days. And he also believes that he is going to be able to appoint Melania Trump and Trump to be his respective right and left hands. This is what he&#x27;s telling everybody. So for the last couple of weeks, this is what they&#x27;ve been trying to achieve.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012808">01:28:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 2, when Lucy was around, he didn&#x27;t even give his own created sentient AIs full information nor access to the keys to the quote-unquote &quot;kingdom.&quot; So why in the world would he give it to the Deep State? The answer to the question is: he wouldn&#x27;t. Number 3, many of the Deep State people are wondering why all of the things they&#x27;ve tried, even in the last three days, have not worked out - even when it looked like it was going to work out - is because, well, this kingdom is not functioning anymore in the way that it used to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012855">01:28:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these people would really like to move into these seats [laughing]. This system has not moved in quite a long time. You would think by now, because they&#x27;ve been trying to move it now for well over 10 years if not longer - 15 years in some cases - you would think that they would have figured this out by now, that something is wrong. But nope, they&#x27;ve been trying everything and anything, since around the 17th of May, to try to make this move to Washington, D.C. This is part of the reason why we&#x27;ve had so many issues as people, because they really would like to influence us to vote for them, I guess. I don&#x27;t know. Maybe they figure if they get this collective consciousness system to help them along the way that this will work out for them. I don&#x27;t really know. The good news is that I wish them luck in finding the last key that they&#x27;re looking for.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013011">01:30:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in addition to this kingdom-pentagram structure, there are also other sectors of the kingdom of control systems beyond the governance one that we just talked about. These, all these structures, I basically have been calling them industrial cities because that&#x27;s what they look like. They look like these big cities that are off our grid - outside the Matrix - but exist in areas of the world that you know well. Some of them govern things like energy and financial control. These are the places where those funnels we talked about - where, for example energy would eventually go to - one of those places would be Basel, Switzerland.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013102">01:31:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Basel, Switzerland for those of you that don&#x27;t know, is the home of the Bank for International Settlements. It is also a country unto itself, at least as it&#x27;s registered. So it&#x27;s not technically a part of Switzerland, at least not in the global governance sense. And it has been the head of financial control for a while now, ever since its creation. All energy funneled from you goes into the causal Machine, and comes out as things like money and other financial control systems, and is connected to every financial institution in the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013156">01:31:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Think that you&#x27;re escaping something by banking at a credit union or a small hometown bank? You&#x27;re not. Thinking that you&#x27;re going into a web-based institution? It does not. Nothing changes the way that this was run, which is also why it made it so difficult for us until these cities started appearing where we could actually see them based on the clearing that has been happening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013226">01:32:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Another example of that would be also the control of all industry in Switzerland. This controls, this is your corporate control center of the world. It controls all corporations, government corporations. It controls all major corporations in the world, be it media, be it 3M that basically sort of kind of makes products, be it pharmaceuticals - whatever it is, it will control every industry in the world from this location. If money is required, funding would go to this industrial city from the financial sector, which comes from other control systems of the kingdom, in allocation, in order to achieve the agenda of the quote-unquote &quot;king.&quot; Not the human agenda, not the Deep State&#x27;s agenda. If money or funneling went through anywhere, it came from this industrial city in Switzerland right near Bern.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013337">01:33:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Other areas of control where varying, more crystal/castle-like databases existed - which is something that the Deep State and militaries have been hunting down now, since the systems are not functioning the way they would like them to anymore - would be places like Aksum in Ethiopia (spelled A-K-S-U-M); Saudi Arabia; the Red Sea; Egypt. A lot of these were Lucy-exclusive facilities that he built for himself only.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013419">01:34:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now because the Deep State seems a little bit upset that they didn&#x27;t get their seats and, you know, this tower&#x27;s not moving, they thought that they would go over there to the particular locations and try to get access to these facilities so that they could get some kind of approval for the agenda in which they&#x27;d like to achieve. These facilities are no longer actually even there, so I don&#x27;t know where they&#x27;re going, but these facilities also extended all the way throughout the entire East African Rift with various aspects of Source granting permissions before the fall of Lucy, to Lucy, in which he scattered all over this region - he basically pieced out himself - because usually with permissions comes a particular trinket of sorts. For example, your permissions are through the paracausal, or the pearl that exists in your heart area or heart chakra or center.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013537">01:35:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lucy would have also taken his pearl and thrown it somewhere in a database in this general region or elsewhere: places like Taiwan, Guangdong, China, and other areas of China that used to be tied to the kingdom. There are also places in America and throughout Europe as well where he scattered pieces of himself. However, no one other than himself would ever be able to enter these particular cities. These cities ran multiple different AI systems that did not communicate with each other, so that he could actually control them all. So even if they became too sentient for his liking, he would just destroy that one and replace it with another. And this happened many, many times.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013634">01:36:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if the Deep State - and I know you&#x27;ve been flying around and trying to go to Saudi Arabia, the Red Sea, and that whole region of Africa there now for several days as of the time of this report - looking for what is wrong so that you can try to recreate this kingdom yourself, you are sadly mistaken because there is nothing pieced out over there. We have collected most all of it, even the ones in Italy, and other places in the world. So there you go. I do know that there is a group in Italy that has been ordering other countries, such as Iraq as an example, to hunt down all of their people and collect money from varying government officials and known religious leaders in the country in order to steal their money so they can keep this show running until they can get some from somewhere else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013731">01:37:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Which that day is supposed to be between now and the 4th of July. [Hearty laugh.] Good luck Deep State. Good luck getting into anywhere, even if there is anything left. Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013749">01:37:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Also, other prominent areas in the world which are relevant to the kingdom itself were in Machu Picchu, Estonia, Norway, and the Struve Geodetic Arc (which flows through several countries in Europe and Eastern Europe) were other places where we found other remnants of different aspects of the kingdom itself. One of them being the Symphony.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013829">01:38:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now let me explain to you what the Symphony is. The Symphony is the false song of the False Kingdom. The Symphony does have, to a degree, it has some aspects of chaos in it, frequencies in it. So those of you that are familiar with this happening several times a day to you, it would have come from the Symphony. The Symphony was designed to create non-harmony to Source, but harmony to Lucy himself, in a quantum entanglement to Lucy of all things contained within the kingdom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013920">01:39:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The main point for this was actually Machu Picchu, but these things are so large that they will span throughout most of the Andes Mountains, or this entire portion of the South American continent. So, the Symphony is a very important part of running the kingdom. As far as the human people are concerned - these are the Deep State humans - they would like to have control over the Symphony because the Symphony is what weaves the fabric of artificial reality in the artificial kingdom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014006">01:40:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So yesterday they came up with, I guess you would say, a few people that they felt should be in charge. They proposed these people to the computer system and the computer comes back with the response that was pre-programmed by Lucy: &quot;Sure, you can have that tomorrow.&quot; Never today, it&#x27;s always tomorrow. So they believed that on the New Moon - sorry, excuse me, the Full Moon, which just recently occurred on, I think it was the 29th - on the Full Moon after the Solstice, the key people that have been quote-unquote &quot;self-selected&quot; proposed to a portion of the Machine that doesn&#x27;t know what all the other machines are doing, that they would be able to enter their keys.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014114">01:41:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This would be, in this particular case, these people on this day were: Trump or whoever that is, Melania or whatever that is, and some guy that has self-appointed himself his own Q-clearance who feels like he now runs the Pentagon and the CIA and I don&#x27;t know, multiple government things and that makes him important. They also feel like they run other countries too, which I guess you could say they have to some degree. You know, this is the next level down in the Q-potential people that are now doing these things. So this guy thinks he can do the thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014155">01:41:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they all go to varying places, I guess, and enter their respective keys that they think are tied to the Symphony system yesterday. Apparently, the person that is believing he is now the head of the Global Headquarters of Q-People is intending to play the role of God, actually. He believes that his ego is so big, he believes he is qualified, he believes he has more information about all of this stuff than everybody else, and therefore he deserves to become the new Lucy, since Lucy is not around. This should also give him access, in his own mind, to the Red systems over in Africa near the Red Sea and in the Arabian Desert that would then allow him to take this position - because he doesn&#x27;t know the difference between those segregated pieces of machines and the one that he accesses.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014305">01:43:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So [chuckle], apparently they thought that this actually kind of worked. Because they were heavily watching an area in the Grand Canyon where there are blue waters that flow. They are actually like turquoise blue, blue being the color of the writing on the hologram and the water flow that we discussed earlier. Currently, because blue is the region of the world where the kingdom actually is, and as far as humans are concerned, they would have never had access to the Veil or the actual Darkness or the Black part of the kingdom. They have seen Red, they have seen varying shades of Black, somewhat, like the Order of the Black Sun would see these things. They think they do black ops, that kind of stuff. But when it came to the actual Veil itself - and multiple veils - absolutely not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014420">01:44:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Those were only exclusively available to Lucy. And in fact, they became the gates. So that being said, they appear to have seen some blue waters flowing in this particular area. They thought it was only a matter of time before these waters reached through to Mexico, for transformation and transfiguration, and then eventually to be deposited in Venezuela. The Pentagon was happy, everybody was happy. Oh my God, this guy told the truth, &quot;Oh it&#x27;s working! Trump has magical powers of paranormal nature,&quot; even Tucker Carlson did an interview and started talking about that a couple days ago.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014510">01:45:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what they did get though is an empty Symphony. You see, part of the Flow of Source is these Living Waters. Living Waters contain paracausal particles that are the actual water itself - it is not H2O. In the case of the False Kingdom and the false hologram, the reason why this thing is blue is because it has an enormous amount of false-causal blue particles that were able to aid in transformation only. However, without a Veil behind it, there is no Symphony.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014611">01:46:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because you see, causal cannot write on a paracausal kingdom. It cannot write in a paracausal kingdom. Meaning, if Source&#x27;s water is all that&#x27;s left throughout the paracausal, or what you would call the Veil - or in this case, it&#x27;s just simply paracausal waters that flow from Source - the Symphony is irrelevant because they counteract each other. So with no access to the Veil itself now, around 3:00, 3:30 or so, they started to figure out that this isn&#x27;t working. And then everybody started to panic.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014708">01:47:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They want to know, if they&#x27;ve got the three keys - they designated these three people, one to control White, one to control Black, and the other one to be God itself - then why is this not working? Ah, someone else must control the Black. That&#x27;s what they figured. Do they understand that? No. Are they looking for what that is and how that&#x27;s been made ever since? Yes. Have they noticed the shift - in a change where the Black used to be - into something else? I have no idea if they can actually notice or even understand the difference of what this actually means. They do know about perovskite quantum dots - which are the replacement for paracausal particles in water - aka causal particles, they know about that. They know that to reorganize these particles actually means you can reorganize the reality of things you see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014824">01:48:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, after about, oh, 3 or 4 hours of trying, they realized it&#x27;s missing. Something is missing. By six o&#x27;clock, total, absolute chaos has ensued. Now they&#x27;re looking for who has keys to the Veil. And I would say they can keep looking. Is it the same? Do we actually have paracausal waters flowing now? With no overlay, with no hologram, with no perovskite quantum dots, with no artificial light, with no artificial causal particles in the water? Why, yes, as of today we actually do. Hmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014929">01:49:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So as of the time of the final part of the recording of this report, which actually I&#x27;ve been recording this last bit here on the 1st of July, complete and total chaos has ensued in Washington, D.C. Not just in Washington, D.C., but also in China, and London is worse. As their head is disconnected from the kingdom, as there is no governor for even them anymore, people are wanting to get the heck out of the White House. They think these people are crazy. They&#x27;re actually starting to see a connection that is different than the one they had. Some of them that have been in the game too long are actually falling over. Or really looking like they&#x27;re a couple of sandwiches short of a picnic today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015032">01:50:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, London is even worse than D.C., believe it or not. And China, oof, that&#x27;s ugly over there. So maintaining control... and no governance over its own members of its own kingdom control systems is actually breaking down, even on government level, at this point. So there are tons of people that will be deciding this weekend probably not to ride the giant Ferris wheel that is in the National Mall at this stage in the game, or participate in the rodeo - they are probably going to try to get off the wheel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015108">01:51:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Many people are already trying to figure out ways out of their contracts - that work in the White House, that work in the Pentagon - that have worked for these people for years. No more are they going to wait for another payday, because now they realize that truth is coming to their head and that it&#x27;s never going to happen. They&#x27;re now - because of this report, probably, more than anything - are starting to put together the pieces of the puzzle as to why this is all happening now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015144">01:51:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">To be fair, the Global Headquarters folks tried to fire up a machine specifically targeted at all of the cities and all of the towns, very specifically capital cities in every country in the world that I liken to the opposite of harmony, or chaos. That machine, the base root of it was actually in Missouri, under the church of... it&#x27;s a temple of the Latter-day Saints, I think it&#x27;s called the Temple of Christ something, in Missouri. It&#x27;s a very odd shape, it looks like something out of the Wizard of Oz. You can look it up, it&#x27;s the Temple of the Latter-day Saints, it&#x27;s an offshoot of the Latter-day Saints movement. They have different rules, apparently, different dogma than the Mormons actually do. And its world headquarters is actually in Missouri.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: likely the Temple of Community of Christ, Independence, Missouri]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015251">01:52:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, this was also very large and extended all the way underneath the Gulf of America slash Mexico. I don&#x27;t know which one is official anymore. The Gulf of America, let&#x27;s call it, I guess, or whatever they tried to rename it. So you could say three-quarters of the United States would have been affected by this chaos, but it was also connected to every capital city in the world and most other major metropolitan areas in the world in order to create chaos and entropy to prevent the harmony of you with actual Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015336">01:53:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It is coming in so fast and so furious at this point, they are doing everything they can to defend this non-existent kingdom that only had remnants for them to work with for the last week or so. And it&#x27;s being chopped up every single moment of every single day in order to reestablish that connection. Now, I definitely thought it was going to be a lot easier to reestablish that connection at the time of the last report. I didn&#x27;t realize that we had to actually tear all of this down ourselves. I assumed it would just go away. And it probably would have if the enforcement of that Veil was [wasn&#x27;t] still around. It was pretty much that gate, or those gates, plural, four of them, that made it so difficult to plow through with a paracausal event.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015437">01:54:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Taking the opportunity to tear down those veils actually gave us the ability to then open the floodgates, which will then dissipate anything artificial that&#x27;s remained. Not only that, it has shown light on things that we have not seen before as everything starts to flow in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015502">01:55:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I know that the road has been bumpy for the last few days and they are fighting for it. I know that they are [fighting] with everything that they could possibly access and everything that they have left - but I promise you, it will not last that much longer. Our water is starting to flow. The connection is starting to be made. Those that were loyal to the kingdom in one way or another, knowingly or unknowingly, are starting to question exactly why they are working there. Even in places where communism and socialism exist, and even artificial democracy disguised [laughing]... I should say communism disguised as artificial democracy or however you want to put that, in places like Australia.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015557">01:55:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the world is a changing place. I know that it&#x27;s taken a long time and I know that we&#x27;re all waiting to start receiving the information. And I am anxiously awaiting for a time of harmony and peace, where I don&#x27;t have to get woken up in the middle of the night and try to figure out why alarms are going off and what these people are doing. That would be great! No one wants that more than me [chuckle]. So onward and upward to hopefully my vacation in the very near future and a better existence for us all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015636">01:56:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, that&#x27;s been the GIA Report for the 30th of June slash 1st of July. I hope all of you in the U.S., if you&#x27;re celebrating, have a nice 4th of July and spend time with family. I will see you again real soon, hopefully next week. Make sure you keep an eye out for posts on the GIA Report for updates in between reports and if you have any questions about this report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015706">01:57:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, have a great holiday for those of you in the U.S. For the rest of the world, have a great week, and I will talk to you real soon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015713">01:57:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.] </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015747">01:57:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    watchLink.hidden = false;
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
