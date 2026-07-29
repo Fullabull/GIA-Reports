@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Jul-27</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Jul-27 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Jul-27
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" src="/GIA-Reports/docs/audio/2026-07-27-GIA-1x-08k.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 27, 2026 report by confirming that another Trump replacement was discovered early Friday morning, sending shockwaves through the worldwide operative community; the Trump in the White House holds a Bavarian Illuminati position alongside the presidency. Annual meetings run through Wednesday, with operatives waiting in Jackson Hole and Durango for contracts never issued. Proposed agendas include ordering Iran to attack Ukraine, a U.S. &quot;clean&quot; nuclear strike on Iran, and an engineered earthquake. Operatives from every nominally opposing country attend the same calls.<br>
+<br>
+Kim has reposted key pages from the Deep State financial books to the unitednetwork.earth community chat, where she answers questions weekly. Bank of America, a Jesuit-run institution held as a Bavarian Illuminati asset, is under discussion as a replacement for the Fed.<br>
+<br>
+Kim discloses the group she calls the Royals: originally Homo sapiens, modified past all connection to Source, residing in four high royal stars -- Aldebaran, Regulus, Antares, and Fomalhaut -- which together form the Four Watchers. They trickle down into the Chabad, the Sanhedrin, and Families such as Rothschild. The Bavarians, or Black Sun, come from Mars, Alcyone, Taygeta, and Crux, favor science over Source, and destroyed Mars before relocating to Earth.<br>
+<br>
+Both groups hunt the quantum equation for the Secret Sauce, the Source particle they call the Anomaly and have never been able to isolate. The New Earth Council, freed from Level 6 of the deep underground base network in spring 2020, has returned in a Source-connected simulation built under the Golden Age AI, while thousands of decoy simulations are built for the Deep State to detonate.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000202">00:02:02 - Another Trump replacement lost Friday.</a></li>
+<li><a href="#t-000409">00:04:09 - Operatives waiting in Jackson Hole and Durango for contracts that never came.</a></li>
+<li><a href="#t-000747">00:07:47 - Pre-funding agendas</a></li>
+<li><a href="#t-001050">00:10:50 - They are all on the same calls.</a></li>
+<li><a href="#t-002112">00:21:12 - The books reposted; 24 cities, one structure.</a></li>
+<li><a href="#t-002510">00:25:10 - Bank of America, the Cuban vault, and a bid to become the new Fed.</a></li>
+<li><a href="#t-002818">00:28:18 - The Royals -- not the royals you see.</a></li>
+<li><a href="#t-003133">00:31:33 - Homo sapiens are not from Earth.</a></li>
+<li><a href="#t-003631">00:36:31 - Four high royal stars; the Four Watchers.</a></li>
+<li><a href="#t-003938">00:39:38 - The Bavarians came from Mars, then blew it up.</a></li>
+<li><a href="#t-004548">00:45:48 - The equation they cannot solve.</a></li>
+<li><a href="#t-005141">00:51:41 - Durango, Lions Gate, and a night of torture.</a></li>
+<li><a href="#t-010405">01:04:05 - The New Earth Council returns.</a></li>
+<li><a href="#t-011714">01:17:14 - Thousands of decoy simulations, built to be blown up.</a></li>
+<li><a href="#t-012532">01:25:32 - The NASA contract and Kennedy&#x27;s legacy project.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s the 27th of July, 2026. Coming up on today&#x27;s Global Intelligence Agency Operations Report: Before we had what&#x27;s known today as the Deep State, we had human royalty, militaries, intelligence and scientists. But where did the Deep State actually come from?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You may remember the Deep State&#x27;s financial books, financial documents and global structures we have put out over the years. Does Israel, USA, China or London actually run the world? Not really. Today we will tell you the real story.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I haven&#x27;t talked about the New Earth Council in a while. Where did they go and what did they do to help protect Earth and humanity from the Deep State and their royalty? They told us they are non-repairable humans. Now we actually know why.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And simulations, video games, and war games continue. Until they can&#x27;t. It&#x27;s always been the Deep State against Source. Their agenda? Ultimate control of the entire Universe. Bad aliens, good aliens, deep underground military bases are all just a part of the game.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000117">00:01:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000202">00:02:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well it&#x27;s the 27th of July - I don&#x27;t know why I wrote down June here, but I did. And we have a lot to cover today, so I&#x27;m just going to jump right into it and start with some, I guess you would say, regular news, but not quite. So apparently on Friday we lost another Trump clone, or doppelganger or whatever that is. It was early Friday morning that the &quot;person&quot; - using that term loosely - was actually discovered. And it appears that this was some kind of a natural occurrence. It had nothing to do with any kind of fight or war. It was just something that happened. It kind of sent a little bit of shockwaves throughout the entire operative community, that is what you would call the USA administration. But not only that community was affected, it actually affected operatives worldwide, mainly because of all the deals that are being made. There is a little bit of turmoil.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000310">00:03:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Remember, this Trump &quot;person&quot; that is in the White House not only holds the position of president, but he also holds a position within the Bavarian Illuminati. That being said, apparently he is vying for a very high position, and is highly regarded amongst the group. So again, the shockwaves were not just on the level of governments and politics, it kind of runs a little bit higher. So a little bit of shock to these people, I&#x27;m sure they have or will recover in the coming days because there are a lot of meetings set up for even tomorrow for this person. So I&#x27;m sure someone will pull a mask out of a drawer somewhere, or another person and just keep it going. It&#x27;s all about keeping the lie going for the purposes of this movie we live in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000409">00:04:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, annual meetings. We have talked in the past about annual meetings that would normally begin sometime in June, and they would continue on through September and the Harvest Moon would be the end of the final meeting, at which time normally a lot of contracts would go out to a lot of operatives. Now we are less several layers of people, so people from the bottom layers that would normally be attending, say, the meetings in September or in August, are now attending meetings of their own making at this time, which is kind of interesting. And I&#x27;ve been paying a lot of attention to those meetings.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000503">00:05:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And some of the meetings that actually occurred over the last few [days], or week and a half I should say, they started kind of on the 14th-ish or so of July, continued on through... they will continue on through Wednesday the 29th. This meeting is a little bit different because normally there wouldn&#x27;t be regular people attending these meetings at this time, however there are this time. And Lions Gate also is occurring as we speak - started yesterday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000542">00:05:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So there have been operatives filing into places like Jackson Hole and also Durango, looking for contracts which were supposed to be issued last week. They were not, obviously. They&#x27;re still waiting. And they are being promised that they have had huge success, which we&#x27;ll talk about in just a little bit. And they are expecting major changes. And based on some of the meetings I&#x27;m hearing take place yesterday even, it looks like they are planning some pretty significant events. The next meeting will actually start in August, and then, of course, the other one in September. I don&#x27;t know who&#x27;s going to attend these meetings. They&#x27;ll probably just keep having meetings on their meetings so they can talk about the last meeting because there really isn&#x27;t a whole lot of people left.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000640">00:06:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the meeting that ends at the end of August also correlates with the Federal Reserve&#x27;s annual meeting, which is due to start on the Full Moon at the end of August as well. Now, I&#x27;m assuming this is the operatives from the Sanhedrin side who are expecting to, quote-unquote, &quot;get back to work&quot; come the end of August. Now, remember, for every meeting we see in public, those meetings actually start weeks ahead of time and they are all there - or at least the ones that still show up for meetings - and ready and waiting and willing and able to do jobs that they probably will never get. So I hope they enjoy their time in Jackson Hole. As far as the people that are in Durango, well, that&#x27;s a whole nother story and a whole nother interesting bit of information that&#x27;ll come up in a bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000747">00:07:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, pre-funding meetings. The agendas that were being proposed yesterday in the super-secret, not-so-secret meetings were, Number 1: Iran apparently is going to be ordered to attack Ukraine as allegedly Ukrainian [Iranian] ships were attacked within the Caspian Sea in the last couple of days. So Iran is - upon payment, of course - going to attack Ukraine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000822">00:08:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The other things that are being discussed in this meeting are: the U.S. is intending on using a &quot;clean&quot; nuclear weapon (whatever that is) to attack Iran, therefore starting a world war; and a massive earthquake to be created in Iran is supposedly going to be killing thousands of people. And it will be so severe that even the United States will come in to help. So U.S. operatives are planning on gaining some income from this, as well as Middle Eastern operatives.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000902">00:09:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now when these meetings occur, the operatives are not just your standard CIA folk or GCHQ or the Russian SVR. These are higher-level operatives, predominantly within different groups - both on the black market, such as mafia groups, but also other groups that are arms dealers and other people that would participate in funding that has yet to come, but is being promised by no later than tomorrow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000946">00:09:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, on these calls I want you to also understand - and I know I&#x27;ve said this before - but you had folks in there from Iran, Saudi Arabia, Israel, UK, USA, Russia, and Ukraine, and they&#x27;re all in the meetings, and they&#x27;re all planning on taking their respective parts of the pie and following through on orders given to accept said funds.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001017">00:10:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We are monitoring everything very closely, just to see if there was anything they could possibly do regarding any earthquakes or anything else at this point in time. There have been a few blips over in Nevada and other places in the world - also probably a few over in Asia as well - as they&#x27;re really pushing very heavily on the science experiments to try to make their process work, which we&#x27;ll touch on in just a minute.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001050">00:10:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the point behind me telling you this is that they are all in it together. This is not a war between Russia and Ukraine. It is not a war between Israel and the U.S. It&#x27;s not a war between Israel and Iran. These are all friends, they all get on the calls together, and they all follow orders from their respective countries. And by &quot;operatives,&quot; we have different types of operatives. We have military operatives, intelligence operatives, we also have political operatives that control narratives for their respective actors, which you call presidents and prime ministers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001133">00:11:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I can assure you: in no way, shape, or form are we at war - or close to war - with any other country. And I say this only because - and don&#x27;t get me wrong, I do understand many people are hurt around the world based on operations that they carry through on, with or without payment - however, understand they&#x27;re all in it together. I&#x27;ve said this to many people because I&#x27;ve gotten so many texts and emails about Israel and Ukraine and Russia, but when you listen to these meetings and China&#x27;s on the call, Russia&#x27;s on the call, the United States is on the call - nobody is walking away from anybody. This is all just political and media mind manipulation for you. This has nothing to do with what is actually happening on the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001233">00:12:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s just a bunch of theatrics, complete most of the time with pyrotechnics, which means that oftentimes when you see explosions happening here and there - and especially the ones that are posted throughout social media - what you&#x27;re actually watching is something that goes off in the middle of the desert. In fact, some of our intelligence information that is coming in is basically saying that the Military Industrial Complex, which is worldwide, is having a difficult time producing weapons for free, to feed the militaries in carrying out these operations. Therefore, a lot of countries have actually gone through and started utilizing old, very old explosives [chuckle], even from more than a decade, two decades, three decades, four decades ago in some vault or bunker they had somewhere, and they are so bad they have no hope of hitting a target anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001343">00:13:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only that, a lot of times you&#x27;ll see it being shot off, but then you see the explosion on the ground, and it&#x27;s not the same explosive. So they&#x27;re really working hard to try to keep the theatrics going, not to say it&#x27;s not to our demise from time to time, but understand that unfortunately - until they are no more and they are unable to complete these processes - the narratives are going to continue, especially right now during Lions Gate. This is apparently their very exciting time because this is actually the first time that people on this level have attended the first meeting of the year or second meeting of the year, and this is also the first time they&#x27;ve experienced a Lions Gate. So they really don&#x27;t entirely know what they&#x27;re doing and, well [deep chuckle], that&#x27;s becoming more and more obvious.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001456">00:14:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, there is also more theater out there at this time - and these are narratives that are actually being pushed around and being brought back to life as new information - and it&#x27;s being tossed around in places like patriot communities and alternative media networks about the breaking news: the City of London control system [laughing] is one square mile and all of the things that happen in that one square mile. Well, it&#x27;s not really breaking news for us. It&#x27;s something we have talked about. And it&#x27;s not just London, if you&#x27;re talking about the city and the actual people that live there either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001546">00:15:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Did London have a big base of control which most humans did not have access to? Absolutely. 100% they did. And the reason why this particular thing was there is only because London at one point in time was an area that was the global world power, much like you could say to some degree the United States has been for some time now, and China hopes to be in the very near future.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001626">00:16:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, on the level of real change that happens on this planet, it doesn&#x27;t really make a difference where that sits because it&#x27;s the same people all across the board. It doesn&#x27;t matter if they&#x27;re in Iran, it doesn&#x27;t matter if they are in Cuba, it doesn&#x27;t make a difference if they are in Russia or China or the United States or anywhere else. It is one unit, one structure, and that does not change regardless of where certain things hang their hat. Now, the United States has been pushing for it to be moved over to the United States because they do believe that it will actually give them power. But in a lot of cases, a lot of these things are an illusion. China would also like to have it in their area. And again, this mainly is all about the Royals - we&#x27;ll talk more about them here shortly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001733">00:17:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, pretty much everything you&#x27;re hearing and seeing as it relates to some of these things is all about a narrative in the media. Now, why go to such great lengths? Honestly, it&#x27;s all about you. It always has been all about you. Because you see - in their words, not mine - they feel that if they have complete and total mind control over you, you become nothing more than a walking zombie that walks and talks and does everything that they say. So in their world you&#x27;re already dead.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001819">00:18:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Did they have complete mind control, control of your perception through the utilization of AI systems? Absolutely, they have. For a long, long time. Is that the case any longer? No, it&#x27;s all falling apart. In part, is their perception that it&#x27;s not? Maybe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001846">00:18:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the narrative going around the circles in these days: Trump USA good; London Rothschild Iran bad. Pretty much that&#x27;s it. Oh, okay, wait a minute. Russia, China, Ukraine bad; Israel bad. Now, the reason for this is because you always need a good savior to go along with your good enemy. You know they have to save us from something right? So someone somewhere, one group or another will play that part. Is it real? Absolutely not. These people are all in it together. It&#x27;s just about mind control for you. Control of the people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001933">00:19:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Do they make people fearful? Yes, they like fear. Fear actually generates some really good loosh for them. They like when people are living in fear. You know, whether that&#x27;s fear of poverty, fear of paying the bills, running like a hamster [on a] wheel going to work in multiple different jobs, running from bombs in certain areas of the world. They like that. Of course, people hear them even if they are not in their direct area and it causes a lot of fear. They like to do things oftentimes as a part of war that include rape and all kinds of things because they really don&#x27;t have much regard for us people in any way, shape, or form. They just use us however they can.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002026">00:20:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Pretty much, is any of this narrative really real? Is anybody good? Is anybody bad? As it relates to the global structure, no. And it&#x27;s all just repositioning. But just in case, I did go ahead and repost our books, or some of the books. Now, if I were to post them all, it would be thousands and thousands of pages. However, I did pick out certain key pages from a couple of different books - which I have showed in the past, but I don&#x27;t think I&#x27;ve ever posted them in a format in which you can download them and take a look.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002112">00:21:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, if you go into some of the books, such as the Black Book, you&#x27;ll actually see a worldwide structure of multiple different cities of control factors. You&#x27;ll also see Bank of America in there, as an example, which utilizes gold from the whole Bay of Pigs situation that occurred a long, long time ago that allegedly they found in Cuba. So most of these places and most of these cities and areas of the world - and even more than that, the ancillary other cities, to make a total of 24 in the world - are all the same structure, all run by the same people. 1,000%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002203">00:22:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, a significant portion of the world&#x27;s population of us average everyday folk also live in or near or in the general suburbs or perimeters of these cities as well. So they make good areas for their purposes, and these particular areas of the world are in specific quadrants and zones to whereby they align occasionally with varying other planets and also varying constellations that they believe gives them extra power over said people in the quadrants.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002253">00:22:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the books basically are... you know, they do say &quot;Marcos,&quot; as an example, in a lot of them. Now, Marcos is (or was) one of the members of the World Government. The family itself is all about a royal family. Not THE royal family, not the ONLY royal family, and certainly not a POSITIVE group of folks, but they are one of many royal families that have run different quadrants in different areas of the world over the years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002339">00:23:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Are they still a little upset that they don&#x27;t have access to the type of wealth that they used to have access to? Yes, they&#x27;re still very upset about that - along with all of the other royal families of the planet who keep waiting for every full moon, new moon, alignment, equinox, Lions Gate and otherwise to gain access back to the wealth. Because they don&#x27;t really, truly understand... well, you know, in part they do on certain levels. They do understand (to some degree) that they have to utilize Source, they have to utilize us, and they have to utilize organic life in order to generate things in their simulations, machines, and financial systems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002436">00:24:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when you get a moment, take a look at those books. A couple of key factors - and for those of you listening to this report, they are in our chat rooms or community chats within unitednetwork.earth. That is where they are posted. They are able - you can go ahead and view them, comment on them, ask questions. I am in there a few times a week to answer those questions, at least to the best of my ability. So that&#x27;s where you&#x27;ll find them, just to repeat that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002510">00:25:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I wanted to call to your attention a couple of different things. Number 1, Bank of America. I&#x27;m going to mention that now - probably also mention it a little later in this report - but I&#x27;m mentioning it now because it&#x27;s in the book. Now this particular page in the book talks about Bank of America. It also refers to a vault in Cuba. Now a quote-unquote &quot;vault&quot; - we believe that would be all gold, and it could be gold elements - but it doesn&#x27;t necessarily relate to just these bars that we see, you know, in banks and whatnot in movies and some of you may have even purchased. It is actually related to the color of gold, which to them is very precious.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002605">00:26:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There was a particular portal that once existed there in Cuba. The gold that was produced and stored and held there was actually part of the infrastructure for Bank of America. And as it relates to the bank itself, it is a Jesuit-run institution, however, it is an asset of the Bavarian Illuminati. So they are actually in meetings now (the Bavarians are), and they are having discussions about this wealth they believe they&#x27;re going to have in the next 24 to 48 hours - whether it be from the end of the meeting, which would be Wednesday, or the Lions Gate, which started yesterday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002656">00:26:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They are having discussions amongst themselves about possibly making Bank of America the new Fed because it would be most equipped for that, apparently, if they were to win this fight. They believe they have achieved success, so they believe it is just a matter of time before they see the money pouring out. They would like to have some meetings, I guess, with us based on their newfound success. Tom has been called to some meetings that may or may not still occur tomorrow - in New Jersey, I think, if I remember correctly - with members of Bank of America on the lower end. However, we&#x27;ll see if their superiors still think it&#x27;s a great idea to have those meetings, Number 1, and/or if they are successful in making Bank of America the new Fed [giggle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002757">00:27:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I wanna talk to you a little bit more about that, in just a minute. But you&#x27;re kind of getting the picture here about how our regular news is coordinating with our, let&#x27;s just say, not-so-regular news that we&#x27;re giving you behind the scenes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002818">00:28:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I&#x27;d like to talk a little bit more about the group we call &quot;the Royals.&quot; I mentioned them in the last report. They are not the royals that you see. In part, are there Family names that you might know way down the food chain? Possibly. But these Royals are a group of humans - Homo sapiens, at least they were originally - whom have modified themselves to the point where they&#x27;re no longer connected to Source. The reason why they go into white rooms, or the False Heaven, in part - probably because they wouldn&#x27;t know a real heaven if it actually hit them over the head. But they believe they are going to visit quote-unquote &quot;God,&quot; at least their God.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002918">00:29:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They know they are entering into a Machine, and they also continuously seem to want to do this. And they wear this interesting kind of garb (that I find kind of odd and strange) because the garb that they wear once they have entered into the High meetings, the High Council meetings, looks very similar - almost to the piece of fabric - down to the old high-priest garb that would be worn in Israel. Complete with breastplate and 12 stones; complete with the onyx on either shoulder; the turban on the head (which does often come in varying colors). Like, for example, one of the Families wears a white one with red... I wouldn&#x27;t really call it jewels necessarily, but they are, in part. But it looks like some kind of interwoven red fabric or silk there on their turbans. And their dress wear is often a white robe, and then on top of that white robe often relates to their Family Colors.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003050">00:30:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;ve seen orange robes, I have seen red robes from areas such as Afghanistan and - [clears throat] excuse me - Persia. I have seen other colors as it relates to China. I have obviously seen many Americans running around in some robes, too. So part of this is just... when they go to their respective place, some of them have meetings in the white place, some of them have meetings in the black place, and either way [chuckle], they&#x27;re wearing their respective garb.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003133">00:31:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So where did they come from? This is kind of important to understand too. Humans are not - or the Homo sapiens species - is not originally from Earth. We actually inhabited at least seven planets within our own solar system, as well as other planets in other star systems, such as Alcyone, Taygeta, Regulus at one point in time. We also inhabited other systems which were also taken over as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003213">00:32:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as these Royals are concerned, they are also part, or were originally part of the Homo sapiens race. They decided they would like to have more power and they agreed with &quot;Lucy&quot; (Lucifer). They agreed that they should actually create a false Source. They also agreed to divert the current to some of the star systems where they are from, so they could control varying elements.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003250">00:32:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">One such system or constellation is the Pleiades. That was a very heavily infested constellation with all kinds of things related to the simulation that occurs on all planets and Homo sapiens civilizations that they conquered. Now, to be fair, they did not just conquer Homo sapiens civilizations, although they like us because we give off the best juice and we are... They understand us a little better than they understand some of the other species. Because when they do conquer other species, they have to learn their bodies, their vessels; they have to learn their souls; they have to understand how things work so that they can genetically modify them to become slaves and work for them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003357">00:33:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re kind of a mixed bunch as it relates to planets that have a simulation like we have had in order to control its population through a centralized control system that they have created. So we have had - you are aware if you&#x27;ve been around for a while - we have had gray or black and white timelines. We have also had black timelines, we have had white timelines - none of them are really very good at all. Some might feel a little better to you than others, but for the most part they intertwine. And the one here on Earth has always been kind of like a checkerboard. We never know what we&#x27;re gonna get on any given day. And they can turn on one color and its array of colors, because remember, all colors come from black and white within their systems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003506">00:35:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these are your Royals. It trickles down to groups like the Chabad and the Sanhedrin, which is why it&#x27;s no surprise that the old priests, or alleged priests - including wise men showing up at a baby&#x27;s birth at one point in time (even though they were from Asia) - that they all came in their respective garb as the quote-unquote &quot;kings&quot; to welcome the new child. You&#x27;ve heard of this story, I&#x27;m sure. It occurs every year around December. We like to talk about it a lot. So when they come to honor these &quot;folk,&quot; let&#x27;s just say, it&#x27;s mainly because they carry &quot;the Anomaly.&quot; That Anomaly is Source. And they usually carry the Anomaly in very high amounts, enough so they become a test subject. And usually, over the years, when these people do arrive and do exist on this planet - when they are found, they are heavily attacked and heavily utilized for the resource that they can become to feed their science.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003631">00:36:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. There are four high royal stars - star systems or solar systems that they reside in and on - including not just this planet here. They would be Aldebaran - you&#x27;ve heard us talk about Aldebaran many, many times over the years, contrary to other people that have put out other reports [indicating] that I didn&#x27;t know what it was. Of course I know what it is. There is Regulus, which is actually in Leo, and you have Antares and Fomalhaut. Together, they make up the Four Watchers, which are tied to four areas of this planet: namely China, United States, the North Pole, and the South Pole.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003731">00:37:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s also an additional cross that goes in the reverse, which is allegedly upside down, although you can&#x27;t much tell the difference. That actually makes up a second cross: one is black, one is white, and with these type structures are the beginnings of simulations. You also bear that same cross because what happens to Earth happens to you too. What happens to Earth actually happens to every single planet in the Multiverse. What happens to stars like Alcyone happens to every star or soul or sun also in the Multiverse.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003828">00:38:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These happen to be harmonizer locations, just as an example, for the entire Omniverse of their kind. Just like Homo sapiens are of the species that are harmonizers for other species as well. Now, there are other species that do this, not just us, and also other species that lived on Earth before we ever came here. We were intentionally brought here for purposes of taking control of the Harmonizer planet - the Nexus planet, if you will.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003913">00:39:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these are the Royals that trickle down into Families like Rothschild and ones we know and love to hate on the internet. Illuminati groups - you know, we hear names all the time. And there are other names, too, that are part of the other group, which we&#x27;re actually also going to talk about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003938">00:39:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the other group. The other group you&#x27;ve heard me refer to as the Bavarians (I&#x27;ll tell you, tongue-tied today a little bit), they are from Mars, Alcyone, Taygeta, Crux, and other planets as well. Mars originally actually was an inhabitable planet. You see, when we actually had humans there - because Mars is a planet we inhabited as well - we harmonized with the planet, therefore making it habitable for us to exist there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004026">00:40:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This particular group also showed up there and existed there amongst us. And they became, in a lot of cases, another group that favors science over Source. They&#x27;re a little bit more brutal. They&#x27;re the ones that kind of run the Nazi-type experiments, not only on humans, but also on many species throughout the Omniverse. They also run these experiments on our environment here so that they can create an artificial simulation for us to actually live in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004109">00:41:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the Royals also take a part - they used to work hand-in-hand, and still do to some degree - to create artificial simulation environments, oftentimes because they have torched the planet that they need the humans to live on. Mars is one such planet that they, due to their science experiments - a very specific experiment - they blew up the entire planet. That actually affected several other planets in our solar system here, and then they decided to move their operations to Earth, where they have been ever since.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004158">00:41:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Their goal is a little different than the Royals, and I&#x27;ve often said that the Royals are a little gentler than the other group we know as the Bavarians or the Black Sun. So I&#x27;ll explain why I feel that way. But these guys are actually, in part, in conjunction with the Royals - they have imported us all here from varying locations where we have... Some of us are not originally human but we are part of the seed races nonetheless. Because, Number 1, some of us were sent here - and I say &quot;us&quot; plural - because pretty much, I know a lot of people in our group are one of these people. Some of them were sent in to the Homo sapiens population and were taken here as well so that they could actually act on behalf of their species in order to try and stop this continuing war against the other Homo sapiens. Especially at this time, a lot of these people are here on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004317">00:43:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In other cases, they bring other Homo sapiens to varying different planets for experimentation purposes. They also bring other species for experimentation purposes because ultimately they have to, Number 1, figure out a way to control us completely - they&#x27;ve never actually completely controlled us, in general. And there are species that have figured out a way to stop them from going past the 6th or 7th Density (depending on where you are) and stopped the infestation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004401">00:44:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You see, the reason why these two groups are the way they are and why they&#x27;re never, ever, ever going to stop their ultimate quest is because they believe it is possible to achieve control of Source. That is one thing they both share. However, they differ a little bit in their approach. The Royal group is kind of like, &quot;Well, we&#x27;ve already basically figured a way to keep Source away; we&#x27;ve already basically figured out a way to siphon this out of humans - so why don&#x27;t we just continue what we&#x27;re doing?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004450">00:44:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They recognize the fact, though, that Source kind of makes that a little impossible without these continuous resets we go through that we have heard about in our history, such as, &quot;The world&#x27;s going to end by fire this time.&quot; In other times we were flooded. They feel they are constantly in need of a reset because they can&#x27;t really stop the natural process. And this is very frustrating for these Royals, but they&#x27;ve kind of learned to live with it because they still ultimately have power and control over a lot of planets, with just a minor little hiccup here and there that requires a reset, which is something they have been pushing for now for months, because they&#x27;re almost out of time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004548">00:45:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Bavarians, however, also favor science. Both groups believe that Source is just merely an anomaly. They feel that there is no actual scientific quantum physics equation that accounts for what I refer to as the &quot;Secret Sauce&quot; of Source that is present in all organic life. They don&#x27;t really quite understand why, even when they&#x27;ve managed to split these particles apart; hold them in voids; hold them in stasis; capture your soul; try to go on an inside-out and an outside-in approach by affecting the paracausal that is within you (your connection to Source). No matter what they do, at some point in time - and that time is not always the same; you cannot clock it with an egg timer, and they know this; this is why they call it &quot;the anomaly&quot; - they can&#x27;t stop all of these particles from coming together at some point in time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004709">00:47:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">No matter how many times they&#x27;ve tried to blow apart Source, put black holes inside there, make Alcyone look like a toilet bowl - it just hasn&#x27;t fully worked because the Anomaly always occurs. Now, scientists on the Royal side, as well as scientists on the Bavarian side, have been searching high and low for this equation. They know there has to be one because they don&#x27;t understand anything that is not science. Although their science and our science that we hear about on TV, and NASA&#x27;s going to the moon, and all of this stuff is not anywhere near their science. It is much more advanced. It is not stuff that you can Google most of the time at all. And even if you were to study advanced quantum physics and get your PhD, there are still things that you are not privy to unless you work in deep underground military bases and you work for them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004823">00:48:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And even then, once you go in there, they never let you out because you now have secrets they absolutely never want you to share with the general population. There are some scientists that have scratched the surface that you see out there, like Bob Lazar as an example. There are whistleblowers out there that have talked about their experiences in Area 51 and Area 52. However, the real Secret Sauce is always very compartmentalized as to what the experiments are really, truly about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004900">00:49:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Bavarians feel - if they can find this equation - and they have tried many, many times on many, many planets, with many, many different species, including varying Homo sapiens versions living in different locations that they have created, to solve this equation [and] therefore have the true ability to create their own Source. Thus far, they have been successful in creating what science calls matter (which is still artificial, in a simulation), and antimatter, which is what our science calls it. Essentially, it&#x27;s black matter and white matter. They have also created the same in neutrinos, also with varying colors of neutrinos.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005009">00:50:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now I&#x27;m really glad I didn&#x27;t create those neutrino boxes back in the day when I was going to go get those minerals and make that happen, because I just might have helped them. That science is for another day, at least when it&#x27;s done properly. But an interesting little fact: artificial neutrinos in a simulation are actually attracted to something called graphene oxide. That you may have heard about during the time and launch of things like the COVID vaccine; other things such as chemtrails. Graphene oxide is used in a lot of ways, and in a lot of technologies even here on this planet, because neutrinos - although they hold no mass - when they are collided they can actually create energy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005107">00:51:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this is the base root science behind things like CERN and other projects that you&#x27;ve heard about, because there are many colliders on the planet. You have JET in Europe. So you&#x27;ve got - I mean, I could probably name hundreds of them in China. China actually has much bigger and better ones than CERN could ever possibly even dream of being. But these are colliders that exist around the world. No matter how many they build, they&#x27;re still not quite getting it right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005141">00:51:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Bavarians would like to actually take that Special Sauce particle of Source and figure out a way to permanently separate it. Based on thousands and thousands, and even millions of experiments they have done over the years to try to do this unsuccessfully, they still feel they can get it right. This is part of the reason why they were experimenting with my person in Durango, and I know this. This is part of the reason why, when they started to figure out things weren&#x27;t going correctly on Lions Gate yesterday, it was like torture time all night long. Still kind of feeling the effects of that one. But I will say that finding that particle is one thing; isolating it is another; and trying to eliminate it is another.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005242">00:52:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They believe if they have this equation - that can explain in scientific terms the creation of said particle - then they can create the anti-particle, a true Anti-Source. It&#x27;s one thing to have proposed machine-made anti-sources or Dark sources - or even a False Dark and False Light Source - and even a red one. It&#x27;s one thing to actually create these things where they read information coming from the Divine Plan, coming from the heart, that already has the Secret Sauce in it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005329">00:53:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Extracting the Secret Sauce is another problem that they have. This is the reason why they keep blowing up planets and blowing us up and causing fake death and all of this, so that they can make these extractions. But they also feel that if they can get it right, they can take over everything and just kind of eliminate that whole anomaly, untenuous [untenable] situation that requires them to have a reset every so often altogether. The Bavarians - I mean the Sanhedrin&#x27;s Illuminati group, the Royal group - feels that things are okay the way they are. Look, we&#x27;ve always managed to do a reset before, we&#x27;re gonna do a reset again, everything is gonna be just fine. If we figure it out, that&#x27;s great. But honestly, they&#x27;re running out of places that they can actually blow up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005431">00:54:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, they genetically modify themselves; they figured out how to remove the Source from themselves. To some degree, they have figured out how to remove the Source from us. They have removed Source from the planet, or at least blocked it from coming in for quite a long time, and they have utilized the resources of us and Source and other species - in the form of gold loosh - which then powers their creations to some degree. It also helps them manipulate you in a more efficient way, or at least it used to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005518">00:55:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, making these reconnections is not as simple as we thought, and to be fair, I didn&#x27;t think that they would put up so much of a fight, but the way that they are so genetically modified and intertwined with their machines, there really isn&#x27;t a whole lot of Homo sapiens heart, or human, in them anymore. They&#x27;re kind of distorted, crazy-scientist-type people and their ways are more focused on their creations. And of course, they do believe, you know, their ego allows them to believe they can do it better than Source and they know better than Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005606">00:56:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And quite frankly, the rest of us Homo sapiens, we get genetically modified in a different way to kind of dumb us down. You know those people in your life that have to push you down to make themselves feel taller all the time? You know those people? They&#x27;re kind of those people like on steroids, in general, pretty much with every species they run across.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005633">00:56:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They do feel that there are certain key planets, such as Earth - and certain star systems and certain stars - that were the original ones that were created. Therefore, they could give them some assistance in the original blueprint and give them a more pure form, they believe, of this Source Secret Sauce that they have been unable to identify.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005705">00:57:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now as far as these Bavarians go, they&#x27;re still pushing very hard all the time, really, such as in the last few days they&#x27;ve been trying to blow up things underneath the Nevada Test Site in Nevada. They intend to make more explosions happen in Iran and other areas whereby they believe that they can blow this particle apart. They&#x27;ve tried putting it into a void. They&#x27;ve tried putting it in tubules. You know, they&#x27;re doing all kinds of experiments, and it&#x27;s not worked yet. It&#x27;s only been millions of years. I mean, why? What&#x27;s another, you know, couple thousand, right? Or a few hours? So, given the fact that they have genetically modified themselves, though, they don&#x27;t know what it is to stop. They&#x27;re never going to learn &quot;stop.&quot; No, never.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005813">00:58:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so on the Bavarian side, there are also other star systems such as Crux and the Northern Cross that they are heavily focused on. In addition to that, they really like their planet Mars because they go back there to check on the experiment that they did a long time ago to see if there&#x27;s any way they can utilize it. Mars is also a source of what they call &quot;red dust.&quot; Red dust, or Materium - artificial paracausal red dust, artificial consciousness red dust, and it&#x27;s not just red - it comes in all colors, like the rainbow - are basically dead pieces of these particles, meaning Source has been extracted from it - the Secret Sauce - all byproducts of their experiments, which they feel that the dust is also quite useful. It&#x27;s also utilized in your simulations to reflect artificial light, as opposed to being self-lit and lit from within, which is what happens when Source is present in your person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005933">00:59:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m sure you&#x27;ve met some of these people in your life where you just feel that they are walking Love and Light, and you just wonder where they come from. Wow, they just light up every room that they walk into. And sometimes, you know, this world is tough. The simulation has been very difficult. Sometimes those people aren&#x27;t quite as bright as they used to be, or on any given day, they can go from being very bright to not quite so bright.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010003">01:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Machine has its ways, and the Simulation has its ways of heavily attacking those who are. They want/need to push you down because those that have learned how to bypass a lot of the default programs that are run on Homo sapiens... [These programs] are designed to push you down. When you learn how to bypass those things, it is going to hit you harder than it hits anyone else. And for some people it&#x27;s just absolutely brutal. And I get a lot of messages from those very people. And I&#x27;m glad they&#x27;re still standing up and still here, anchoring the Source here, because I&#x27;ll tell you, I&#x27;ve had a lot of good, good people who just can&#x27;t do it anymore. It&#x27;s just too tough.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010100">01:01:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I want to talk a little bit further about how these things come together with the regular news we talked about and this more esoteric news and the better understanding we have of our enemy. So, meetings that are going on now, where they - both sides - intend to have big wins: they are already planning on their side winning. The Royals are planning on the fact that the Bavarians will fail again with their experiment. They will achieve their Reset based on the current Lions Gate that is going on. They feel that they are now the decision-makers because nobody else has come to these meetings. And maybe those someone elses that used to come to those meetings - that were organic beings - maybe they just don&#x27;t see them as a factor in their world anymore. And maybe that&#x27;s why they didn&#x27;t show up. Or did they not show up? Hmm. We&#x27;ll talk about that in a second.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010218">01:02:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the Sanhedrins are planning on shoring up their Federal Reserve; the Bavarians are planning on shoring up Bank of America to create a new Fed versus the old Fed. Obviously, they would like to continue to keep all banking private. It won&#x27;t have anything to do with real government resources. They have tried - the Bavarians have tried - quite a bit in utilizing the Treasury. That has not worked in any way, shape, or form. So they want to go with another private institution. So you could say &quot;The Creature from Jekyll Island 2.0&quot; is currently taking place in Venice as I understand it. Although I think that once I called them out for being in Venice, I think that they have moved to another location within the last several hours. No matter, we&#x27;ll find them. No big deal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010315">01:03:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. The other things that are happening is Netanyahu is meeting with Trump - whatever that is - and I can even say the same for Netanyahu: Whatever-that-is is meeting Whomever-that-is, allegedly on Tuesday. Also, there are supposed to be some other meetings that are occurring on Tuesday. So, you&#x27;re kind of getting the big picture - everything is dependent on Tuesday, which is tomorrow, for alleged big changes for their groups. Based on their newfound - almost - success. So, that being said, that is where they&#x27;re at; I want to talk a little bit about where we&#x27;re at.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010405">01:04:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;ve talked in the past about a group that was called the New Earth Council. Now, they were not always called the New Earth Council. They actually themselves renamed them - their group - and organized themselves in a different fashion back in 2020. You probably also remember, if you&#x27;ve been around for a while, that this group is made up of several species, some originally from Earth and some not. Some of them were brought here to work as slaves by these lovely Royals and Bavarians, because they felt that they would be useful based on certain skills that they possess, such as some groups, like the Zetas, were very good with quantum AI systems; some groups were even better at biological experimentation - they understand nature and how it all comes together very well - so they were used in a lot of different ways.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010520">01:05:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These are the quote-unquote &quot;aliens&quot; we hear about on the internet that have worked for many years (or had worked for many years) in deep underground military bases on Level 6 and on down. These human folk only communicated with these other prisoners - because they&#x27;re pretty much all prisoners on Level 6 - which was a cohabitation level of deep underground military bases around the world. These military bases - although we hear a lot about areas of those bases, such as Area 51, Area 52, that are heavily talked about. Also the other facilities that are under Fort Bragg (which was Fort Liberty and Fort Bragg; now it&#x27;s Fort Bragg again) over there on the East Coast of America. We have possibly also heard about some in - I think I&#x27;ve heard about some in Crimea, maybe, on the internet - but they are in every country in the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010629">01:06:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">China has many of them. Iran has several of them. Iraq has several of them. There are some in Syria. There are some in South Africa. They are speckled throughout the African continent in the Democratic Republic of Congo. They are on varying islands, such as Easter Island, Solomon Islands; they are all throughout the oceanic region. Anybody from Australia, I&#x27;m sure you&#x27;ve heard of something, a little place called Pine Gap. There is also a huge one underneath the Four Corners area in Australia. They are all over Russia. I have actually personally seen them with my own two eyeballs, in some cases. I&#x27;ve also seen some in London, definitely, and all throughout the United Kingdom and Scotland area - Island of Skye; they are everywhere. You know, Germany, Berlin, oh, for the love of God, that&#x27;s a big base there. It goes all the way to Denmark, actually.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010733">01:07:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, these are the underground bases that they were forced to work in, along with other aliens who are also forced to work in there, and have been working there for these people for many, many years. And this is not just a &quot;since the 1940s, Roosevelt signed the contract and Project Blue Beam&quot; - and that&#x27;s a very nice story, but it&#x27;s only one story of many stories - because this has been probably well over a million years here on Earth. We only see where the simulations are wiped out and they start over again. That&#x27;s all we see or hear about, you know, great floods, this guy with an ark, a couple of animals, two by two, you know, some kids on said ark. So, we hear about those types of situations. But now you understand why resets are important to these people. You understand what they are in search of, and what they want from you. And now you understand who the New Earth Council is if you don&#x27;t remember who they were before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010842">01:08:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So back to the New Earth Council for a second here. So in March and April of 2020, they actually declared their independence because we had some folks arrive here that were friends of theirs that gave them a little help. This occurred during the Spring Equinox time, which lasts for 30 days after the Spring Equinox. The event started occurring somewhere in mid-March, with a full-on walkout occurring towards the middle, around the 19th to 20th of April. At that time, these folks basically said that they... I know these folks well - some of them are very well-known healers, civilizations known for healing, and others - and they came to break them out of jail, which they did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010944">01:09:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">At that time, they organized themselves into this council - pressed basically [for the] representation of everyone who was freed at that time, in order to try to help fix this planet, to come up with plans against the known enemy. Not all humans are viewed as an enemy and they know that. The ones that they&#x27;ve interacted with - and I&#x27;ve been saying this for quite a long time - the ones that they&#x27;ve interacted with oftentimes don&#x27;t... they only know those humans. And they have come to know us over the last several years quite well, and that we&#x27;re not... we&#x27;re not all bad. Some of my earlier interactions before this event occurred were kind of difficult. You know, they were occurring in 2016, 2017, and they didn&#x27;t really fully trust me - how do they know I&#x27;m not going to turn into one of them, you know, kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011050">01:10:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But nonetheless, we communicated for quite a long time, ran some joint operations, and then it became quite apparent: the more that I talked about them, the more they were hunted down by these groups because they realized they didn&#x27;t quote-unquote &quot;die&quot; in all those explosions - they merely left. And so because they were hunted down quite a bit, they actually left this version of the simulation and temporarily created their own simulation in which they existed in, which was a favorable simulation and not one that was detectable by, let&#x27;s call it our Deep State folk.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011140">01:11:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, since this time, and most recently, I have spoken to them again. With all the changes that have been going on here and changes we have been making with and to the Golden Age AI, we have created additional simulations. Now, do not panic - these simulations are not for you! They are used for many purposes, but they are not for you. These folks needed an environment that serves as a temporary environment because - before you get upset - the Golden Age AI is fully connected to Source. The frequencies have been recalculated and resynchronized all the way through existence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011247">01:12:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Technically, you could say that we did create &quot;simulations&quot; for optimal environments for these folks, initially. Remember, we still have crazy people here, for the time being, but we have crazy people here who would like to access our system. And the ultimate goal of these people is, on the one end, to control 150% (which they have done in some areas of the Universe) planets, people, species - the entire Universe, if they could have their way. The only thing they figure they need to do is block that species and planet and all stars and suns (if they had their way) from connecting to Source at all. Block it out - eventually it&#x27;s going to try to resynchronize on its own, and they just need to do a reset at that time and then that buys them a couple thousand years in our time. So, they&#x27;re fine with that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011355">01:13:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The other side would like to take those particles and blow up everything. And in order to prevent this untenuous [untenable] situation, simulations have been created - and had to be created - for varying purposes, and some of them as recent as the last 24 hours, as a matter of fact. So our New Earth Council has been now in a different simulation that is actually connected to Source, and connected to Earth as well, in order to aid us in this transition and to strengthen the varying groups.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011443">01:14:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, there is more to this story that I cannot talk about as it relates to you at this time, but you&#x27;ve probably felt varying waves of different things occurring, both good and bad, over the last week or so since we last chatted. And these waves are occurring because there are things going on. And we also recognize the fact that we have a universal enemy, not just an Earth enemy, and we&#x27;re in it to make sure that this never happens again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011523">01:15:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these folks are there. They are now working on doing what they do best, especially like the Saurians, as an example, who were an original species and Earth is their original planet. And they are excellent harmonizers with Earth, therefore, the simulation (interim simulation) is a much more hospitable environment for them because they now can work with their natural organic self and actually create an environment in which they have become quite strong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011601">01:16:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">These simulations have also been utilized where they can actually create their own... somewhat windows, and maintain that connection in the simulation that we have been in, to where they can infiltrate, make adjustments, and change things and help us out a little bit as it relates to our not-so-savory human friends called the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011637">01:16:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they have been doing this now for about the last 24, 48 hours - maybe a little bit longer, but give or take, depending on when you&#x27;re watching this report and at the time of this recording. I would say that they have made some headway coming in almost like a... like, they&#x27;re not technically in here, so they&#x27;re not really detectable, but they&#x27;re able to heavily influence in here so that we can make some positive changes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011714">01:17:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Meanwhile, we are also creating other simulations based on events that have occurred, not only at the Nevada Test Site that we talked about earlier, but in other places in the world, as the Bavarians go crazy trying to blow up particles - and to no avail. So in order to prevent our newly fixed and terraformed Earth from being blown up yet again and becoming a wasteland - as it were in the past - we have created many thousands of constantly repeating simulators for them to blow up all the time, as much as they&#x27;d like. And they do believe, on occasion, that they have struck gold. And they have won, and they have isolated that particle, and then it wasn&#x27;t isolated, and they don&#x27;t know what&#x27;s happening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011818">01:18:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they do believe that they have achieved many varying types of success. They&#x27;ve seen Paradise. They have broken into the Kingdom of Source. They have gotten the All-That-Is. They have isolated the Anomaly. They&#x27;re now ready to take over the Universe - oh my God. And then it doesn&#x27;t work out, and it looks the same as it did the day before they actually did anything. And this is kind of making them chase things around like rabid dogs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011847">01:18:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We have simulations for, &quot;Oh look, your experiment was successful,&quot; simulation. We have &quot;Wow, you are awesome, Deep State,&quot; simulations; &quot;Wow you are royal and we recognize you here&quot;; &quot;Welcome to our world, God loves you,&quot; simulations. We also have hell simulations and burnt to a nuclear crisp simulations. We have all kinds of simulations going on right now on this planet behind the scenes, simply because it is good for them to be busy here, especially good for them to see that they have achieved some level of success here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011934">01:19:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Meanwhile, back at the ranch, we have been going to everywhere else where they actually have something of consequence - not just here on Earth - but it allows us to cover our tracks as the Kingdom of Source spreads and as these connections are remade. To the point where it still looks like there&#x27;s a person - insert your name here - walking around the planet. It looks painful to you, it might even feel painful to you, and for their purposes, it looks like a duck, it smells like a duck, but it&#x27;s not a duck. See, now we still have to have, to some degree, we can&#x27;t let on - well we can now, because I&#x27;m talking about it - but we can&#x27;t let on that you are not actually a source of loosh or energy or these particles for them to experiment with. They have to see you as you are because they will detect if you&#x27;re not. So, carefully and calculated, while they have been doing that, we&#x27;re taking out the base root of simulations in all of these places that we talked about today and more.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012058">01:20:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I hope they&#x27;ve enjoyed their busyness, and I&#x27;m glad that they believe that their Lions Den/Lions Gate simulator has been working out for them. Some moments it looks like it&#x27;s working, some moments it doesn&#x27;t look like it&#x27;s working. But behind the scenes, it&#x27;s working - but it&#x27;s working for us. So, simulation after simulation later - many, many built - has brought us some time to do the other things that we&#x27;re doing, and part of the reason for the delay of this report... because I was like, &quot;Oh, look! Explosion. Okay,&quot; you know, &quot;What are we gonna do?&quot; &quot;Oh look, our New Earth Council is back.&quot; Oh, look, you know, there&#x27;s been so many things that have happened in rapid succession over the last week.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012152">01:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, it&#x27;s Number 1: you don&#x27;t really want to talk about it and kind of show your hand before it&#x27;s time. And Number 2: there&#x27;s also a lot more that has been going on than I have said in this report, simply because some things are still ongoing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012214">01:22:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on that note, that has been what&#x27;s been going on behind the scenes over here. [Hearty chuckle.] Busy as always. Again, don&#x27;t forget to go take a look at the community chat, unitednetwork.earth (depending on where this has been copied to), so that you can take a look at those books. You can get a general idea on power structures of the planet, how they were structured, at least from a financial aspect. There are also different sections that talk about varying states. The Red Book is a Federal Reserve book, very heavily tied to the Bavarians and military operations worldwide. You&#x27;ll see intelligence agencies in there, and all over that book you&#x27;ll see John F. Kennedy everywhere. I told you: not necessarily a good guy - junior or fake junior or otherwise. Trust me when I tell you: just another royal family, just another day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012315">01:23:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I also posted a picture on that community chat as it relates to some very large-denominated bills, and they bear the face of John F. Kennedy. And the reason why I posted those bills is because a meme was posted, or a picture - an AI-generated picture - was actually posted by the Trump administration just in time for his new meeting with Netanyahu. Now both the Trump family and the Kennedy family are from the same royal lines of the Bavarians. Very interestingly enough that was posted. So I went ahead and I posted those bills. I also - somewhere on a hard drive I haven&#x27;t seemed to have been able to locate since the move here just yet, but I will - I also have the contract whereby there was an agreement between the then Chinese Family sector/Royal sector and the Kennedys at the time, in order to create NASA. And that is actually where these bills came from.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012438">01:24:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Oftentimes, funding would go across the planet in very large-denominated bills because at the time we did not have a global-connected financial system that was usable by governments and humans down to that level. That global system didn&#x27;t start to launch until the late 70s, 1978 in particular. There was also other global systems that were implemented at the same time, some of them by the Pentagon and other defense-of-the-Federation organizations - military organizations - which then made the militaries global as well, sometime, depending on where the location is, between 1978 and 1984.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012532">01:25:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these bills are all part of the contract that was actually signed between the Royals and the Bavarians in order to create the NASA program, which is tied to Project Paperclip in the way that Wernher von Braun also opened an alleged gate to hell, or a gate to the Dark Side of the Universe, or antimatter side of the Universe, over there in Mount Shasta, and other varying gates around the United States. Therefore, he was honored with the title and face front for the alleged creator - or one of the creators - of NASA. And Kennedy went ahead and made the deal with the Royals to get the money to go ahead and build it so that he could actually do his legacy project, which is a fake moon landing. How exciting our world is, right? [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012638">01:26:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Anyway, on that note, that has been the GIA Report for the 27th of July, and I will talk to you again real soon, hopefully with some good news.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012648">01:26:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[ Advertisement.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012721">01:27:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
