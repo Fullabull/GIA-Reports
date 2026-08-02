@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Architecture of Connection: Stacy's Blueprint</title>
+
+<style>
+:root{
+    --bg:#fafafa;
+    --text:#333;
+    --heading:#2c3e50;
+    --accent:#4a90e2;
+    --card:#ffffff;
+    --border:#ddd;
+    --row-even:#f5f8fc;
+    --summary-bg:#f5f8fc;
+    --summary-hover:#eef4fb;
+    --note-bg:#eef7ff;
+    --subtitle:#666;
+    --th-bg:#4a90e2;
+    --th-text:#ffffff;
+    --btn-bg:#4a90e2;
+    --btn-bg-hover:#3a7bc8;
+    --btn-text:#ffffff;
+    --img-filter:none;
+}
+
+html[data-theme="dark"]{
+    --bg:#15181d;
+    --text:#c8cdd5;
+    --heading:#e2e7ef;
+    --accent:#6ea3e4;
+    --card:#1d2127;
+    --border:#343b45;
+    --row-even:#21262d;
+    --summary-bg:#21262d;
+    --summary-hover:#272d36;
+    --note-bg:#1b2533;
+    --subtitle:#98a1ad;
+    --th-bg:#2c4a70;
+    --th-text:#e8eef5;
+    --btn-bg:#2c4a70;
+    --btn-bg-hover:#3a5d89;
+    --btn-text:#e8eef5;
+    --img-filter:brightness(.82);
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:17px;
+    line-height:1.7;
+    max-width:900px;
+    margin:30px auto;
+    padding:0 18px;
+    color:var(--text);
+    background:var(--bg);
+    transition:background-color .25s ease,color .25s ease;
+}
+
+h1{
+    color:var(--heading);
+    border-bottom:3px solid var(--accent);
+    padding-bottom:10px;
+    margin-top:0;
+}
+
+h2{
+    margin-top:45px;
+    margin-bottom:15px;
+    color:var(--heading);
+}
+
+h3{
+    color:var(--heading);
+}
+
+.table-container{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:600px;
+    border-collapse:collapse;
+    margin:20px 0;
+    background:var(--card);
+}
+
+th{
+    background:var(--th-bg);
+    color:var(--th-text);
+    padding:10px;
+    text-align:left;
+}
+
+td{
+    border:1px solid var(--border);
+    padding:10px;
+    vertical-align:top;
+}
+
+tr:nth-child(even){
+    background:var(--row-even);
+}
+
+.note{
+    background:var(--note-bg);
+    border-left:5px solid var(--accent);
+    border-radius:6px;
+    padding:15px;
+    margin:25px 0;
+}
+
+img{
+    filter:var(--img-filter);
+    transition:filter .25s ease;
+}
+
+@media (max-width:600px){
+    body{
+        font-size:17px;
+        padding:0 12px;
+        margin:15px auto;
+    }
+
+    h1{
+        font-size:1.8em;
+    }
+
+    h2{
+        font-size:1.35em;
+    }
+
+    td,
+    th{
+        padding:8px;
+    }
+}
+
+.subtitle{
+    color:var(--subtitle);
+    font-style:italic;
+    margin-top:-5px;
+    margin-bottom:25px;
+}
+
+.controls{
+    position:sticky;
+    top:0;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:20px 0;
+    padding:10px 0;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    transition:background-color .25s ease;
+}
+
+.controls .spacer{
+    flex:1 1 auto;
+}
+
+.controls button{
+    background:var(--btn-bg);
+    color:var(--btn-text);
+    border:none;
+    border-radius:6px;
+    padding:8px 16px;
+    margin:0;
+    font-size:15px;
+    cursor:pointer;
+}
+
+.controls button:hover{
+    background:var(--btn-bg-hover);
+}
+
+details.section{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    margin:14px 0;
+    overflow:hidden;
+}
+
+details.section summary{
+    list-style:none;
+    cursor:pointer;
+    padding:14px 18px;
+    font-size:1.35em;
+    font-weight:bold;
+    color:var(--heading);
+    background:var(--summary-bg);
+    position:relative;
+    user-select:none;
+}
+
+details.section summary::-webkit-details-marker{
+    display:none;
+}
+
+details.section summary::after{
+    content:"+";
+    position:absolute;
+    right:18px;
+    color:var(--accent);
+    font-weight:bold;
+}
+
+details.section[open] summary::after{
+    content:"\2212";
+}
+
+details.section summary:hover{
+    background:var(--summary-hover);
+}
+
+details.section[open] summary{
+    border-bottom:2px solid var(--accent);
+}
+
+details.section .section-body{
+    padding:5px 18px 18px 18px;
+}
+
+@media (max-width:600px){
+    details.section summary{
+        font-size:1.15em;
+        padding:12px 14px;
+    }
+    .controls button{
+        padding:7px 12px;
+        font-size:13px;
+    }
+}
+</style>
+
+<script>
+(function(){
+    var t = null;
+    try { t = localStorage.getItem("aoc-theme"); } catch (e) {}
+    if (t !== "dark" && t !== "light") {
+        t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+})();
+
+function aocToggleTheme(){
+    var root = document.documentElement;
+    var next = (root.getAttribute("data-theme") === "dark") ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("aoc-theme", next); } catch (e) {}
+    aocSetThemeLabel();
+}
+
+function aocSetThemeLabel(){
+    var b = document.getElementById("themeBtn");
+    if (!b) { return; }
+    var dark = (document.documentElement.getAttribute("data-theme") === "dark");
+    b.textContent = dark ? "Lights On" : "Lights Off";
+}
+
+document.addEventListener("DOMContentLoaded", aocSetThemeLabel);
+</script>
+
+</head>
+
+<body>
+
+<h1>The Architecture of Connection</h1>
+<p class="subtitle">A guide to astrology, told through the blueprint of Stacy (Jumper).</p>
+
+<p>
+An astrology chart is simply a snapshot of the sky at the exact moment you were born.
+Each planet represents a different part of your personality, while the zodiac signs
+describe <strong>how</strong> that energy is expressed.
+</p>
+
+<div class="note">
+<b>Before anything else: the work we do here requires just date, time, and place of birth. Period.</b><br><br>
+
+Nothing on this page &mdash; and nothing in this approach &mdash; involves fortune-telling, spirit contact, card-reading, or any practice that seeks information from beyond the natural world. If that is what you were bracing for, you can unbrace.<br><br>
+
+What you will find instead is <b>structural reading</b>. A birth chart is treated here the way an engineer treats a blueprint: as a description of design &mdash; geometry, timing, and architecture that were present at the start, not messages arriving from anywhere. The chart does not <i>tell</i> us anything; it <i>shows</i> what was already built.<br><br>
+
+Every planetary position comes from an <b>ephemeris</b> &mdash; tables of where the planets actually were, computed from orbital mechanics. The sky supplies the data; we only read the geometry.<br><br>
+
+No prediction. No contact. No asking. We just read the blueprint, and our goal is simply to help people understand themselves better.
+</div>
+
+<div class="note">
+<b>A note on names</b><br>
+
+This standalone architectural analysis focuses on <b>Stacy</b> &mdash; known colloquially as <b>Jumper</b>. The moniker stems from a spirit of adventure, leaping into new experiences, and meeting life at full momentum. As you will see in her blueprint below, that high-energy, leap-first signature is written directly into her geometric structure.
+</div>
+
+<div class="controls">
+<button onclick="document.querySelectorAll('details.section').forEach(d => d.open = true)">Expand All</button>
+<button onclick="document.querySelectorAll('details.section').forEach(d => d.open = false)">Collapse All</button>
+<span class="spacer"></span>
+<button id="themeBtn" onclick="aocToggleTheme()" aria-label="Toggle dark mode">Lights Off</button>
+</div>
+
+<details class="section">
+<summary>The Planets</summary>
+<div class="section-body">
+
+<div class="note">
+<b>The Big Three</b><br><br>
+<b>Sun</b> - Your core identity, purpose, and life path.<br>
+<b>Moon</b> - Your emotions, instincts, and inner self.<br>
+<b>Ascendant (Rising Sign)</b> - How you naturally approach life and how others first perceive you.
+</div>
+
+<div class="table-container">
+<table>
+<tr>
+<th>Planet</th>
+<th>Represents</th>
+</tr>
+<tr>
+<td><b>Sun</b></td>
+<td>Your identity, vitality, purpose, and the person you are becoming.</td>
+</tr>
+<tr>
+<td><b>Moon</b></td>
+<td>Your emotions, needs, habits, intuition, and inner world.</td>
+</tr>
+<tr>
+<td><b>Mercury</b></td>
+<td>Thinking, learning, communication, and decision making.</td>
+</tr>
+<tr>
+<td><b>Venus</b></td>
+<td>Love, relationships, beauty, pleasure, and personal values.</td>
+</tr>
+<tr>
+<td><b>Mars</b></td>
+<td>Energy, ambition, courage, action, and how you pursue goals.</td>
+</tr>
+<tr>
+<td><b>Jupiter</b></td>
+<td>Growth, opportunity, wisdom, optimism, and expansion.</td>
+</tr>
+<tr>
+<td><b>Saturn</b></td>
+<td>Responsibility, discipline, patience, structure, and life lessons.</td>
+</tr>
+<tr>
+<td><b>Uranus</b></td>
+<td>Innovation, freedom, originality, and unexpected change.</td>
+</tr>
+<tr>
+<td><b>Neptune</b></td>
+<td>Dreams, spirituality, imagination, compassion, and inspiration.</td>
+</tr>
+<tr>
+<td><b>Pluto</b></td>
+<td>Transformation, personal growth, endings, and new beginnings.</td>
+</tr>
+</table>
+</div>
+
+</div>
+</details>
+
+<details class="section">
+<summary>The Ascendant (Rising Sign)</summary>
+<div class="section-body">
+
+<p>
+In addition to the planets, the <b>Ascendant</b> (also called the <b>Rising Sign</b>) is one of the "Big Three" pillars of your birth chart, alongside your Sun and Moon.
+</p>
+
+<h3>The Mechanics</h3>
+<p>
+It is the exact zodiac sign that was rising on the eastern horizon at the moment of your birth. Because the Earth rotates once every 24 hours, this sign changes approximately every two hours—which is why having an accurate birth time is so critical.
+</p>
+
+<h3>What It Represents</h3>
+<p>
+Think of the Ascendant as your personality's <b>User Interface</b>. It acts as the dashboard through which the world interacts with you, and how you interact with the world. It rules:
+</p>
+<ul>
+  <li>Your automatic, instinctual approach to new environments.</li>
+  <li>The first impression you make on others.</li>
+  <li>The "front door" of your chart that filters how you take in life.</li>
+</ul>
+
+</div>
+</details>
+
+<details class="section">
+<summary>The Zodiac Signs</summary>
+<div class="section-body">
+
+<div class="table-container">
+<table>
+<tr>
+<th>Sign</th>
+<th>Keywords</th>
+</tr>
+<tr>
+<td><b>Aries</b></td>
+<td>Bold, energetic, courageous, pioneering.</td>
+</tr>
+<tr>
+<td><b>Taurus</b></td>
+<td>Steady, dependable, practical, patient.</td>
+</tr>
+<tr>
+<td><b>Gemini</b></td>
+<td>Curious, adaptable, social, communicative.</td>
+</tr>
+<tr>
+<td><b>Cancer</b></td>
+<td>Caring, protective, emotional, nurturing.</td>
+</tr>
+<tr>
+<td><b>Leo</b></td>
+<td>Confident, generous, creative, expressive.</td>
+</tr>
+<tr>
+<td><b>Virgo</b></td>
+<td>Thoughtful, analytical, organized, helpful.</td>
+</tr>
+<tr>
+<td><b>Libra</b></td>
+<td>Balanced, diplomatic, cooperative, harmony-seeking.</td>
+</tr>
+<tr>
+<td><b>Scorpio</b></td>
+<td>Intense, determined, perceptive, transformative.</td>
+</tr>
+<tr>
+<td><b>Sagittarius</b></td>
+<td>Adventurous, optimistic, philosophical, freedom-loving.</td>
+</tr>
+<tr>
+<td><b>Capricorn</b></td>
+<td>Responsible, ambitious, disciplined, dependable.</td>
+</tr>
+<tr>
+<td><b>Aquarius</b></td>
+<td>Independent, innovative, humanitarian, unconventional.</td>
+</tr>
+<tr>
+<td><b>Pisces</b></td>
+<td>Compassionate, imaginative, intuitive, sensitive.</td>
+</tr>
+</table>
+</div>
+
+</div>
+</details>
+
+<details class="section">
+<summary>The Four Elements</summary>
+<div class="section-body">
+
+<p>
+Each zodiac sign belongs to one of the four classical elements. The elements describe
+the basic style or temperament through which a sign expresses itself.
+</p>
+
+<div class="table-container">
+<table>
+<tr>
+<th>Element</th>
+<th>Signs</th>
+<th>General Qualities</th>
+</tr>
+<tr>
+<td><b>Fire</b></td>
+<td>Aries, Leo, Sagittarius</td>
+<td>Energetic, confident, enthusiastic, action-oriented.</td>
+</tr>
+<tr>
+<td><b>Earth</b></td>
+<td>Taurus, Virgo, Capricorn</td>
+<td>Practical, dependable, grounded, patient.</td>
+</tr>
+<tr>
+<td><b>Air</b></td>
+<td>Gemini, Libra, Aquarius</td>
+<td>Intellectual, curious, social, communicative.</td>
+</tr>
+<tr>
+<td><b>Water</b></td>
+<td>Cancer, Scorpio, Pisces</td>
+<td>Emotional, intuitive, compassionate, deeply feeling.</td>
+</tr>
+</table>
+</div>
+
+<div class="note">
+<b>A simple way to remember the elements:</b><br><br>
+<b>Fire</b> inspires.<br>
+<b>Earth</b> builds.<br>
+<b>Air</b> thinks.<br>
+<b>Water</b> feels.
+</div>
+
+</div>
+</details>
+
+<details class="section">
+<summary>The Houses</summary>
+<div class="section-body">
+
+<p>
+If the planets are <i>what</i> is happening and the signs describe <i>how</i> it happens, the houses answer the third question: <i>where</i> in your life does it play out? The zodiac wheel is divided into twelve houses, each governing a specific domain of lived experience.
+</p>
+
+<p>
+Houses are determined by your birth time and location. The Ascendant always marks the beginning of the 1st House, and houses are numbered <b>counterclockwise</b> starting from that point on the left edge.
+</p>
+
+<div class="table-container">
+<table>
+<tr>
+<th>House</th>
+<th>Domain</th>
+<th>Stacy's Chart Dynamics</th>
+</tr>
+<tr>
+<td><b>1st</b></td>
+<td><b>Self &amp; Identity.</b> Physical presence, first impressions, and your instinctual User Interface.</td>
+<td>Governs her outward presence and instinctual approach to fresh encounters.</td>
+</tr>
+<tr>
+<td><b>2nd</b></td>
+<td><b>Resources &amp; Values.</b> Personal finances, assets, self-worth, and core values.</td>
+<td>Where tangible talents and personal values are grounded and built.</td>
+</tr>
+<tr>
+<td><b>3rd</b></td>
+<td><b>Communication &amp; Mind.</b> Local travel, immediate environment, learning, and conversation.</td>
+<td>Governs fast-paced exchanges, spontaneous connections, and immediate mental agility.</td>
+</tr>
+<tr>
+<td><b>4th</b></td>
+<td><b>Roots &amp; Sanctuary.</b> Family foundations, childhood memory, and private emotional base.</td>
+<td>The internal anchor and psychological retreat away from the public eye.</td>
+</tr>
+<tr>
+<td><b>5th</b></td>
+<td><b>Creativity &amp; Passion.</b> Romance, play, high adventure, risk-taking, and spontaneous joy.</td>
+<td>The core domain fueling the "Jumper" spirit—where leap-first courage and bold play live.</td>
+</tr>
+<tr>
+<td><b>6th</b></td>
+<td><b>Daily Practice &amp; Craft.</b> Routines, health, discipline, and daily service.</td>
+<td>The operational engine that turns raw talent into repeatable daily mastery.</td>
+</tr>
+<tr>
+<td><b>7th</b></td>
+<td><b>One-on-One Bonds.</b> Deep partnerships, direct mirrors, and close contracts.</td>
+<td>Rules dynamic direct relationships and shared, high-trust connections.</td>
+</tr>
+<tr>
+<td><b>8th</b></td>
+<td><b>Transformation &amp; Depth.</b> Shared resources, deep trust, intense shared experiences, and psychological resets.</td>
+<td>Where deep personal upgrades occur through intense or unconventional life events.</td>
+</tr>
+<tr>
+<td><b>9th</b></td>
+<td><b>The Open Horizon.</b> Foreign travel, grand philosophy, expanding boundaries, and higher wisdom.</td>
+<td>Drives the urge to explore distant points, cross physical or cultural borders, and seek broader perspectives.</td>
+</tr>
+<tr>
+<td><b>10th</b></td>
+<td><b>Public Legacy.</b> Career, reputation, and public accomplishments visible to the wider world.</td>
+<td>The visible footprint left through specialized skills and public effort.</td>
+</tr>
+<tr>
+<td><b>11th</b></td>
+<td><b>Community &amp; Networks.</b> Friendship circles, shared visions, and collective endeavors.</td>
+<td>Where unexpected encounters turn into lasting travel friendships and broader social webs.</td>
+</tr>
+<tr>
+<td><b>12th</b></td>
+<td><b>The Subconscious Realm.</b> Private processing, quiet reflection, hidden instincts, and spiritual depth.</td>
+<td>The quiet background processing center running beneath the active surface layer.</td>
+</tr>
+</table>
+</div>
+
+<div class="note">
+<b>A simple way to remember the houses:</b><br><br>
+The first six houses (1–6) govern your <b>personal world</b> — self, values, local space, home, passion, and daily work.<br><br>
+The upper six houses (7–12) govern your <b>collective world</b> — relationships, depth, horizons, career, community, and the subconscious.
+</div>
+
+</div>
+</details>
+
+<details class="section">
+<summary>Stacy's Chart Analysis</summary>
+<div class="section-body">
+
+<p>
+Here is the structural blueprint of Stacy's chart. Once her birth coordinates are plotted on the wheel below, her precise planetary positions and geometric aspects map out an adventurous, high-adaptability system.
+</p>
+
+<p style="text-align:center;">
+<img src="./stacy_birth_chart.png"
+     alt="Stacy's natal astrology chart"
+     style="max-width:100%; height:auto; border:1px solid var(--border); border-radius:8px;">
+</p>
+
+<div class="note">
+<b>Core Blueprint Characteristics</b><br><br>
+Stacy's chart is defined by swift adaptation, bold initiative, and an appetite for new horizons. Where some blueprints prioritize high-containment security, hers prioritizes momentum, exploration, and direct experiential learning.
+</div>
+
+<h3>Key Architectural Drivers</h3>
+<ul>
+<li>
+  <b>The Horizon Drive (9th &amp; 5th House Axis)</b> - 
+  Her placements emphasize movement and discovery. Whether jumping out of planes or exploring new places, her system seeks expansion through experience rather than static reading.
+</li>
+<li>
+  <b>The Rapid Integrator</b> - 
+  Her air and fire placements allow her to assimilate into brand-new environments with minimal friction, making spontaneous connections look completely effortless.
+</li>
+<li>
+  <b>The Grounded Core</b> - 
+  Balancing her high-momentum exterior is a practical inner engine that ensures her leaps are backed by quick instincts and rapid situational awareness.
+</li>
+</ul>
+
+</div>
+</details>
+
+<details class="section">
+<summary>Summary: What Stands Out</summary>
+<div class="section-body">
+
+<p>
+Stacy’s blueprint shows an individual who thrives at the intersection of courage, adaptability, and open connection.
+</p>
+
+<h3>Three Main Takeaways</h3>
+<p>
+<b>1. Action as a Primary Engine:</b> She learns and processes life through direct engagement rather than passive observation.
+</p>
+<b>2. Low-Friction Adaptability:</b> She navigates transitions, foreign environments, and sudden shifts with natural poise.
+</p>
+<b>3. Magnetic Warmth:</b> Her front-door energy invites immediate trust, making casual encounters turn into lasting connections effortlessly.
+</p>
+
+<div class="note">
+<b>Terrain, Not Fate</b><br><br>
+This blueprint highlights the natural geometry of Stacy's chart. It maps where energy flows most naturally and where new horizons lie waiting to be explored.
+</div>
+
+</div>
+</details>
+
+</body>
+</html>
