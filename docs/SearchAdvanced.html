@@ -23,7 +23,7 @@
     --search-disabled-bg: #121D25;
     --search-disabled-text: #C8D0D4;
     --search-feedback-color: #575F65;
-    --search-banner-bg: #1C272E;
+    --search-banner-bg: #374776;
     --search-banner-text: #ecf0f1;
   }
 
@@ -567,6 +567,7 @@
     (function () {
       const TOOL_VERSION = '2026-03-29.1';
       const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
+      const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
 
       const searchLogoEl = document.getElementById('searchLogo');
       const themeToggleButtonEl = document.getElementById('themeToggleButton');
@@ -716,12 +717,15 @@
       window.GIAReSearchChain = [];
       window.GIAReSearchHistory = [];
       window.GIAReSearchMode = false;
+      window.GIAServerOnline = null;
       window.GIASearchArchive = { loaded: false, files: [] };
       window.GIASearchBaseFiles = [];
       window.GIASearchResults = [];
       window.GIASelectedResults = [];
       window.lastSearchOptions = {};
       window.lastSearchQuery = '';
+
+      let basicSearchEnabled = true;
 
       function applySortOrderChange() {
         if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
@@ -2162,15 +2166,24 @@
 
       async function runAdvancedSearchServer(payload, options) {
         try {
-          console.log("runAdvancedSearchServer payload =", payload);
+          const scopeFiles = getSearchSourceFiles().map(function(file) {
+            return file.name;
+          });
+
+          const serverPayload = Object.assign({}, payload, {
+            scopeFiles: scopeFiles
+          });
+
+          console.log("runAdvancedSearchServer payload =", serverPayload);
           console.log("runAdvancedSearchServer options =", options);
+          console.log("runAdvancedSearchServer scopeFiles.length =", scopeFiles.length);
 
           const res = await fetch("https://lance-exteriors-app.onrender.com/gia-search", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(serverPayload)
           });
 
           if (!res.ok) {
@@ -2180,6 +2193,16 @@
           const data = await res.json();
 
           console.log("RESULTS:", data);
+          console.log("Server scope requested =", scopeFiles.length, "searched =", data.filesSearched);
+
+          if (typeof data.filesSearched === 'number' && data.filesSearched !== scopeFiles.length) {
+            console.warn(
+              "SERVER SCOPE MISMATCH: browser sent",
+              scopeFiles.length,
+              "file(s), server searched",
+              data.filesSearched
+            );
+          }
 
           resultsEl.style.display = 'block';
 
@@ -2373,6 +2396,44 @@
         }
       }
 
+
+      function updateAdvancedServerState() {
+        const checking = window.GIAServerOnline === null;
+        btnAdvancedToggleEl.disabled = !basicSearchEnabled || window.GIAServerOnline !== true;
+
+        if (checking) {
+          btnAdvancedToggleEl.title = 'Checking Advanced Search server...';
+        } else if (!window.GIAServerOnline) {
+          btnAdvancedToggleEl.title = 'Advanced Search server unavailable';
+        } else {
+          btnAdvancedToggleEl.removeAttribute('title');
+        }
+      }
+
+      async function checkGIAServer() {
+        window.GIAServerOnline = null;
+        updateAdvancedServerState();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () {
+          controller.abort();
+        }, 2000);
+
+        try {
+          const response = await fetch(GIA_CLIENT_URL, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller.signal
+          });
+
+          window.GIAServerOnline = response.ok;
+        } catch (err) {
+          window.GIAServerOnline = false;
+        } finally {
+          clearTimeout(timeoutId);
+          updateAdvancedServerState();
+        }
+      }
 
       async function loadSearchArchive() {
         try {
@@ -2716,18 +2777,20 @@
       }
 
       resetAdvancedRows();
+      checkGIAServer();
       loadSearchArchive();
       updateDefaultSearchModeUI();
       updateStatusBar();
 
       function setBasicSearchEnabled(isEnabled) {
+        basicSearchEnabled = isEnabled;
         searchInputEl.disabled = !isEnabled;
         findButtonEl.disabled = !isEnabled;
         matchTypeEl.disabled = !isEnabled;
         caseTypeEl.disabled = !isEnabled;
         sortOrderEl.disabled = !isEnabled;
         maxRowsEl.disabled = !isEnabled;
-        btnAdvancedToggleEl.disabled = !isEnabled;
+        updateAdvancedServerState();
       }
 
         /*
