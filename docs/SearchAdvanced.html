@@ -1545,6 +1545,73 @@
         updateSelectButtonState();
       }
 
+      // -----------------------------------------------------------------
+      // buildHitRanges -- which character ranges of the file may be
+      // highlighted.
+      //
+      // WHY THIS EXISTS
+      //   Advanced queries are evaluated PER LINE by the server, which
+      //   returns the exact lineNumbers that qualified. AND and NOT are
+      //   properties of a LINE, not of a text span, so no term regex can
+      //   express them -- joining terms with | is literally an OR, which
+      //   is why "Kim AND Trump AND NOT Kim:" used to highlight every
+      //   Kim, every Trump, and every Kim: in the file.
+      //
+      //   Restricting the highlight to the qualifying lines is what makes
+      //   the Viewer agree with the hit count in the results table.
+      //
+      // RETURNS
+      //   An array of {start, end} character ranges, sorted and
+      //   non-overlapping, or null meaning "the whole file is eligible".
+      //   null is the right answer when there are no server hits attached
+      //   (for example a simple/client-side search). An empty array means
+      //   an advanced server result supplied no usable qualifying lines,
+      //   so nothing in the file is eligible for highlighting.
+      // -----------------------------------------------------------------
+      function buildHitRanges(text, serverHits) {
+        if (!Array.isArray(serverHits)) {
+          return null;
+        }
+
+        if (serverHits.length === 0) {
+          return [];
+        }
+
+        // Character index where each line begins. Treat CRLF as one line
+        // ending, and also recognize lone LF and lone CR.
+        const lineStarts = [0];
+        for (let i = 0; i < text.length; i++) {
+          const ch = text.charCodeAt(i);
+
+          if (ch === 13) {                          // CR or CRLF
+            if (text.charCodeAt(i + 1) === 10) i++; // swallow LF in CRLF
+            lineStarts.push(i + 1);
+          } else if (ch === 10) {                   // lone LF
+            lineStarts.push(i + 1);
+          }
+        }
+
+        const wanted = Array.from(
+          new Set(serverHits.map(function (h) { return h.lineNumber; }))
+        ).sort(function (a, b) { return a - b; });
+
+        const ranges = [];
+        wanted.forEach(function (ln) {
+          const idx = ln - 1; // server line numbers are 1-based
+          if (idx < 0 || idx >= lineStarts.length) return;
+
+          ranges.push({
+            start: lineStarts[idx],
+            end: (idx + 1 < lineStarts.length)
+              ? lineStarts[idx + 1]
+              : text.length
+          });
+        });
+
+        // Advanced search + no usable server line numbers = highlight nothing.
+        return ranges;
+      }
+
       function openViewer(file, payload) {
         if (typeof payload === 'string') {
           const opts = window.lastSearchOptions || {};
@@ -1571,11 +1638,17 @@
         window.GIACurrentOpenFile = file;
         viewerTitleEl.textContent = filename + '   ';
 
+        const isAdvanced = !!(payload.rows && Array.isArray(payload.rows));
+
         const terms = [];
         const seen = new Set();
 
-        if (payload.rows && Array.isArray(payload.rows)) {
+        if (isAdvanced) {
           payload.rows.forEach(function (row) {
+            // A NOT term is what DISQUALIFIES a line. Highlighting it
+            // marks the exact thing the user asked to exclude.
+            if (row.not) return;
+
             const term = (row.term || '').trim();
             if (!term) return;
 
@@ -1589,8 +1662,10 @@
 
         if (terms.length === 0 && payload.query) {
           const term = String(payload.query).trim();
+
           if (term) {
             const key = caseSensitive ? term : term.toLowerCase();
+
             if (!seen.has(key)) {
               seen.add(key);
               terms.push(term);
@@ -1607,8 +1682,10 @@
           viewerPrevHitButtonEl.disabled = true;
           viewerNextHitButtonEl.disabled = true;
           updateSelectButtonState();
-          viewerPrevButtonEl.disabled = (window.GIACurrentResultIndex <= 0);
-          viewerNextButtonEl.disabled = (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
+          viewerPrevButtonEl.disabled =
+            (window.GIACurrentResultIndex <= 0);
+          viewerNextButtonEl.disabled =
+            (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
           return;
         }
 
@@ -1618,7 +1695,8 @@
           .map(escapeRegex);
 
         let pattern;
-        if (matchType === 'whole' ) {
+
+        if (matchType === 'whole') {
           pattern = '\\b(?:' + escapedTerms.join('|') + ')\\b';
         } else {
           pattern = '(?:' + escapedTerms.join('|') + ')';
@@ -1627,34 +1705,71 @@
         const flags = caseSensitive ? 'g' : 'gi';
         const regex = new RegExp(pattern, flags);
 
+        // Only trust serverHits when THIS search was an advanced one.
+        // File objects are reused across searches, so a plain search run
+        // after an advanced one can still be carrying the previous
+        // query's serverHits.
+        const ranges = isAdvanced
+          ? buildHitRanges(file.text, file.serverHits)
+          : null;
+
+        const segments = ranges || [
+          { start: 0, end: file.text.length }
+        ];
+
         let html = '';
-        let lastIndex = 0;
-        let match;
+        let cursor = 0;
         let hitCount = 0;
 
         window.GIAHitMatches = [];
 
-        while ((match = regex.exec(file.text)) !== null) {
-          window.GIAHitMatches.push({
-            index: match.index,
-            text: match[0]
-          });
+        segments.forEach(function (seg) {
+          // Text between the previous segment and this one is never
+          // highlighted -- it is on lines that did not qualify.
+          html += escapeHtml(
+            file.text.substring(cursor, seg.start)
+          );
 
-          html += escapeHtml(file.text.substring(lastIndex, match.index));
-          html += '<span class="viewerHit">' + escapeHtml(match[0]) + '</span>';
-          lastIndex = match.index + match[0].length;
-          hitCount++;
+          const chunk = file.text.substring(seg.start, seg.end);
+          let lastIndex = 0;
+          let match;
 
-          if (match[0].length === 0) {
-            regex.lastIndex++;
+          regex.lastIndex = 0;
+
+          while ((match = regex.exec(chunk)) !== null) {
+            window.GIAHitMatches.push({
+              index: seg.start + match.index,
+              text: match[0]
+            });
+
+            html += escapeHtml(
+              chunk.substring(lastIndex, match.index)
+            );
+
+            html +=
+              '<span class="viewerHit">' +
+              escapeHtml(match[0]) +
+              '</span>';
+
+            lastIndex = match.index + match[0].length;
+            hitCount++;
+
+            if (match[0].length === 0) {
+              regex.lastIndex++;
+            }
           }
-        }
 
-        html += escapeHtml(file.text.substring(lastIndex));
+          html += escapeHtml(chunk.substring(lastIndex));
+          cursor = seg.end;
+        });
+
+        html += escapeHtml(file.text.substring(cursor));
 
         if (hitCount > 0) {
           viewerBodyEl.innerHTML = html;
-          window.GIAHitElements = Array.from(viewerBodyEl.querySelectorAll('.viewerHit'));
+          window.GIAHitElements = Array.from(
+            viewerBodyEl.querySelectorAll('.viewerHit')
+          );
           window.GIACurrentHitIndex = 0;
         } else {
           viewerBodyEl.textContent = file.text;
@@ -1674,8 +1789,13 @@
         }
 
         updateSelectButtonState();
-        viewerPrevButtonEl.disabled = (window.GIACurrentResultIndex <= 0);
-        viewerNextButtonEl.disabled = (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1);
+
+        viewerPrevButtonEl.disabled =
+          (window.GIACurrentResultIndex <= 0);
+
+        viewerNextButtonEl.disabled =
+          (window.GIACurrentResultIndex >=
+           window.GIASearchResults.length - 1);
       }
 
       function getSearchSourceFiles() {
