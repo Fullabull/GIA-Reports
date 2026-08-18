@@ -786,35 +786,29 @@
         html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
         html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
 
-        const isAdvanced = !!(window.lastSearchOptions && window.lastSearchOptions.advancedPayload);
+        const effectiveMatchType =
+          window.lastSearchOptions && window.lastSearchOptions.matchType
+            ? window.lastSearchOptions.matchType
+            : matchTypeEl.value;
 
-        let countRegex = null;
+        const effectiveCaseType =
+          window.lastSearchOptions && window.lastSearchOptions.caseType
+            ? window.lastSearchOptions.caseType
+            : caseTypeEl.value;
 
-        if (!isAdvanced) {
-          const effectiveMatchType =
-            window.lastSearchOptions && window.lastSearchOptions.matchType
-              ? window.lastSearchOptions.matchType
-              : matchTypeEl.value;
-
-          const effectiveCaseType =
-            window.lastSearchOptions && window.lastSearchOptions.caseType
-              ? window.lastSearchOptions.caseType
-              : caseTypeEl.value;
-
-          countRegex = getSearchRegex(
-            window.lastSearchQuery,
-            effectiveMatchType,
-            effectiveCaseType,
-            true
-          );
-        }
+        const countRegex = getSearchRegex(
+          window.lastSearchQuery,
+          effectiveMatchType,
+          effectiveCaseType,
+          true
+        );
 
         for (let i = 0; i < matches.length; i++) {
           const file = matches[i];
           const filename = file.name.split('/').pop();
-          const count = isAdvanced
-            ? (Array.isArray(file.serverHits) ? file.serverHits.length : 0)
-            : ((file.text.match(countRegex) || []).length);
+          const hits = file.text.match(countRegex);
+          const count = hits ? hits.length : 0;
+
           html += '<tr>';
           html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
           html += '<td><a href="#" class="resultLink" data-result-index="' + i + '">' + filename + '</a></td>';
@@ -856,7 +850,7 @@
         statusEl.textContent = '';
         updateReSearchState();
 
-        logGIASearch(query); 
+        logGIASearch(query);
         runSearch(query);
       }
 
@@ -1558,6 +1552,7 @@
           viewerTitleEl.textContent =
             filename +
             '   (File ' + fileIndex + ' of ' + fileTotal + ')' +
+            '   (Matches ' + window.GIACurrentMatchTotal + ')' +
             '   (Hit ' + hitIndex + ' of ' + hitTotal + ')';
 
           viewerPrevHitButtonEl.disabled = false;
@@ -1692,8 +1687,6 @@
           });
         }
 
-        if (!isAdvanced) { window.GIACurrentMatchTotal = hitCount; }
-
         if (terms.length === 0 && payload.query) {
           const term = String(payload.query).trim();
 
@@ -1798,6 +1791,10 @@
         });
 
         html += escapeHtml(file.text.substring(cursor));
+
+        if (!isAdvanced) {
+          window.GIACurrentMatchTotal = hitCount;
+        }
 
         if (hitCount > 0) {
           viewerBodyEl.innerHTML = html;
@@ -2075,8 +2072,6 @@
           return 'AND';
         }
       
-
-        let previousLogicalRowEl = null;
         termInputs.forEach(function (termInput, index) {
           const rowEl =
             termInput.closest('.advanced-row, .advancedRow, .adv-row, .row') ||
@@ -2085,6 +2080,11 @@
           const term = (termInput.value || '').trim();
           if (!term) return;
       
+          const prevTermInput = index > 0 ? termInputs[index - 1] : null;
+          const prevRowEl = prevTermInput
+            ? (prevTermInput.closest('.advanced-row, .advancedRow, .adv-row, .row') || prevTermInput.parentElement)
+            : null;
+      
           const notCheckbox = rowEl ? rowEl.querySelector('.not-checkbox') : null;
           const notToggle = rowEl ? rowEl.querySelector('.not-toggle') : null;
           const groupStartCheckbox = rowEl ? rowEl.querySelector('.group-start') : null;
@@ -2092,12 +2092,11 @@
       
           rows.push({
             term: term,
-            op: rows.length === 0 ? null : getRowOp(previousLogicalRowEl),
+            op: index === 0 ? null : getRowOp(prevRowEl),
             not: isOn(notCheckbox) || isOn(notToggle),
             groupStart: isOn(groupStartCheckbox),
             groupEnd: isOn(groupEndCheckbox)
           });
-          previousLogicalRowEl = rowEl;
         });
       
         /* return {
@@ -2667,9 +2666,9 @@
         searchInputEl.focus();
       });
 
-      //
-      // USE THIS FOR TESTING
-      //
+//
+// USE THIS FOR TESTING
+//
       btnAdvancedSearchEl.addEventListener('click', function () {
         console.log('HELLO FROM btnAdvancedSearchEl.');
       
