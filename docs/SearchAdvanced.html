@@ -568,6 +568,7 @@
       const TOOL_VERSION = '2026-03-29.1';
       const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
+      const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
 
       const searchLogoEl = document.getElementById('searchLogo');
       const themeToggleButtonEl = document.getElementById('themeToggleButton');
@@ -785,29 +786,35 @@
         html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
         html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
 
-        const effectiveMatchType =
-          window.lastSearchOptions && window.lastSearchOptions.matchType
-            ? window.lastSearchOptions.matchType
-            : matchTypeEl.value;
+        const isAdvanced = !!(window.lastSearchOptions && window.lastSearchOptions.advancedPayload);
 
-        const effectiveCaseType =
-          window.lastSearchOptions && window.lastSearchOptions.caseType
-            ? window.lastSearchOptions.caseType
-            : caseTypeEl.value;
+        let countRegex = null;
 
-        const countRegex = getSearchRegex(
-          window.lastSearchQuery,
-          effectiveMatchType,
-          effectiveCaseType,
-          true
-        );
+        if (!isAdvanced) {
+          const effectiveMatchType =
+            window.lastSearchOptions && window.lastSearchOptions.matchType
+              ? window.lastSearchOptions.matchType
+              : matchTypeEl.value;
+
+          const effectiveCaseType =
+            window.lastSearchOptions && window.lastSearchOptions.caseType
+              ? window.lastSearchOptions.caseType
+              : caseTypeEl.value;
+
+          countRegex = getSearchRegex(
+            window.lastSearchQuery,
+            effectiveMatchType,
+            effectiveCaseType,
+            true
+          );
+        }
 
         for (let i = 0; i < matches.length; i++) {
           const file = matches[i];
           const filename = file.name.split('/').pop();
-          const hits = file.text.match(countRegex);
-          const count = hits ? hits.length : 0;
-
+          const count = isAdvanced
+            ? (Array.isArray(file.serverHits) ? file.serverHits.length : 0)
+            : ((file.text.match(countRegex) || []).length);
           html += '<tr>';
           html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
           html += '<td><a href="#" class="resultLink" data-result-index="' + i + '">' + filename + '</a></td>';
@@ -849,6 +856,7 @@
         statusEl.textContent = '';
         updateReSearchState();
 
+        logGIASearch(query); 
         runSearch(query);
       }
 
@@ -1051,6 +1059,15 @@
 
       function escapeRegex(s) {
         return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+
+      function logGIASearch(search) {
+        fetch(GIA_SEARCH_LOG_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ search: search }),
+          keepalive: true
+        }).catch(function () {});
       }
 
       function wholeWordPattern(innerPattern) {
@@ -2058,6 +2075,8 @@
           return 'AND';
         }
       
+
+        let previousLogicalRowEl = null;
         termInputs.forEach(function (termInput, index) {
           const rowEl =
             termInput.closest('.advanced-row, .advancedRow, .adv-row, .row') ||
@@ -2066,11 +2085,6 @@
           const term = (termInput.value || '').trim();
           if (!term) return;
       
-          const prevTermInput = index > 0 ? termInputs[index - 1] : null;
-          const prevRowEl = prevTermInput
-            ? (prevTermInput.closest('.advanced-row, .advancedRow, .adv-row, .row') || prevTermInput.parentElement)
-            : null;
-      
           const notCheckbox = rowEl ? rowEl.querySelector('.not-checkbox') : null;
           const notToggle = rowEl ? rowEl.querySelector('.not-toggle') : null;
           const groupStartCheckbox = rowEl ? rowEl.querySelector('.group-start') : null;
@@ -2078,11 +2092,12 @@
       
           rows.push({
             term: term,
-            op: index === 0 ? null : getRowOp(prevRowEl),
+            op: rows.length === 0 ? null : getRowOp(previousLogicalRowEl),
             not: isOn(notCheckbox) || isOn(notToggle),
             groupStart: isOn(groupStartCheckbox),
             groupEnd: isOn(groupEndCheckbox)
           });
+          previousLogicalRowEl = rowEl;
         });
       
         /* return {
@@ -2119,6 +2134,7 @@
         }
 
         window.lastSearchQuery = query;
+        logGIASearch(query);
         runSearch(query);
       });
 
@@ -2246,6 +2262,7 @@
         window.lastSearchQuery = query;
 
         if (window.GIADefaultSearchMode === 'research') {
+          logGIASearch(query);
           runSearch(query);
           return;
         }
@@ -2650,9 +2667,9 @@
         searchInputEl.focus();
       });
 
-//
-// USE THIS FOR TESTING
-//
+      //
+      // USE THIS FOR TESTING
+      //
       btnAdvancedSearchEl.addEventListener('click', function () {
         console.log('HELLO FROM btnAdvancedSearchEl.');
       
