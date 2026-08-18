@@ -2072,24 +2072,57 @@
           return 'AND';
         }
       
-        termInputs.forEach(function (termInput, index) {
+                // Find the last row that actually contains a search term.
+        let lastNonBlank = -1;
+
+        for (let i = termInputs.length - 1; i >= 0; i--) {
+          if ((termInputs[i].value || '').trim()) {
+            lastNonBlank = i;
+            break;
+          }
+        }
+
+        // Blank rows are not allowed inside the query.
+        for (let i = 0; i < lastNonBlank; i++) {
+          if (!(termInputs[i].value || '').trim()) {
+            alert('Blank Rows Not Allowed.');
+            termInputs[i].focus();
+            return null;
+          }
+        }
+
+        // Trailing blank rows have no meaning. Remove them.
+        if (lastNonBlank >= 0) {
+          for (let i = termInputs.length - 1; i > lastNonBlank; i--) {
+            const blankRow =
+              termInputs[i].closest('.advanced-row, .advancedRow, .adv-row, .row') ||
+              termInputs[i].parentElement;
+
+            if (blankRow) blankRow.remove();
+          }
+        }
+
+        // Now rows are guaranteed to be contiguous.
+        for (let index = 0; index <= lastNonBlank; index++) {
+          const termInput = termInputs[index];
+
           const rowEl =
             termInput.closest('.advanced-row, .advancedRow, .adv-row, .row') ||
             termInput.parentElement;
-      
+
           const term = (termInput.value || '').trim();
-          if (!term) return;
-      
+
           const prevTermInput = index > 0 ? termInputs[index - 1] : null;
           const prevRowEl = prevTermInput
-            ? (prevTermInput.closest('.advanced-row, .advancedRow, .adv-row, .row') || prevTermInput.parentElement)
+            ? (prevTermInput.closest('.advanced-row, .advancedRow, .adv-row, .row') ||
+               prevTermInput.parentElement)
             : null;
-      
+
           const notCheckbox = rowEl ? rowEl.querySelector('.not-checkbox') : null;
           const notToggle = rowEl ? rowEl.querySelector('.not-toggle') : null;
           const groupStartCheckbox = rowEl ? rowEl.querySelector('.group-start') : null;
           const groupEndCheckbox = rowEl ? rowEl.querySelector('.group-end') : null;
-      
+
           rows.push({
             term: term,
             op: index === 0 ? null : getRowOp(prevRowEl),
@@ -2097,18 +2130,23 @@
             groupStart: isOn(groupStartCheckbox),
             groupEnd: isOn(groupEndCheckbox)
           });
-        });
+        };
       
-        /* return {
-          caseSensitive: document.getElementById('caseSensitiveCheckbox')?.checked || false,
-          maxResults: parseInt(document.getElementById('maxResultsInput')?.value || '100', 10),
-          matchMode: document.getElementById('matchModeSelect')?.value || 'line',
-          matchType: document.getElementById('matchTypeSelect')?.value || 'whole',
-          rows: rows
-        }; */
+        const ops = rows.slice(1).map(row => row.op);
+        const hasAND = ops.includes('AND');
+        const hasOR  = ops.includes('OR');
+
+        const hasParens = rows.some(row =>
+          row.groupStart || row.groupEnd
+        );
+
+        if (rows.length >= 3 && hasAND && hasOR && !hasParens) {
+          alert('Mixed AND/OR Requires Parentheses.');
+          return null;
+        }
+
         return {
           caseSensitive: caseSensitiveCheckboxEl.checked || false,
-          maxResults: parseInt(advancedMaxRowsEl.value || '50', 10),
           matchMode: 'line',
           matchType: advancedMatchTypeEl.value || 'substring',
           rows: rows
@@ -2477,8 +2515,10 @@
             });
           }
 
+          const totalMatchedFiles = matches.length;
+          const maxRows = options.maxRows || 50;
           window.GIAFullSearchResults = matches.slice();
-          matches = matches.slice(0, payload.maxResults);
+          matches = matches.slice(0, maxRows);
           window.GIASearchResults = matches;
           resetViewerState();
 
@@ -2486,7 +2526,7 @@
             matchType: payload.matchType || 'substring',
             caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
             sortOrder: options.sortOrder || 'newest',
-            maxRows: payload.maxResults || 50,
+            maxRows: maxRows,
             advancedPayload: payload
           };
 
@@ -2509,7 +2549,14 @@
           updateStatusBar();
           updateReSearchState();
 
-          let html = '<div>Found in ' + matches.length + ' file(s)</div>';
+          let html = '<div>Found in ' + totalMatchedFiles + ' file(s)';
+
+          if (totalMatchedFiles > matches.length) {
+            html += ' (showing first ' + matches.length + ')';
+          }
+
+          html += '</div>';
+
           html += '<table style="margin-top:0.5rem;border-collapse:collapse;">';
           html += '<tr><th style="text-align:center;padding-right:1rem;">Matches</th><th style="text-align:left;">Filename</th></tr>';
 
@@ -2673,6 +2720,7 @@
         console.log('HELLO FROM btnAdvancedSearchEl.');
       
         const payload = buildAdvancedPayload();
+        if (!payload) return;
       
         console.log('RETURNED FROM buildAdvancedPayload().');
         console.log('payload =', payload);
