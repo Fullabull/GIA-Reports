@@ -850,7 +850,7 @@
         statusEl.textContent = '';
         updateReSearchState();
 
-        logGIASearch(query, 'find');
+        logGIAAction('find', query);
         runSearch(query);
       }
 
@@ -1055,11 +1055,54 @@
         return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       }
 
-      function logGIASearch(search, mode) {
+      let GIALoggingLevel = 'MINIMAL';
+
+      const GIA_LOG_LEVELS = {
+        NONE: 0,
+        MINIMAL: 1,
+        NORMAL: 2,
+        MAXIMUM: 3
+      };
+
+      function giaLoggingEnabled(requiredLevel) {
+        return GIA_LOG_LEVELS[GIALoggingLevel] >=
+               GIA_LOG_LEVELS[requiredLevel || 'MINIMAL'];
+      }
+
+      async function loadGIALoggingSettings() {
+        try {
+          const res = await fetch(
+            'https://lance-exteriors-app.onrender.com/gia-settings',
+            { cache: 'no-store' }
+          );
+
+          if (!res.ok) return;
+
+          const data = await res.json();
+
+          const level = String(data.logging || '').toUpperCase();
+
+          if (level in GIA_LOG_LEVELS) {
+            GIALoggingLevel = level;
+          }
+
+          console.log('GIA logging =', GIALoggingLevel);
+
+        } catch (err) {
+          GIALoggingLevel = 'MINIMAL';
+        }
+      }
+
+      function logGIAAction(action, detail, requiredLevel) {
+        if (!giaLoggingEnabled(requiredLevel || 'MINIMAL')) return;
+
         fetch(GIA_SEARCH_LOG_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ search: search, mode: mode }),
+          body: JSON.stringify({
+            action: action,
+            detail: detail || '-'
+          }),
           keepalive: true
         }).catch(function () {});
       }
@@ -2153,6 +2196,25 @@
         };
       }
 
+      function formatAdvancedQuery(payload) {
+        return payload.rows.map(function (row, index) {
+          let text = '';
+
+          if (index > 0) {
+            text += (row.op || 'AND') + ' ';
+          }
+
+          if (row.groupStart) text += '(';
+          if (row.not) text += 'NOT ';
+
+          text += JSON.stringify(row.term);
+
+          if (row.groupEnd) text += ')';
+
+          return text;
+        }).join(' ');
+      }
+
       findButtonEl.addEventListener('click', function () {
         const query = searchInputEl.value.trim();
         if (!query) {
@@ -2171,7 +2233,7 @@
         }
 
         window.lastSearchQuery = query;
-        logGIASearch(query,'research');
+        logGIAAction('research', query);
         runSearch(query);
       });
 
@@ -2183,6 +2245,7 @@
           return;
         }
 
+        logGIAAction('back', '-', 'NORMAL');
         const prev = window.GIAReSearchHistory.pop();
 
         window.GIASearchResults = Array.isArray(prev.results)
@@ -2299,7 +2362,7 @@
         window.lastSearchQuery = query;
 
         if (window.GIADefaultSearchMode === 'research') {
-          logGIASearch(query, 'research');
+          logGIAAction('research', query);
           runSearch(query);
           return;
         }
@@ -2357,17 +2420,18 @@
 
       async function runAdvancedSearchServer(payload, options) {
         try {
-          const scopeFiles = getSearchSourceFiles().map(function(file) {
-            return file.name;
-          });
+          const sourceFiles = getSearchSourceFiles();
+          const allFiles = window.GIASearchArchive.files || [];
 
-          const serverPayload = Object.assign({}, payload, {
-            scopeFiles: scopeFiles
-          });
+          const isFullScope = sourceFiles.length === allFiles.length;
 
-          console.log("runAdvancedSearchServer payload =", serverPayload);
-          console.log("runAdvancedSearchServer options =", options);
-          console.log("runAdvancedSearchServer scopeFiles.length =", scopeFiles.length);
+          const serverPayload = Object.assign({}, payload);
+
+          if (!isFullScope) { serverPayload.scopeFiles = sourceFiles.map(file => file.name); }
+
+          console.log("runAdvancedSearchServer scope =", isFullScope ? "ALL" : serverPayload.scopeFiles.length);
+          console.log("SENDING TO SERVER:");
+          console.log(JSON.stringify(serverPayload, null, 2));
 
           const res = await fetch("https://lance-exteriors-app.onrender.com/gia-search", {
             method: "POST",
@@ -2384,12 +2448,12 @@
           const data = await res.json();
 
           console.log("RESULTS:", data);
-          console.log("Server scope requested =", scopeFiles.length, "searched =", data.filesSearched);
+          console.log( "Server scope requested =", isFullScope ? "ALL" : serverPayload.scopeFiles.length, "searched =", data.filesSearched);
 
-          if (typeof data.filesSearched === 'number' && data.filesSearched !== scopeFiles.length) {
+          if (typeof data.filesSearched === 'number' && data.filesSearched !== sourceFiles.length) {
             console.warn(
-              "SERVER SCOPE MISMATCH: browser sent",
-              scopeFiles.length,
+              "SERVER SCOPE MISMATCH: browser expected",
+              sourceFiles.length,
               "file(s), server searched",
               data.filesSearched
             );
@@ -2691,6 +2755,7 @@
       }
 
       clearButtonEl.addEventListener('click', function () {
+        logGIAAction('reset', '-', 'NORMAL');
         searchInputEl.value = '';
         resultsEl.style.display = 'none';
         resultsEl.innerHTML = '';
@@ -2733,11 +2798,12 @@
       
         const pretty = JSON.stringify(payload, null, 2);
       
-        console.log("SENDING JSON:\n" + pretty);
+        console.log("ADVANCED PAYLOAD:\n" + pretty);
         console.log("COPY WITH:");
         console.log("copy(JSON.stringify(window.lastAdvancedPayload, null, 2))");
       
         window.lastAdvancedPayload = payload;
+        logGIAAction('advanced', formatAdvancedQuery(payload));
 
         // ===== DECISION: CLIENT vs SERVER =====
         const needsServer = payload.rows.some(row =>
@@ -2807,10 +2873,12 @@
       });
 
       btnAdvancedClearEl.addEventListener('click', function () {
+        logGIAAction('advanced-clear', '-', 'NORMAL');
         resetAdvancedRows();
       });
 
       btnAdvancedCloseEl.addEventListener('click', function () {
+        logGIAAction('advanced-close', '-', 'NORMAL');
         closeAdvancedPanel();
       });
 
@@ -2982,6 +3050,7 @@
       loadSearchArchive();
       updateDefaultSearchModeUI();
       updateStatusBar();
+      loadGIALoggingSettings();
 
       function setBasicSearchEnabled(isEnabled) {
         basicSearchEnabled = isEnabled;
