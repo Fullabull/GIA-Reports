@@ -378,6 +378,23 @@
   display: block;
 }
 
+/* Advanced Search inline message */
+.advanced-message {
+  display: none;
+  margin: 0 0 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #c88a00;
+  border-left: 5px solid #ffb000;
+  border-radius: 6px;
+  background: rgba(255, 176, 0, 0.12);
+  color: #ffd36b;
+  font-weight: 600;
+}
+
+.advanced-message.show {
+  display: block;
+}
+
 </style>
 </head>
 <body>
@@ -403,8 +420,21 @@
 
     <div id="advancedPanel" class="advanced-panel-hidden" style="padding:12px; margin-top:10px;">
 
-    <div style="font-size:1.05rem; font-weight:600; margin-bottom:10px; color:var(--search-text);">Advanced Search</div>
-    <div style="border-top:1px solid rgba(124,196,255,0.18); margin:0 0 10px 0;"></div>
+      <div style="font-size:1.05rem; font-weight:600; margin-bottom:10px; color:var(--search-text);">
+        Advanced Search
+      </div>
+
+      <div style="border-top:1px solid rgba(124,196,255,0.18); margin:0 0 10px 0;"></div>
+
+      <div id="advancedMessage" class="advanced-message"
+           style="display:none;
+                  margin:0 0 10px 0;
+                  padding:0.5rem 0.75rem;
+                  border:1px solid var(--search-border-color);
+                  border-radius:6px;
+                  color:var(--search-text);
+                  font-weight:600;">
+      </div>
 
       <!-- TOP CONTROL ROW -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
@@ -537,7 +567,7 @@
     <div id="results" style="display:none; margin-top:1rem;"></div>
 
     <div id="viewerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000;">
-      <div style="position:absolute; top:5%; left:5%; width:90%; height:90%; background:var(--search-surface-bg);color:var(--search-text); border:1px solid #999; border-radius:8px; display:flex; flex-direction:column;">
+      <div style="position:absolute; top:.5%; left:.5%; width:99%; height:99%; background:var(--search-surface-bg);color:var(--search-text); border:1px solid #999; border-radius:8px; display:flex; flex-direction:column;">
 
         <div style="padding:0.75rem 1rem; border-bottom:1px solid #ddd; display:flex; align-items:center;">
 
@@ -611,7 +641,9 @@
       const advancedPanelEl = document.getElementById('advancedPanel');
       const btnAdvancedToggleEl = document.getElementById('btnAdvancedToggle');
       const advancedRowsEl = document.getElementById('advancedRows');
+      const advancedMessageEl = document.getElementById('advancedMessage');
       const btnAdvancedSearchEl = document.getElementById('btnAdvancedSearch');
+
       const btnAdvancedClearEl = document.getElementById('btnAdvancedClear');
       const btnAdvancedCloseEl = document.getElementById('btnAdvancedClose');
       const advancedMatchTypeEl = document.getElementById('advancedMatchType');
@@ -753,7 +785,35 @@
 
       searchInputEl.addEventListener('input', updateFindButtonState);
 
+// ============================================================================
+// UI HELPER FUNCTIONS
+// Small functions that update controls/messages without performing a search.
+// ============================================================================
+
+
+      function showAdvancedMessage(message) {
+        advancedMessageEl.textContent = message;
+        advancedMessageEl.style.display = 'block';
+        advancedMessageEl.classList.add('show');
+      }
+
+      function clearAdvancedMessage() {
+        advancedMessageEl.textContent = '';
+        advancedMessageEl.style.display = 'none';
+        advancedMessageEl.classList.remove('show');
+      }
+
       advancedRowsEl.addEventListener('input', function (event) {
+        clearAdvancedMessage();
+
+        if (event.target.classList.contains('term-input')) {
+          updateAdvancedSearchButtonState();
+        }
+      });
+
+      advancedRowsEl.addEventListener('click', function (event) {
+        clearAdvancedMessage();
+
         if (event.target.classList.contains('term-input')) {
           updateAdvancedSearchButtonState();
         }
@@ -2263,7 +2323,7 @@
         // Blank rows are not allowed inside the query.
         for (let i = 0; i < lastNonBlank; i++) {
           if (!(termInputs[i].value || '').trim()) {
-            alert('Blank Rows Not Allowed.');
+            showAdvancedMessage('Blank Rows Not Allowed.');
             termInputs[i].focus();
             return null;
           }
@@ -2319,7 +2379,7 @@
         );
 
         if (rows.length >= 3 && hasAND && hasOR && !hasParens) {
-          alert('Mixed AND/OR Requires Parentheses.');
+          showAdvancedMessage('Mixed AND/OR Requires Parentheses.');
           return null;
         }
 
@@ -3277,6 +3337,7 @@
       updateStatusBar();
       updateFindButtonState();
       loadGIALoggingSettings();
+      clearAdvancedMessage();
 
       function setBasicSearchEnabled(isEnabled) {
         basicSearchEnabled = isEnabled;
