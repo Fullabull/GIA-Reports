@@ -457,10 +457,10 @@
 
       <!-- ACTION BUTTONS -->
       <div class="advanced-actions">
-        <button id="btnAdvancedSearch">Search</button>
-        <button id="btnAdvancedClear">Clear</button>
-        <button id="resetButton">Reset All</button>
-        <button id="btnAdvancedClose">Close</button>
+        <button id="btnAdvancedSearch" disabled title="Run the current search using the options shown."> Search </button>
+        <button id="btnAdvancedClear" title="Clear the Advanced Search fields only."> Clear </button>
+        <button id="resetButton" title="Clear both searches and return to the starting screen."> Reset All </button>
+        <button id="btnAdvancedClose" title="Close Advanced Search without clearing it."> Close </button>
       </div>
     </div>
 
@@ -477,26 +477,23 @@
 
         <!-- ACTION BUTTONS -->
         <div class="row row-actions">
-          <button id="findButton" type="button">Find</button>
+          <button id="findButton" type="button" disabled title="Run the current search using the options shown."> Find </button>
 
           <span style="display:inline-flex; gap:0.6rem; flex-wrap:nowrap;">
-            <button id="researchButton" type="button" style="display:none;">ReSearch</button>
+            <button id="researchButton" type="button" style="display:none;" title="Drill down within the current search results."> ReSearch </button>
             <button id="backButton" type="button" style="display:none;">Back</button>
           </span>
 
-          <button type="button" id="btnAdvancedToggle">Advanced</button>
+          <button type="button" id="btnAdvancedToggle" title="Search using AND, OR, NOT, and grouped terms."> Advanced </button>
 
-          <button type="button" id="clearButton">Clear Search</button>
+          <button type="button" id="clearButton" title="Clear the current search and results."> Clear Search </button>
         </div>
 
         <!-- SEARCH OPTIONS -->
         <div class="row row-options">
 
           <!-- <label for="matchType">Match:</label> -->
-          <select id="matchType">
-            <option value="substring" selected>Substring</option>
-            <option value="whole">Whole word</option>
-          </select>
+          <select id="matchType" title="Choose whether to match text anywhere or as complete words only."> <option value="substring" selected>Substring</option> <option value="whole">Whole word</option> </select>
 
           <select id="sortOrder">
             <option value="newest" selected>Newest first</option>
@@ -518,20 +515,8 @@
           </select>
 
         <div style="display:flex; flex-direction:column; gap:0.15rem;">
-
-          <label>
-            <input id="ignoreCaseCheckbox"
-                   type="checkbox"
-                   checked>
-            Ignore Case
-          </label>
-
-          <label>
-            <input id="includeSpeakerLabelsCheckbox"
-                   type="checkbox">
-            Speaker Labels
-          </label>
-
+        <label title="Treat uppercase and lowercase letters as the same."> <input id="ignoreCaseCheckbox" type="checkbox" checked> Ignore Case </label>
+        <label title="Include leading labels such as Kim: and Sunny: in search results."> <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels </label>
         </div>
 
         </div>
@@ -567,7 +552,7 @@
 
           <!-- RIGHT -->
           <div style="flex:1; display:flex; justify-content:flex-end;">
-            <button id="viewerThemeToggleButton" type="button">Theme</button>
+            <button id="viewerThemeToggleButton" type="button" title="Cycle through Dark, Light, and UNN themes."> Theme </button>
           </div>
 
         </div>
@@ -765,6 +750,14 @@
 
       let basicSearchEnabled = true;
       let speakerLabelsPreference = includeSpeakerLabelsCheckboxEl.checked;
+
+      searchInputEl.addEventListener('input', updateFindButtonState);
+
+      advancedRowsEl.addEventListener('input', function (event) {
+        if (event.target.classList.contains('term-input')) {
+          updateAdvancedSearchButtonState();
+        }
+      });
 
       includeSpeakerLabelsCheckboxEl.addEventListener('change', function () {
         if (!this.disabled) {
@@ -1018,6 +1011,21 @@
           updateCurrentHit();
           flashWrap('forward');
         }
+      }
+
+      function updateFindButtonState() {
+        findButtonEl.disabled =
+          searchInputEl.value.trim().length === 0;
+      }
+
+      function updateAdvancedSearchButtonState() {
+        const termInputs =
+          advancedRowsEl.querySelectorAll('.term-input');
+
+        btnAdvancedSearchEl.disabled =
+          !Array.from(termInputs).some(function (input) {
+            return input.value.trim().length > 0;
+          });
       }
 
       function updateReSearchState() {
@@ -2817,7 +2825,7 @@
         } else if (!online) {
           btnAdvancedToggleEl.title = 'Advanced Search unavailable - search server offline';
         } else {
-          btnAdvancedToggleEl.removeAttribute('title');
+          btnAdvancedToggleEl.title = 'Search using AND, OR, NOT, and grouped terms.';
         }
 
         // Speaker-label exclusion also requires Render.
@@ -2977,6 +2985,21 @@
           .join(' ')
           .replace(/\(\s+/g, '(')
           .replace(/\s+\)/g, ')');
+      }
+
+      function updateFindButtonState() {
+        findButtonEl.disabled =
+          searchInputEl.value.trim().length === 0;
+      }
+
+      function updateAdvancedSearchButtonState() {
+        const termInputs =
+          advancedRowsEl.querySelectorAll('.term-input');
+
+        btnAdvancedSearchEl.disabled =
+          !Array.from(termInputs).some(function (input) {
+            return input.value.trim().length > 0;
+          });
       }
 
 //
@@ -3244,6 +3267,7 @@
 
       function resetAdvancedRows() {
         $('#advancedRows').empty().append(createAdvancedRow());
+        updateAdvancedSearchButtonState();
       }
 
       resetAdvancedRows();
@@ -3251,6 +3275,7 @@
       loadSearchArchive();
       updateDefaultSearchModeUI();
       updateStatusBar();
+      updateFindButtonState();
       loadGIALoggingSettings();
 
       function setBasicSearchEnabled(isEnabled) {
