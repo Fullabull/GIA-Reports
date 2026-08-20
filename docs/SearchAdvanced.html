@@ -1666,6 +1666,25 @@
         updateSelectButtonState();
       }
 
+      function leadingSpeakerLabelLength(lineText) {
+        for (const label of KNOWN_SPEAKER_LABELS) {
+          if (lineText.startsWith(label)) {
+            let end = label.length;
+
+            while (
+              end < lineText.length &&
+              (lineText[end] === ' ' || lineText[end] === '\t')
+            ) {
+              end++;
+            }
+
+            return end;
+          }
+        }
+
+        return 0;
+      }
+
       // -----------------------------------------------------------------
       // buildHitRanges -- which character ranges of the file may be
       // highlighted.
@@ -1689,7 +1708,7 @@
       //   an advanced server result supplied no usable qualifying lines,
       //   so nothing in the file is eligible for highlighting.
       // -----------------------------------------------------------------
-      function buildHitRanges(text, serverHits) {
+      function buildHitRanges(text, serverHits, excludeSpeakerLabels) {
         if (!Array.isArray(serverHits)) {
           return null;
         }
@@ -1721,12 +1740,22 @@
           const idx = ln - 1; // server line numbers are 1-based
           if (idx < 0 || idx >= lineStarts.length) return;
 
+          let start = lineStarts[idx];
+
+          const end = (idx + 1 < lineStarts.length)
+            ? lineStarts[idx + 1]
+            : text.length;
+
+          if (excludeSpeakerLabels) {
+            const lineText = text.substring(start, end);
+            start += leadingSpeakerLabelLength(lineText);
+          }
+
           ranges.push({
-            start: lineStarts[idx],
-            end: (idx + 1 < lineStarts.length)
-              ? lineStarts[idx + 1]
-              : text.length
+            start: start,
+            end: end
           });
+
         });
 
         // Advanced search + no usable server line numbers = highlight nothing.
@@ -1827,12 +1856,27 @@
         const flags = caseSensitive ? 'g' : 'gi';
         const regex = new RegExp(pattern, flags);
 
-        // Only trust serverHits when THIS search was an advanced one.
-        // File objects are reused across searches, so a plain search run
-        // after an advanced one can still be carrying the previous
-        // query's serverHits.
-        const ranges = isAdvanced
-          ? buildHitRanges(file.text, file.serverHits)
+        // Trust serverHits only when THIS search came from the server.
+        // File objects are reused across searches, so they may still contain
+        // serverHits from an earlier server search. serverBacked tells us whether
+        // those hits belong to the current result set.
+        const isServerBacked =
+          !!(window.lastSearchOptions &&
+             window.lastSearchOptions.serverBacked);
+
+        const excludeSpeakerLabels =
+          payload.includeSpeakerLabels === false;
+
+        const ranges = isServerBacked
+          ? (
+              Array.isArray(file.serverHits)
+                ? buildHitRanges(
+                    file.text,
+                    file.serverHits,
+                    excludeSpeakerLabels
+                  )
+                : []
+            )
           : null;
 
         const segments = ranges || [
@@ -2677,6 +2721,7 @@
             sortOrder: options.sortOrder || 'newest',
             maxRows: maxRows,
             includeSpeakerLabels: payload.includeSpeakerLabels !== false,
+            serverBacked: true,
             advancedPayload: payload
           };
 
