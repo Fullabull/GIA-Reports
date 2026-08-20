@@ -459,9 +459,9 @@
       <div class="advanced-actions">
         <button id="btnAdvancedSearch">Search</button>
         <button id="btnAdvancedClear">Clear</button>
+        <button id="resetButton">Reset All</button>
         <button id="btnAdvancedClose">Close</button>
       </div>
-
     </div>
 
     <div id="searchRow" class="search-row">
@@ -486,35 +486,17 @@
 
           <button type="button" id="btnAdvancedToggle">Advanced</button>
 
-          <button type="button" id="clearButton">Clear</button>
-          <button type="button" id="resetButton">Reset</button>
+          <button type="button" id="clearButton">Clear Search</button>
         </div>
 
         <!-- SEARCH OPTIONS -->
         <div class="row row-options">
 
-          <label for="matchType">Match:</label>
+          <!-- <label for="matchType">Match:</label> -->
           <select id="matchType">
             <option value="substring" selected>Substring</option>
             <option value="whole">Whole word</option>
           </select>
-
-        <div style="display:flex; flex-direction:column; gap:0.15rem;">
-
-          <label>
-            <input id="ignoreCaseCheckbox"
-                   type="checkbox"
-                   checked>
-            Ignore Case
-          </label>
-
-          <label>
-            <input id="includeSpeakerLabelsCheckbox"
-                   type="checkbox">
-            Speaker Labels
-          </label>
-
-        </div>
 
           <select id="sortOrder">
             <option value="newest" selected>Newest first</option>
@@ -535,10 +517,27 @@
             <option value="sensitive">Match case</option>
           </select>
 
+        <div style="display:flex; flex-direction:column; gap:0.15rem;">
+
+          <label>
+            <input id="ignoreCaseCheckbox"
+                   type="checkbox"
+                   checked>
+            Ignore Case
+          </label>
+
+          <label>
+            <input id="includeSpeakerLabelsCheckbox"
+                   type="checkbox">
+            Speaker Labels
+          </label>
+
         </div>
 
-      </form>
-    </div>
+        </div>
+
+
+      </form>    </div>
 
     <div id="selectionBar" class="selection-bar">
       <span id="selectionCount" class="selection-count">Selected: 0</span>
@@ -760,10 +759,18 @@
       window.GIASearchBaseFiles = [];
       window.GIASearchResults = [];
       window.GIASelectedResults = [];
+      window.GIASpeakerFilterDegraded = false;
       window.lastSearchOptions = {};
       window.lastSearchQuery = '';
 
       let basicSearchEnabled = true;
+      let speakerLabelsPreference = includeSpeakerLabelsCheckboxEl.checked;
+
+      includeSpeakerLabelsCheckboxEl.addEventListener('change', function () {
+        if (!this.disabled) {
+          speakerLabelsPreference = this.checked;
+        }
+      });
 
       function applySortOrderChange() {
         if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
@@ -1188,9 +1195,8 @@
       }
 
       function needsSpeakerLabelServer(query, matchType, caseType) {
-        if (includeSpeakerLabelsCheckboxEl.checked) {
-          return false;
-        }
+        if (includeSpeakerLabelsCheckboxEl.checked) return false;
+        if (window.GIAServerOnline !== true) return false;
 
         return queryCanMatchSpeakerLabel(query, matchType, caseType);
       }
@@ -1604,6 +1610,12 @@
             'Archive loaded: ' + window.GIASearchArchive.files.length + ' files ready.';
             // + ' Default Enter: ' + defaultLabel + '.';
         }
+
+        if (window.GIAServerOnline === false) {
+          statusEl.textContent +=
+            ' This search page is available, but Advanced Search is temporarily offline.';
+        }
+
       }
 
       function updateCurrentHit() {
@@ -1989,6 +2001,7 @@
         const sortOrder = options.sortOrder || sortOrderEl.value;
         const maxRows = options.maxRows || parseInt(maxRowsEl.value, 10);
         const sourceFiles = options.sourceFiles || getSearchSourceFiles();
+
 
         if (needsSpeakerLabelServer(query, matchType, caseType)) {
           console.log('SERVER SEARCH PATH - speaker label collision:', query);
@@ -2606,10 +2619,7 @@
           const priorSearchOptions = Object.assign({}, window.lastSearchOptions || {});
 
           const chainLabel = Array.isArray(payload.rows)
-            ? payload.rows
-                .map(function (row) { return (row.term || '').trim(); })
-                .filter(Boolean)
-                .join(' ')
+            ? buildAdvancedChainLabel(payload.rows)
             : (payload.query || '').trim();
 
           if (!data.results || data.results.length === 0) {
@@ -2795,17 +2805,33 @@
         }
       }
 
-
       function updateAdvancedServerState() {
         const checking = window.GIAServerOnline === null;
-        btnAdvancedToggleEl.disabled = !basicSearchEnabled || window.GIAServerOnline !== true;
+        const online = window.GIAServerOnline === true;
+
+        // Advanced Search requires Render.
+        btnAdvancedToggleEl.disabled = !basicSearchEnabled || !online;
 
         if (checking) {
           btnAdvancedToggleEl.title = 'Checking Advanced Search server...';
-        } else if (!window.GIAServerOnline) {
-          btnAdvancedToggleEl.title = 'Advanced Search server unavailable';
+        } else if (!online) {
+          btnAdvancedToggleEl.title = 'Advanced Search unavailable - search server offline';
         } else {
           btnAdvancedToggleEl.removeAttribute('title');
+        }
+
+        // Speaker-label exclusion also requires Render.
+        if (!online) {
+          includeSpeakerLabelsCheckboxEl.checked = true;
+          includeSpeakerLabelsCheckboxEl.disabled = true;
+
+          includeSpeakerLabelsCheckboxEl.title = checking
+            ? 'Checking search server...'
+            : 'Speaker label filtering unavailable - search server offline';
+        } else {
+          includeSpeakerLabelsCheckboxEl.disabled = false;
+          includeSpeakerLabelsCheckboxEl.checked = speakerLabelsPreference;
+          includeSpeakerLabelsCheckboxEl.removeAttribute('title');
         }
       }
 
@@ -2831,6 +2857,7 @@
         } finally {
           clearTimeout(timeoutId);
           updateAdvancedServerState();
+          updateStatusBar();
         }
       }
 
@@ -2879,7 +2906,7 @@
           window.GIASearchArchive.loaded = true;
           window.GIASearchArchive.files = files;
 
-          statusEl.textContent = 'Archive loaded: ' + files.length + ' file(s) ready.';
+          updateStatusBar();
           searchRowEl.classList.add('ready');
           updateSelectionCount();
           searchInputEl.focus();
@@ -2889,12 +2916,11 @@
         }
       }
 
-      clearButtonEl.addEventListener('click', function () {
-        logGIAAction('reset', '-', 'NORMAL');
+      function clearMainSearch() {
         searchInputEl.value = '';
         resultsEl.style.display = 'none';
         resultsEl.innerHTML = '';
-        this.style.display = 'none';
+        clearButtonEl.style.display = 'none';
         selectionBarEl.classList.remove('ready');
 
         window.GIASearchResults = [];
@@ -2911,7 +2937,47 @@
         updateReSearchState();
 
         searchInputEl.focus();
+      }
+
+      clearButtonEl.addEventListener('click', function () {
+        clearMainSearch();
       });
+
+      resetButtonEl.addEventListener('click', function () {
+        clearMainSearch();
+        resetAdvancedRows();
+        closeAdvancedPanel();
+      });
+
+      function buildAdvancedChainLabel(rows) {
+        const parts = [];
+
+        rows.forEach(function (row, index) {
+          if (index > 0) {
+            parts.push(row.op || 'AND');
+          }
+
+          if (row.groupStart) {
+            parts.push('(');
+          }
+
+          if (row.not) {
+            parts.push('NOT');
+          }
+
+          parts.push((row.term || '').trim());
+
+          if (row.groupEnd) {
+            parts.push(')');
+          }
+        });
+
+        return parts
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\(\s+/g, '(')
+          .replace(/\s+\)/g, ')');
+      }
 
 //
 // USE THIS FOR TESTING
