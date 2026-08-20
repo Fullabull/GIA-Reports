@@ -178,6 +178,7 @@
   #backButton,
   #researchButton,
   #clearButton,
+  #resetButton,
   #findButton,
   #resetSelectionsButton,
   #saveSelectionsButton,
@@ -465,12 +466,55 @@
 
     <div id="searchRow" class="search-row">
       <form id="searchForm">
-        <div class="row row-main">
-          <input id="searchInput" type="text" placeholder="Enter search text..." autocomplete="off" />
 
+        <!-- SEARCH FIELD -->
+        <div class="row row-main">
+          <input id="searchInput"
+                 type="text"
+                 placeholder="Enter search text..."
+                 autocomplete="off" />
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="row row-actions">
           <button id="findButton" type="button">Find</button>
-          <button id="researchButton" type="button" style="display:none;">ReSearch</button>
-          <button id="backButton" type="button" style="display:none;">Back</button>
+
+          <span style="display:inline-flex; gap:0.6rem; flex-wrap:nowrap;">
+            <button id="researchButton" type="button" style="display:none;">ReSearch</button>
+            <button id="backButton" type="button" style="display:none;">Back</button>
+          </span>
+
+          <button type="button" id="btnAdvancedToggle">Advanced</button>
+
+          <button type="button" id="clearButton">Clear</button>
+          <button type="button" id="resetButton">Reset</button>
+        </div>
+
+        <!-- SEARCH OPTIONS -->
+        <div class="row row-options">
+
+          <label for="matchType">Match:</label>
+          <select id="matchType">
+            <option value="substring" selected>Substring</option>
+            <option value="whole">Whole word</option>
+          </select>
+
+        <div style="display:flex; flex-direction:column; gap:0.15rem;">
+
+          <label>
+            <input id="ignoreCaseCheckbox"
+                   type="checkbox"
+                   checked>
+            Ignore Case
+          </label>
+
+          <label>
+            <input id="includeSpeakerLabelsCheckbox"
+                   type="checkbox">
+            Speaker Labels
+          </label>
+
+        </div>
 
           <select id="sortOrder">
             <option value="newest" selected>Newest first</option>
@@ -484,26 +528,13 @@
             <option value="200">200 rows</option>
             <option value="500">500 rows</option>
           </select>
-        </div>
 
-        <div class="row row-options">
-          <label for="matchType">Match:</label>
-          <select id="matchType">
-            <option value="substring" selected>Substring</option>
-            <option value="whole">Whole word</option>
-          </select>
-
-          <label for="caseType">Case:</label>
-          <select id="caseType">
+          <!-- Existing JS still uses this internally for now -->
+          <select id="caseType" style="display:none;">
             <option value="insensitive" selected>Ignore case</option>
             <option value="sensitive">Match case</option>
           </select>
 
-          <button type="button" id="btnAdvancedToggle">Advanced</button>
-          <!--
-          <button id="btnAdvancedToggle" type="button" hidden aria-hidden="true" tabindex="-1" >Advanced</button>
-          -->
-          <button type="button" id="clearButton">Reset</button>
         </div>
 
       </form>
@@ -570,12 +601,17 @@
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
       const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
 
+      const KNOWN_SPEAKER_LABELS = [ 'Kim:', 'Sunny:' ];
+
       const searchLogoEl = document.getElementById('searchLogo');
       const themeToggleButtonEl = document.getElementById('themeToggleButton');
       const viewerThemeToggleButtonEl = document.getElementById('viewerThemeToggleButton');
 
       const caseTypeEl = document.getElementById('caseType');
       const matchTypeEl = document.getElementById('matchType');
+      const ignoreCaseCheckboxEl = document.getElementById('ignoreCaseCheckbox');
+      const includeSpeakerLabelsCheckboxEl = document.getElementById('includeSpeakerLabelsCheckbox');
+      const resetButtonEl = document.getElementById('resetButton');
       const maxRowsEl = document.getElementById('maxRows');
       const resultsEl = document.getElementById('results');
       const searchFormEl = document.getElementById('searchForm');
@@ -1141,6 +1177,22 @@
         } else {
           selectionBarEl.classList.remove('ready');
         }
+      }
+
+      function queryCanMatchSpeakerLabel(query, matchType, caseType) {
+        const regex = getSearchRegex(query, matchType, caseType, false);
+
+        return KNOWN_SPEAKER_LABELS.some(function (label) {
+          return regex.test(label);
+        });
+      }
+
+      function needsSpeakerLabelServer(query, matchType, caseType) {
+        if (includeSpeakerLabelsCheckboxEl.checked) {
+          return false;
+        }
+
+        return queryCanMatchSpeakerLabel(query, matchType, caseType);
       }
 
       function getBlockBounds(fullText, hitIndex) {
@@ -1892,6 +1944,25 @@
         const caseType = options.caseType || caseTypeEl.value;
         const sortOrder = options.sortOrder || sortOrderEl.value;
         const maxRows = options.maxRows || parseInt(maxRowsEl.value, 10);
+        const sourceFiles = options.sourceFiles || getSearchSourceFiles();
+
+        if (needsSpeakerLabelServer(query, matchType, caseType)) {
+          console.log('SERVER SEARCH PATH - speaker label collision:', query);
+
+          runServerSearch({
+            query: query,
+            caseSensitive: (caseType === 'sensitive'),
+            includeSpeakerLabels: false,
+            matchMode: 'line',
+            matchType: matchType
+          }, {
+            sortOrder: sortOrder,
+            maxRows: maxRows,
+            sourceFiles: sourceFiles
+          });
+
+          return;
+        }
 
         window.lastSearchOptions = {
           matchType: matchType,
@@ -1914,7 +1985,6 @@
         let totalFileMatches = 0;
         let matches = [];
 
-        const sourceFiles = options.sourceFiles || getSearchSourceFiles();
         window.GIASearchBaseFiles = sourceFiles.slice();
 
         console.log('runSearch query =', query);
@@ -2215,6 +2285,11 @@
         }).join(' ');
       }
 
+      ignoreCaseCheckboxEl.addEventListener('change', function () {
+        caseTypeEl.value = this.checked ? 'insensitive' : 'sensitive';
+        caseTypeEl.dispatchEvent(new Event('change'));
+      });
+
       findButtonEl.addEventListener('click', function () {
         const query = searchInputEl.value.trim();
         if (!query) {
@@ -2418,9 +2493,14 @@
         }
       });
 
-      async function runAdvancedSearchServer(payload, options) {
+      async function runServerSearch(payload, options) {
         try {
-          const sourceFiles = getSearchSourceFiles();
+          options = options || {};
+
+          const sourceFiles = Array.isArray(options.sourceFiles)
+            ? options.sourceFiles
+            : getSearchSourceFiles();
+
           const allFiles = window.GIASearchArchive.files || [];
 
           const isFullScope = sourceFiles.length === allFiles.length;
@@ -2473,16 +2553,20 @@
             ? window.GIASearchBaseFiles.slice()
             : [];
 
+          window.GIASearchBaseFiles = sourceFiles.slice();
+
           const priorChain = Array.isArray(window.GIAReSearchChain)
             ? window.GIAReSearchChain.slice()
             : [];
 
           const priorSearchOptions = Object.assign({}, window.lastSearchOptions || {});
 
-          const chainLabel = payload.rows
-            .map(function (row) { return (row.term || '').trim(); })
-            .filter(Boolean)
-            .join(' ');
+          const chainLabel = Array.isArray(payload.rows)
+            ? payload.rows
+                .map(function (row) { return (row.term || '').trim(); })
+                .filter(Boolean)
+                .join(' ')
+            : (payload.query || '').trim();
 
           if (!data.results || data.results.length === 0) {
             if (window.GIAReSearchMode && priorResults.length > 0) {
@@ -2550,7 +2634,8 @@
 
             groupedByFile[row.file].serverHits.push({
               lineNumber: row.lineNumber,
-              text: row.text
+              text: row.text,
+              matchCount: row.matchCount || 0
             });
           }
 
@@ -2591,6 +2676,7 @@
             caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
             sortOrder: options.sortOrder || 'newest',
             maxRows: maxRows,
+            includeSpeakerLabels: payload.includeSpeakerLabels !== false,
             advancedPayload: payload
           };
 
@@ -2627,7 +2713,11 @@
           for (let i = 0; i < matches.length; i++) {
             const file = matches[i];
             const filename = file.name.split('/').pop();
-            const count = file.serverHits.length;
+            const count = Array.isArray(payload.rows)
+              ? file.serverHits.length
+              : file.serverHits.reduce(function (total, hit) {
+              return total + hit.matchCount;
+            }, 0);
 
             html += '<tr>';
             html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
@@ -2654,7 +2744,7 @@
 
           clearButtonEl.style.display = 'inline-block';
         } catch (err) {
-          console.error("runAdvancedSearchServer ERROR:", err);
+          console.error("runServerSearch ERROR:", err);
           resultsEl.style.display = 'block';
           resultsEl.textContent = 'Search error. Check console.';
         }
@@ -2841,7 +2931,7 @@
 
         console.log('SERVER SEARCH PATH (advanced logic detected).');
 
-        runAdvancedSearchServer(payload, {
+        runServerSearch(payload, {
           sortOrder: advancedSortOrderEl.value,
           maxRows: parseInt(advancedMaxRowsEl.value, 10) || 50
         });
