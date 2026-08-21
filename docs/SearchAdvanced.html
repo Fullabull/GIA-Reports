@@ -401,7 +401,12 @@
   <div class="wrap">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
       <a href="/GIA-Reports/docs/index.html" id="homeLink">&larr; Exit Search</a>
-      <button id="themeToggleButton" type="button" title="Cycle through Dark, Light, and UNN themes."> Theme </button>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <label title="Save search settings for your next visit." style="display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.85rem;">
+          <input id="saveSettingsCheckbox" type="checkbox"> Save Settings
+        </label>
+        <button id="themeToggleButton" type="button" title="Cycle through Dark, Light, and UNN themes."> Theme </button>
+      </div>
     </div>
 
     <div class="search-title-row">
@@ -610,7 +615,7 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     (function () {
-      const TOOL_VERSION = '2026-08-21.060523';
+      const TOOL_VERSION = '2026-08-21.184706';
       const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
       const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
@@ -618,6 +623,7 @@
       const KNOWN_SPEAKER_LABELS = [ 'Kim:', 'Sunny:' ];
 
       const searchLogoEl = document.getElementById('searchLogo');
+      const saveSettingsCheckboxEl = document.getElementById('saveSettingsCheckbox');
       const themeToggleButtonEl = document.getElementById('themeToggleButton');
       const viewerThemeToggleButtonEl = document.getElementById('viewerThemeToggleButton');
 
@@ -756,14 +762,14 @@
         }
       ];
 
-      const LS_DEFAULT_SEARCH_MODE = 'GIADefaultSearchMode';
-      const savedMode = localStorage.getItem(LS_DEFAULT_SEARCH_MODE);
+      const LS_SAVE_SETTINGS = 'GIASaveSettings';
+      const LS_USER_SETTINGS = 'GIAUserSettings';
 
       window.GIACurrentHitIndex = -1;
       window.GIACurrentMatchTotal = 0;
       window.GIACurrentOpenFile = null;
       window.GIACurrentResultIndex = -1;
-      window.GIADefaultSearchMode = (savedMode === 'research') ? 'research' : 'find';
+      window.GIADefaultSearchMode = 'find';
       window.GIAFullSearchResults = [];
       window.GIAHitElements = [];
       window.GIAHitMatches = [];
@@ -781,6 +787,94 @@
 
       let basicSearchEnabled = true;
       let speakerLabelsPreference = includeSpeakerLabelsCheckboxEl.checked;
+      let advancedOpenPreference = false;
+
+      function saveUserSettings() {
+        if (!saveSettingsCheckboxEl.checked) return;
+
+        localStorage.setItem(LS_USER_SETTINGS, JSON.stringify({
+          matchType: matchTypeEl.value,
+          caseType: caseTypeEl.value,
+          sortOrder: sortOrderEl.value,
+          maxRows: maxRowsEl.value,
+          speakerLabels: includeSpeakerLabelsCheckboxEl.checked,
+          includeMetadata: includeMetadataCheckboxEl.checked,
+          advancedPanelOpen: advancedOpenPreference,
+          defaultSearchMode: window.GIADefaultSearchMode
+        }));
+      }
+
+      function restoreUserSettings() {
+        saveSettingsCheckboxEl.checked =
+          localStorage.getItem(LS_SAVE_SETTINGS) === 'true';
+
+        if (!saveSettingsCheckboxEl.checked) return;
+
+        try {
+          const settings = JSON.parse(localStorage.getItem(LS_USER_SETTINGS) || '{}');
+
+          if (settings.matchType) {
+            matchTypeEl.value = advancedMatchTypeEl.value = settings.matchType;
+          }
+
+          if (settings.caseType) {
+            caseTypeEl.value = settings.caseType;
+            ignoreCaseCheckboxEl.checked = (settings.caseType === 'insensitive');
+            caseSensitiveCheckboxEl.checked = (settings.caseType === 'sensitive');
+          }
+
+          if (settings.sortOrder) {
+            sortOrderEl.value = advancedSortOrderEl.value = settings.sortOrder;
+          }
+
+          if (settings.maxRows) {
+            maxRowsEl.value = advancedMaxRowsEl.value = settings.maxRows;
+          }
+
+          if (typeof settings.speakerLabels === 'boolean') {
+            includeSpeakerLabelsCheckboxEl.checked = settings.speakerLabels;
+            speakerLabelsPreference = settings.speakerLabels;
+          }
+
+          if (typeof settings.includeMetadata === 'boolean') {
+            includeMetadataCheckboxEl.checked = settings.includeMetadata;
+          }
+
+          advancedOpenPreference = (settings.advancedPanelOpen === true);
+          window.GIADefaultSearchMode =
+            (settings.defaultSearchMode === 'research') ? 'research' : 'find';
+
+        } catch (err) {
+          localStorage.removeItem(LS_USER_SETTINGS);
+        }
+      }
+
+      restoreUserSettings();
+
+      saveSettingsCheckboxEl.addEventListener('change', function () {
+        localStorage.setItem(LS_SAVE_SETTINGS, this.checked ? 'true' : 'false');
+
+        if (this.checked) {
+          saveUserSettings();
+        } else {
+          localStorage.removeItem(LS_USER_SETTINGS);
+        }
+      });
+
+      // Save after the existing control handlers have finished syncing values.
+      searchFormEl.addEventListener('change', saveUserSettings);
+      advancedPanelEl.addEventListener('change', saveUserSettings);
+      includeMetadataCheckboxEl.addEventListener('change', saveUserSettings);
+
+      // Match/case are the same preference shown in two places.
+      advancedMatchTypeEl.addEventListener('change', function () {
+        matchTypeEl.value = advancedMatchTypeEl.value;
+      });
+
+      caseSensitiveCheckboxEl.addEventListener('change', function () {
+        caseTypeEl.value = this.checked ? 'sensitive' : 'insensitive';
+        ignoreCaseCheckboxEl.checked = !this.checked;
+      });
 
       searchInputEl.addEventListener('input', updateFindButtonState);
 
@@ -951,7 +1045,7 @@
 
       function setDefaultSearchMode(mode) {
         window.GIADefaultSearchMode = mode;
-        localStorage.setItem(LS_DEFAULT_SEARCH_MODE, mode);
+        saveUserSettings();
         updateDefaultSearchModeUI();
         updateStatusBar();
       }
@@ -2369,6 +2463,27 @@
           });
         };
       
+        // Parentheses must balance before Boolean grouping is evaluated.
+        let parenDepth = 0;
+
+        for (const row of rows) {
+          if (row.groupStart) parenDepth++;
+
+          if (row.groupEnd) {
+            parenDepth--;
+
+            if (parenDepth < 0) {
+              showAdvancedMessage('Unbalanced Parentheses.');
+              return null;
+            }
+          }
+        }
+
+        if (parenDepth !== 0) {
+          showAdvancedMessage('Unbalanced Parentheses.');
+          return null;
+        }     
+      
         const ops = rows.slice(1).map(row => row.op);
         const hasAND = ops.includes('AND');
         const hasOR  = ops.includes('OR');
@@ -3046,21 +3161,6 @@
           .replace(/\s+\)/g, ')');
       }
 
-      function updateFindButtonState() {
-        findButtonEl.disabled =
-          searchInputEl.value.trim().length === 0;
-      }
-
-      function updateAdvancedSearchButtonState() {
-        const termInputs =
-          advancedRowsEl.querySelectorAll('.term-input');
-
-        btnAdvancedSearchEl.disabled =
-          !Array.from(termInputs).some(function (input) {
-            return input.value.trim().length > 0;
-          });
-      }
-
 //
 // USE THIS FOR TESTING
 //
@@ -3290,7 +3390,7 @@
         return row;
       }
 
-      function openAdvancedPanel() {
+      function openAdvancedPanel(savePreference = true) {
         syncAdvancedControlsFromMain();
 
         advancedPanelEl.classList.remove('advanced-panel-hidden');
@@ -3302,6 +3402,8 @@
         });
 
         setBasicSearchEnabled(false);
+        advancedOpenPreference = true;
+        if (savePreference) saveUserSettings();
 
         setTimeout(() => {
           const input = document.querySelector('#advancedRows .term-input');
@@ -3317,6 +3419,8 @@
         advancedPanelEl.classList.add('advanced-panel-enter');
 
         setBasicSearchEnabled(true);
+        advancedOpenPreference = false;
+        saveUserSettings();
 
         setTimeout(function () {
           advancedPanelEl.classList.remove('advanced-panel-enter');
@@ -3330,6 +3434,9 @@
       }
 
       resetAdvancedRows();
+      if (advancedOpenPreference) {
+        openAdvancedPanel(false);
+      }
       checkGIAServer();
       loadSearchArchive();
       updateDefaultSearchModeUI();
