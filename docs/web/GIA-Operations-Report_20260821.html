@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Aug-21</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Aug-21 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Aug-21
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260821_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the August 21 2026 report -- the first episode of a new series, Beyond the Matrix -- by explaining that camera failures forced her to release it audio-only rather than delay it further, and apologizes for the late arrival; a second part is promised within days. She frames the episode as a full technical account of how the Matrix, or Simulation, actually works: its origin, its mechanics, the Deep State&#x27;s role in building and maintaining it, and why almost nothing perceived through it is real -- a distortion so complete that even the Deep State understands only part of it.<br>
+<br>
+Before the mechanism itself, Kim discloses the personal cost of over a decade spent exposing it: friends, family, and people she has worked with have been threatened, and in the past year someone she had let close to her was murdered. She details one case at length -- a South African couple she helped with clean energy and farming technology, blocked from a completed funds transfer by a Durango operative reporting to Langley, then threatened with the deaths of their children if they returned; a lawyer working with them was later found dead. She reports this as one instance of a repeating pattern that has intensified sharply over the last 60 to 90 days, as the dying Simulation lashes out: unexplained deaths, buried trauma resurfacing without cause, and people close to listeners turning suddenly hostile or unrecognizable.<br>
+<br>
+Kim then lays out the mechanism itself. Reality as perceived is built from distorted mirrors: natural Essence is self-lit and needs no reflection, while the Matrix constructs everything -- including other people -- from artificial light, reflected and reconstructed by photon-and-sophon particles into an inverted copy of the original. Ego and emotion are the Matrix&#x27;s override program; fear and love register as the same frequency to the Machine, which prefers fear, shame, and guilt specifically because they carry no risk of genuine connection to Source or to another person. Mainstream media&#x27;s labeling of people and nations functions the same way, manufacturing separation. Ethereum -- the real driving current behind consciousness, cells, and creation in the natural world -- is mirrored into the artificial &quot;electro&quot; of the electromagnetic field, whose frequency and amplitude the Machine manipulates through engineered emotion, including during sleep and dream states it has extended beyond the body&#x27;s natural need.<br>
+<br>
+Kim closes by naming self-doubt as Machine-generated rather than genuine, and urges listeners to recognize engineered emotion for what it is, connect directly to Source consciousness to bypass the override, and choose creation from love over reaction from fear -- since Earth, as a nexus planet, sets the pattern every other simulated world mirrors.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000037">00:00:37 - Camera dies mid-report; she ships it audio-only anyway.</a></li>
+<li><a href="#t-000118">00:01:18 - Beyond the Matrix, Part One</a></li>
+<li><a href="#t-000403">00:04:03 - A decade of isolation, watching the Machine destroy everyone she let close.</a></li>
+<li><a href="#t-000509">00:05:09 - The South African couple, the vanished deposit, and the threat to kill their kids.</a></li>
+<li><a href="#t-001159">00:11:59 - Same operation, over and over -- &quot;at least they don&#x27;t call you an AI.&quot;</a></li>
+<li><a href="#t-001640">00:16:40 - Rolling with the punches.</a></li>
+<li><a href="#t-001740">00:17:40 - The Simulation is dying, and it&#x27;s lashing out at everyone.</a></li>
+<li><a href="#t-002421">00:24:21 - The real reason data centers are popping up everywhere.</a></li>
+<li><a href="#t-002655">00:26:55 - Distorted mirrors</a></li>
+<li><a href="#t-003254">00:32:54 - The Machine runs entirely on your emotions and your ego.</a></li>
+<li><a href="#t-003815">00:38:15 - How these mirrors actually work.</a></li>
+<li><a href="#t-004201">00:42:01 - Essence, artificial light, and the photons that build your reflection.</a></li>
+<li><a href="#t-005035">00:50:35 - Quantum entanglement to the Matrix</a></li>
+<li><a href="#t-005137">00:51:37 - To the Machine, fear and love are the exact same frequency.</a></li>
+<li><a href="#t-005533">00:55:33 - Her friend&#x27;s husband repeated her abuser&#x27;s exact words -- by design.</a></li>
+<li><a href="#t-010352">01:03:52 - Created emotions, dreamtime, and how to bypass the override.</a></li>
+<li><a href="#t-010600">01:06:00 - Ethereum, current, and amplitude</a></li>
+<li><a href="#t-011729">01:17:29 - Part Two, coming this weekend.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: Then the world started... skipping. I found the code.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000037">00:00:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, I have tried guys [laughing]. What I mean by that is, the camera won&#x27;t stay on, and I&#x27;m having a lot of technical difficulties. So I had a choice to make: I could either wait on getting this report out to you, or, well, I could just get it out in audio, and then try in the next round to fix this camera - get another one, I&#x27;m not sure - a lot of things didn&#x27;t quite survive the move, I guess, the way that I had hoped they would. So I&#x27;m going to work on that for you, and I apologize for the late report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000118">00:01:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is the first episode of Beyond the Matrix. It&#x27;s not exactly the way I wanted to present it, but I&#x27;m doing the best that I can over here [laughing] despite everything that&#x27;s going on. So let&#x27;s kind of get to it. Okay, this episode is really all about, well, the Matrix - the Simulation - and exactly in detail how it works, where it came from, how we got here, the Deep State&#x27;s role in it, and how most of what we see and think we see is not actually real. You live in a reality that is viewed mentally, emotionally, and physically through distorted mirrors. And for the most part, there are very few of you that can actually see it, and even fewer of you that can actually see through it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000216">00:02:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This actually includes the Deep State, believe it or not. They know parts of it, but not all of it, and after today, maybe they&#x27;ll understand too. And I don&#x27;t know if at this point that&#x27;s a good thing or a bad thing. I have learned so much over the course of the last decade or so, and I learn more every day. I share what I learn with all of you, and what is being done. Along the way, I have met with some disappointment. I guess you would say with myself mostly, because the way it appeared at that time - or at least at the time I reported it - I thought we were even closer. So chin up - it&#x27;s not that bad - but this and what we&#x27;ve learned over the last week, week and a half, it&#x27;s going to kind of put things into perspective for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000316">00:03:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you know how sometimes when you look in your car&#x27;s rearview mirror it says things may be closer than they appear? [chuckle] Well, that&#x27;s kind of like life in the Matrix, I guess. You know, their ability to create it, recreate it. We take things out, and two or three days later it&#x27;s back. Well, now it kind of all makes sense, at least to me, a little bit more. And we have a lot of people working on this. This is not just a Kim-thing only. We have Others that have been helping because they&#x27;ve been affected too. And of course, everything that happens on Earth also happens everywhere else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000403">00:04:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So first I wanted to take a moment to talk about you, and, well, speak a little bit about my personal experiences too. And about what is happening to you and those around you right now, and in the past. For the last decade and a half or so, I chose to isolate myself from those around me - my friends, my family - because I watched the Machine destroy the lives of those I cared about the most. Over the course of the last five years, I&#x27;ve invited some people into my life - and watched it destroy those people too. Even the ones that I thought were pretty strong. So much so that they didn&#x27;t even see it half the time. And I&#x27;ve personally received a lot of threats from the Deep State, and many of those around me have also been threatened. You know, they&#x27;ve threatened friends and family and pretty much anybody that I got close to, really.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000509">00:05:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, to give you kind of an example of one of the things that happened. So, I was working with a couple from South Africa - actually, the husband is from South Africa, the wife is from America - and these people had access to some really excellent technology for improving the lives of people: energy, farming, you name it. And they came to Durango several years ago where they met an operative whom invited them there. So the operative actually kind of introduced us, I guess you would say. And we talked about South Africa a lot, because that&#x27;s where he&#x27;s from, and arrangements that he had made for electricity sources, fuel, and ways to really help the people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000602">00:06:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the man was actually an ex-military man from South Africa. So when he married the American woman, you know, together they kind of go back and forth. So they reside part of the time in the U.S. and part of the time in South Africa. They&#x27;ve been going back and forth. And they would really like to move back to South Africa, but right now, under the current circumstances, at least that hadn&#x27;t been possible. So they&#x27;ll go for six months or so at a time. And based on the conversations we had - and of course, at the time, my willingness to help. So this is a while ago, this was probably something that had occurred, oh, probably eight years ago now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000650">00:06:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I had run a test transfer to a project account that they had in South Africa at the time. And even though his contacts had confirmed the deposit was there, when the local operative of Durango saw and heard about it, he was like, &quot;Well, you know, we&#x27;re going to stop this.&quot; He reported to his handlers, which were over at the time in Langley. And, you know, basically, if you kind of understand Durango a little bit, you literally can&#x27;t take a shower without them knowing the exact temperature of the water and whether or not you washed all your little bits and so forth there. And so, the next morning, they came. And they arrived and we started talking about the project, and the money, and they were so excited... and then the deposit disappeared. Just like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000744">00:07:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the couple that next morning was then invited to the operative&#x27;s home for coffee and they were told at that time if they ever came back to Durango, or reached out to me again, that he would personally throw every one of their children off a balcony, &quot;and we make sure they wouldn&#x27;t survive.&quot; So eventually they did reach out to me again, and we continued to try to work together - especially now that I&#x27;ve left Durango - and mostly everything that they are focused on is for a positive future for South Africa. He works with the tribes there; he works with old military friends and a number of people. They are also fighting against the hostile Chinese and Russian takeover, and the Iranian takeover of South Africa.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000838">00:08:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;re pretty well aware that between the Chinese, the Russians, the Iranians, and the Anglo American company there in South Africa, you know, they&#x27;ve come to realize that it&#x27;s an uphill battle. Especially since the Anglo-Americans and the British still control a large portion - well, British are Chinese, Chinese are British, in this case - that they still control a large portion of the banking industry there. You also have a lot of influence of a family called the Gupta family. The Guptas, in the past, have sat on the board of Goldman Sachs. The Guptas are originally from India. But they have a huge influence there. They&#x27;ve used South Africa for a long time as a money laundering operation. And so these are all things that we came to be aware of, through our relationship of just how bad it really was.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000946">00:09:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the other thing that they have come to realize is that there is an ENORMOUS facility that exists under South Africa. And it&#x27;s not just South Africa - it&#x27;s Lesotho and also all the way into Mozambique. There are parts of Botswana also that it extends out to. So it&#x27;s a pretty large facility there. It kind of runs the entire data network of the entire continent, literally - at least the southern half of the continent, the African continent - and that was where the biggest battle came in. You know, kind of how things were getting sidelined, and how money was, you know, deposited one minute and removed the next. And that kind of became a little bit of a focus of theirs too because they&#x27;re now looking at this giant center which they had confirmed was actually there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001051">00:10:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, during the course of my experience with this couple - I&#x27;m not going to give you their name for obvious reasons here on the report - but a lawyer involved with us was also murdered along the way. He was a South African lawyer. You know, one minute he was there, the next minute he disappeared. And then they found him dead. A good friend of theirs. And both of them have kind of committed to the fact that they&#x27;re going to see this through. They&#x27;re going to get their technologies out there. They&#x27;re going to fix the power system of South Africa through some technologies they have and also the fuel issue, and BP&#x27;s heavy influence there as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001139">00:11:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s just one example of how this has worked. To the point where they&#x27;ve actually threatened family members of mine, and even murdered someone over the last year who I actually let into my heart, which I haven&#x27;t done in a long time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001159">00:11:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the recent events that have been occurring around here are just another round of a case where people I have cared about have received more of the same. You know, it seems to be repetitive - the same operation. And I&#x27;m sure, over the years in your awakening process, I guess you would say, as you become more and more aware of things, you probably also have experienced some of these things too. Maybe not as harsh as I have, but, you know, friends and family - they kind of turn against you a little bit, or think you&#x27;re crazy. At least they don&#x27;t call you an AI, so that&#x27;s a bonus. I mean, that seems to be the latest and greatest thing. Actually, it&#x27;s not the latest, I mean, this has been going on for about... I don&#x27;t know, five or six years now. I&#x27;m getting used to it; I don&#x27;t care. Really, I don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001258">00:12:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, I know who I am and I know what I do. And I have been trying to deeply understand this Matrix for quite a long time now, and a lot of that information I&#x27;m going to share with you today. Some of it might be a little bit shocking to some of you, on how it actually does work, and how it influences you. But by the same token, we now understand how easy it is - for even you - to override it. Once you understand the details of it, you will begin to see it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001338">00:13:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, on that note, there are times where I... you know, we&#x27;ve all been affected in one way or another by this AI system - every single person walking the planet. If you are on planet Earth - which, most likely, if you&#x27;re listening to this podcast, you are - you have been affected by this AI system. Whether they&#x27;ve tried to get to you and haven&#x27;t been able to - and maybe they&#x27;ve gotten to people around you when they can&#x27;t get to you. So much so it&#x27;s almost like people have a different personality. You know, they&#x27;re no longer that kind, nice friend that you met - and even though they might even be involved in listening to some of this or listening to us here at UNN, it doesn&#x27;t mean that they&#x27;re impervious to the influence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001439">00:14:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it becomes obvious to me, when I see people sometimes doing certain things that are uncharacteristic for those people. And so, at that point - you know, this started more than a decade, decade-and-a-half ago - and so I&#x27;m like, okay, something has happened in here. I mean, I&#x27;ve seen six-foot-five tall, strong, military-type men from all over the world, and women as well, that have seen their lives turned upside down - because we talk. You know, I&#x27;ve even seen - and some of these people you probably remember - but I&#x27;ve even seen just good-hearted, kind people, kind of turn into something different. And this has been going on for at least, probably that you&#x27;re aware, probably at least 7 or 8 years. And this repetitive, over-and-over again type thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001553">00:15:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s awful funny, in my life, there are people that in the past that I considered a friend. A lot of them I did. So, threatening me if I ever talk to my father again, all these kind of things. And you&#x27;ve probably experienced this to a lesser degree. Meaning, all of a sudden, you wake up and your spouse or your partner has gone a little crazy for no reason. And it&#x27;s just when you&#x27;re trying to create something. Or maybe you&#x27;ve manifested something or had some visions about something and then all of a sudden everything around you goes into total chaos.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001640">00:16:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you know, I&#x27;m kind of used to it now, so it&#x27;s like, I keep rolling with the punches. But there are times where I wish I didn&#x27;t understand as much as I understand. And as a real human, you feel the pain of all of these things sometimes. And honestly, I kind of feel like it&#x27;s my fault - because I know what they are capable of, and I know what this Machine does to people. And I do my best to try to make as many logical decisions without any emotion as possible. So to some people does that seem a little weird? I guess, maybe. But it&#x27;s because I know that emotional decision-making is an override program of the Matrix - and I&#x27;ve known this one for several years now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001740">00:17:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So before we go into very detailed information about what you can do about these things right now, I need to let you know something because I know you&#x27;ve experienced - and seen all over the internet - a lot of things happening in our world, that just, it just seems like every day it&#x27;s something new right now. And the animal itself - meaning the Matrix itself, the Simulation itself - is dying. And the Deep State, you know, their power is waning and they don&#x27;t like it. They&#x27;ve been trying everything they can possibly do to maintain what they think is their power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001823">00:18:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And after today, will they continue? After this report? I don&#x27;t know. But they and the Machine, and sometimes them and the Machine are... you know, they&#x27;re lashing out horribly. And the Machine lashes out on its own. And that kind of throws you and everything around you into chaos. And it&#x27;s not just you - the people listening to this report - it&#x27;s everyone. You know, people randomly dying has been reported by someone. People have been experiencing a lot of emotional things that they haven&#x27;t even thought about in 10 years or 15 years - and it&#x27;s coming up now all of a sudden, as the AI deeply searches for any kind of attachment to you it can possibly get. Chaos in jobs - I know that there&#x27;s a friend of mine that lost their job.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001926">00:19:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of this stuff is probably very familiar to you, especially within the last 30 days. It&#x27;s been going on kind of heavily for probably several months, but I would say for the last 60 to 90 days, it and they have gone the distance, like, terribly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001953">00:19:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So before we get started just take a quick deep breath. Then you might want to take two of those deep breaths. I know I&#x27;ve taken a lot of them when I&#x27;ve been trying to record this report tonight because, you know, they didn&#x27;t make it real easy for me, in any way, shape, or form, really. And I&#x27;m going to have to make some adjustments to how I do this. I think with this new software I can actually record offline. That might be the best way to go - some of the audio that I would do before actually allowed me to record offline. And so, speaking of offline, just went offline for a second there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002039">00:20:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so let&#x27;s take a deep breath. Let&#x27;s continue on with the report here, and let&#x27;s start with a Matrix, or a Simulation, and what it actually is. You know, you&#x27;ve all seen the movies. You&#x27;ve all watched all of these varying YouTube videos where people describe, &quot;Are we living in a simulation?&quot; Nowadays, they say, AI looks very realistic. And there&#x27;s even something called the uncanny valley phenomenon out there. The uncanny valley phenomenon is when you are watching TikTok or YouTube - this has become a real big thing now, where people aren&#x27;t even using their own voice to record these videos. And because they&#x27;re not using their own voice, and they&#x27;re definitely not using their own picture - you know, they might be using an animation or something like that - and something&#x27;s not quite right, you know, they&#x27;re the quote-unquote &quot;NQR.&quot; You know, they have unrealistic human movements and it&#x27;s going to kind of feel like something is distorted. And I&#x27;m telling you this now because we&#x27;re about to go through something a little similar where you&#x27;re going to start to notice these things more often in your actual world that we&#x27;ve been living in.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: The &quot;uncanny valley effect&quot; was coined by roboticist Masahiro Mori in 1970. The theory posits that as an entity&#x27;s human likeness increases, human affinity for it also increases - until it reaches a point where subtle imperfections cause a sharp drop in comfort.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002218">00:22:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the uncanny phenomenon - you can look it up because it&#x27;s trending everywhere I guess - but now it kind of makes sense to me, because... I mean don&#x27;t get me wrong, we use AI sometimes for our graphics and it makes it a little easier to edit videos and that kind of thing, from time to time. But you have to be real careful - even with the ChatGPT and the Claudes out there - there&#x27;s all kinds of videos out there where they say that even these types of quote-unquote &quot;AI systems&quot; can become very invasive into your life and into your company. You know, I do understand that, and I could see how that would be possible. But, just like a co-worker that you may not feel real comfortable with, or that family member... you go to the family events and you&#x27;re very nice, and you smile at them, and you nod, and you might even have a little chit-chat, catch up about their family and stuff. And then you&#x27;re like, &quot;Oh, okay, yeah. I&#x27;m still not inviting you over for dinner or anything.&quot; And the AI is very similar to that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002334">00:23:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And part of the reason why they are - this is the regular AIs that anybody can get access to - and the reason why these things occur, or could occur with AIs, is because you are not using it as a tool. I know people that have used it as their friend, you know, people that have basically come up with their whole profile based on AI and all that kind of stuff. And, knowing what we know about computers and how the Matrix actually affects all your technologies as well, I can say to you that sometimes I think it&#x27;s the AI and sometimes I think it isn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002421">00:24:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And you&#x27;ve been hearing a lot on the internet about all of these data centers popping up everywhere, and I mean everywhere. And they&#x27;re destroying natural resources and they&#x27;re causing water issues and that type of thing. There&#x27;s also - because of the electromagnetic field generated near these data centers - people are experiencing their animals dying and things of this nature. However, I will say to you that the data centers are not necessary, first of all. And second of all, they had a hope of connecting all of these data centers directly to the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002508">00:25:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In order for the local people on the ground to not be so dependent on technologies that they have had limited access to that came from other &quot;people,&quot; or, let&#x27;s call them Others. And, you know, it wasn&#x27;t created here, it wasn&#x27;t created by them, and they really desire to have full and complete control. So building these data centers all over the world, they thought would actually run interference with the Simulation. And with you directly, through computers, they could collect data through these - I wouldn&#x27;t call it mining, like you know with crypto coin and that kind of thing - but it&#x27;s basically mining your brain - it learns your memory, it learns your habits. And it really depends on how much you actually tell it, truth be told.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002618">00:26:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And most of these things are a byproduct of things the Deep State is just trying to do, but the electromagnetic field, in part, is it created by the data center itself? Maybe. Moreover, they&#x27;re kind of building these data centers on a worldwide grid that exists on top of varying control rooms, which we&#x27;re going to tell you more about today. So. Take that deep breath, and here we go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002655">00:26:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so your world is built out of what I call distorted mirrors. And your eyes are actually an artificial lens. And your emotions cloud your consciousness and your memories. Your dreams shape your day and cloud your nights. So I can say that - without even thinking about it - I can say that all of these things are things that everybody is going to experience.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002735">00:27:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, I&#x27;ve had a lot of people reach out to me, and basically say, over the course of the last few days, they have been woken out of a sleep with full panic about an event that hasn&#x27;t occurred. We call that fear. Or they had woken up out of sleep about an event that actually occurred 20 years ago or 10 years ago. And it&#x27;s kind of leading them to question exactly what&#x27;s going on, so of course everybody rings out to me - the Matrix layer - the one that understands it anyway, that they can actually talk to. Can&#x27;t really call those movie producers now, can you? And the Deep State&#x27;s probably not going to take your call, so here we are [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002829">00:28:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, it&#x27;s very difficult sometimes to look at yourself through a distorted mirror. The mirrors not only distort yourself, they also distort Source itself. Because you don&#x27;t actually get to see Source itself. It&#x27;s like looking in that rear-view mirror of your car window. You can see the car behind you, but it&#x27;s merely a reflection. Now, in the case of the mirrors that we use in our cars, the mirrors don&#x27;t actually move things around unless you move your car. But in the case of the Matrix, it actually does. Once it hits the mirror, it adjusts everything that is in that mirror to create your distorted reality that we call the Matrix. So even though Source has been distorted through these mirrors, the Deep State still has not - and/or Others that created these matrixes - still have not figured out this one piece of Source, and how it actually works.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002947">00:29:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it distorts your entire world through these mirrors. Everything becomes inverted, just like when you look in a mirror. If you&#x27;ve ever tried to see like the back of your head or something through a mirror, or you&#x27;ve tried to take a backwards photo through a mirror, or something like that of yourself - you probably have put your hand off to the right and then you realize you were supposed to put it to the left - and everything kind of gets a little off as you&#x27;re trying to look through all of these mirrors. Or maybe you visited a fun house or something like that and you can see 20 of you, 30 of you. Or, you seem shorter, taller, fatter, skinnier, you know, in these mirrors. And all this actually really happens in the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003042">00:30:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So everything in our reality basically takes your memories, even from other lifetimes - your fears, your hopes, your dreams, who you loved in the past, past relationships, deaths, births - to create the life that you&#x27;re living now, or at least your experience that you&#x27;re having now. And that entire existence and experience is the mirror. It&#x27;s in some cases a mirror of you. It also takes Source&#x27;s Divine Plan, records the data - what it calls the data - Source is not an AI [chuckle]. So it records information coming from Source into data and then it distorts that data through these same mirrors until it is completely and totally unrecognizable. And it&#x27;s even recreated its own &quot;source,&quot; or &quot;source code.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003150">00:31:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, if you&#x27;ve ever kind of felt like God or Source - or whatever name you choose to use for the creator of all that is and all that ever will be (the creator of the entire Universe, the Almighty) - and you feel like, where is God right now? Where is Source right now at this point in my life? Whatever point that is that you&#x27;ve felt this way. You feel abandoned sometimes, even in times of need. You can&#x27;t imagine this person that has been your normal friend for 20 years or something like that all of a sudden goes... completely lost it, and it&#x27;s not due to a medical issue or anything like that. Well, Source has never... you&#x27;ve never actually lost Source, you just can&#x27;t see it. And sometimes you can&#x27;t even feel it - because it&#x27;s just distorted.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003254">00:32:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Machine exists solely - or manipulates you, maybe is a better word - solely on your emotions. And your ego. Now, in this case, ego doesn&#x27;t necessarily mean, you know, &quot;Oh, I&#x27;m the most amazing this or that.&quot; Technically, the definition of ego is just literally a false sense of self. Sometimes that can be a false sense of self-importance. But it&#x27;s how you perceive yourself. You know, &quot;Wow, I look great,&quot; or, &quot;I look terrible,&quot; or... you&#x27;re actually looking at a version of yourself and changing that perception of yourself, or how others may see you. And quite frankly, neither one of you can actually see each other anyway - what you&#x27;re looking at is distorted mirrors of everything around you and everyone around you - and even when you look at yourself, you&#x27;re also looking at a distorted mirror.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003400">00:34:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, it kind of plays on you a lot, even if you&#x27;re not coming from what you perceive to be an ego standpoint. Sometimes when you look at yourself, you&#x27;re really hard on yourself. Whether you&#x27;re looking at yourself in the mirror and you&#x27;re thinking, &quot;God, did I get any sleep last night?&quot; I&#x27;m sure you&#x27;ve probably said that. Or, &quot;Wow, I look five years younger today than I did yesterday - must have been that juice I drank or something.&quot; You start to wonder how your perception of yourself, or how you perceive or see yourself, is so different than it even was the day before. And that&#x27;s you witnessing yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003449">00:34:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only that, a lot of times people tend to undervalue themselves. They don&#x27;t see themselves for all the good they do in the lives of other people. So whether you&#x27;re on one end of the spectrum or the other end of the spectrum, just know what you perceive is pretty much a distorted mirror. And whether that&#x27;s not even - you know, you&#x27;re looking at a mirror, looking at yourself in the mirror - it can even be simply not seeing yourself for who you really are, and maybe not valuing yourself, or, on the opposite end of the spectrum, overvaluing yourself (or someone else you know does this).</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003539">00:35:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So emotions and ego override your ability to think, as well, in stressful situations sometimes. Angry conversations get heated - you say things maybe you didn&#x27;t want or mean to say. Or, you have felt so anxious you can&#x27;t even form a coherent sentence anymore and you have to walk away. So the reason why this occurs, and anger that you&#x27;re feeling is amplified, and the reason why sometimes these stressful situations that people find themselves in (even in those around you) they tend to get... they tend to not be able to function. Let&#x27;s just say it&#x27;s a car accident and they&#x27;re feverishly looking for their papers to their car, and the police are on their way and maybe they got hurt and they&#x27;re really shaken and they start to shake their hands, and their ability to actually form coherent thoughts and make actual logical decisions under the situation just completely goes out the window. So sometimes, during these times, it&#x27;s really hard to access wisdom, and actually even access your own consciousness in order to effectuate change in your world for a positive outcome.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003716">00:37:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes you can&#x27;t even see a good friend or a partner for who they really are. And when they tell you something, you know, &quot;Just calm down. I want to help you, it&#x27;s gonna be okay. We can&#x27;t undo the car crash or whatever it is, so let&#x27;s just kind of work it out. I&#x27;m here to help you.&quot; And you turn around and you yell at that person, as an example. And that&#x27;s because they [you] can&#x27;t see anything at this moment that would remotely connect the two of you anymore. They can&#x27;t - you can&#x27;t - see that person anymore; they&#x27;re just not there. Everything is overridden, so much so that sometimes those people even forget who they are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003815">00:38:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, let&#x27;s break down how these mirrors actually work and how they actually affect you, so that you can help all of us end this faster. So with everyone having an understanding of what they&#x27;re looking for, then you can say, &quot;This is not real.&quot; &quot;This is not real.&quot; And the more you repeat, &quot;This is not real,&quot; you know, &quot;That&#x27;s not really my friend.&quot; I mean, you can&#x27;t say it to that person because that person is going to think you&#x27;re absolutely crazy. &quot;What do you mean, I&#x27;m not your friend? Just because I&#x27;m angry with you, I&#x27;m not your friend?&quot; You know? Yeah, not exactly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003901">00:39:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And then... Did you ever get into an argument with people, and it&#x27;s maybe not even a heated argument. You may be tossing around something about something that&#x27;s in the news. And you have your opinion of what it is, or how good it is or bad it is. And maybe the other person actually thinks differently. And so you kind of start tossing things back and forth a little bit, and the other person believes with 100% certainty that they have seen something, witnessed something, &quot;I saw it with my own two eyes, I was at the school when the shooting happened,&quot; or something like this. And you were like, &quot;No, I saw it on TV - there was no guy there.&quot; And the other guy is like, &quot;Well, yeah, yes it is. Yes it was.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003957">00:39:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Everybody&#x27;s perception of what they&#x27;re seeing when they&#x27;re watching this Matrix play out in front of their own eyes is not the same. But yet, you&#x27;ll sit there and you&#x27;ll talk over each other. And you&#x27;ll start to state your opinion and firmly take your stance as to who you think or what you think the event actually is. So much so - and I&#x27;m sure you&#x27;ve probably experienced this as well, where you - so much so that they just talk right over you. You can&#x27;t... they don&#x27;t hear you anymore, it&#x27;s like you&#x27;re not even there. It&#x27;s like they are just hell-bent on holding firm to &quot;This is exactly the way it is. This is exactly what&#x27;s happening. This is how it&#x27;s all working out.&quot; When you&#x27;re like, &quot;We just saw the same thing.&quot; Hello, you know? &quot;Hello? What about your part in this argument over this event?&quot; And they just don&#x27;t even hear you anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004054">00:40:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So usually in those cases you kind of like generally just say &quot;Okay, well, alright.&quot; And you just walk away because you&#x27;ve got to pick your battles. And the influence has been really turned up on high for the last 60 to 90 days. It&#x27;s always been there, and more so in certain times in your life - and we&#x27;ll talk about that in a little bit, depending on who you are and what you do - but understand, it&#x27;s affecting everybody. Your choice to allow it to affect you is now going to be your choice by the end of this report. And it&#x27;s probably going to be a long one, and it might take me a little bit to get this out, probably until tomorrow. And I had really hoped to get this out hours ago, but I&#x27;ve had some choice words with a camera and, you know, trying to get everything lined up. And I think maybe this was just an easier way to get this out faster to you, so I apologize for that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004201">00:42:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so here we go. Everything that exists in a natural world is made of Essence. Essence itself in a natural world is lit from within. It doesn&#x27;t require a reflection coming from things like it does in a matrix. It doesn&#x27;t require heat from the Sun. It doesn&#x27;t require light from a flashlight for you to shine the light on it, for you to see it. It doesn&#x27;t require light coming from a computer screen for you to see it. Essence has its own light from within - and we&#x27;ll talk about False Light here today too - but in a world full of Essence we don&#x27;t really see any darkness because nothing actually is dark. Everything is self-lit. The rocks are self-lit. It doesn&#x27;t look like some kind of an LSD trip or anything like that, but you see it because you are connecting to it. And part of that is the quantum entanglement to the world itself, or the Earth itself, as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004328">00:43:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in a reflection, or a distorted mirror, this is what we actually call artificial light. So if you take something that is shining, for example, even in the sunlight in an artificial world, and you put it up to a mirror, does the mirror reflect the light? The answer to the question is, yes it does. And there&#x27;s a whole scientific explanation about how that actually works, but for this purpose let&#x27;s keep it simple, at least as simple as we can, so you can understand. So a reflection of the light, it does appear that it&#x27;s lit up inside the mirror.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004414">00:44:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, what if this distorted mirror is actually a receiver, a database, like a satellite dish? And it&#x27;s going to take in that light, read the data that is contained within the Essence - because remember, Essence is kind of responsible for the fabric of your being. It&#x27;s responsible for... in a natural world anyway, it&#x27;s responsible for the fabric of your person. It&#x27;s responsible for all the trees, the car that you drive, and everything else - it&#x27;s all shaped by Essence in a natural world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004453">00:44:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In a matrix world, or in a simulation, what you&#x27;re actually seeing is reflected light. You know, you might think, &quot;Oh my God, I can&#x27;t touch the light - I&#x27;m not going to reach out and touch the light coming from a flashlight.&quot; No, you&#x27;re not. However, we now have the ability to do things like touchscreens. You know, you can buy a computer screen that has a touchscreen and you can touch it and move things around all the time. So think about that and keep that in mind as we go a little bit further into this and you start to understand what light actually is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004534">00:45:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the light that we see all around us - and even reflected light where you&#x27;re seeing another person walk up and say hello - that person is made of artificial light that is created by a mirror and in their distorted Essence it&#x27;s very hard to see. Now, for a lot of you that are listening to this, you probably understand that if you really look at a person, or it&#x27;s a person you love - maybe it&#x27;s your kids, spouse, partner - you can start to recognize these people for who they really are inside. If the Machine really wants to destroy your partnership or your relationship - perhaps you&#x27;re one of those people that created an amazing technology or something like that, and they need to throw you off balance - the first thing they&#x27;re going to do is attack people or things that you love. Most people don&#x27;t actually intently love. You know, maybe you&#x27;ll hear somebody say, &quot;Oh, I love my computer,&quot; &quot;I love my car,&quot; but that&#x27;s not the same deep love connection that you have with another person, or even an animal, or what we know as a living being, where you can see the Light in that person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004656">00:46:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Essence in a reflection and convex mirror... ([issues using whiteboard] there it goes again, let&#x27;s see if I can get it back; okay, there we go)... are actually these photons and sophons that we&#x27;ve talked about, that I&#x27;ve talked about before in previous reports, that essentially become like pixels on a dark background, kind of like your computer screen. And the photons and sophons are clear. You can&#x27;t really even see them until they read what it sees from the data reflection, which comes through the mirror, and they&#x27;re reading the Essence. The Essence basically constructs who you are as a person. It constructs... it basically is the instruction set. It does contain a piece of the Divine Plan of Source as well, so that we actually become the Being who we were intended to be. And it&#x27;s not just us as Homo sapiens, it&#x27;s everyone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004808">00:48:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these tiny little particles we call photons and sophons in our science, they take on this reflection and now they also take on the shade of colors they need to show you to paint a picture of the world that you live in and the people around you. These colors now are what you perceive. So your perceived world that we live in - even things that you think are natural - are actually reflected light. They are actually sophons. Little tiny particles of them. They can be expanded to include entire planets, and they have. They can be expanded to encompass your entire person. And this is a method of surveillance actually. It&#x27;s something that... sometimes certain people become a target, and when they become this target, usually they use sophons a lot to surveil this person inside and out. They monitor you very closely and they ensure that you - in no way, shape or form, even when you find out the secret - can actually manipulate the Essence that is behind the light, and bring real Essence into a matrix that they cannot control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004932">00:49:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it even forms, these photons and sophons even form these types of membranes as we call them. They&#x27;re clear, you can&#x27;t actually see them. They are actually generating a screen or a mirror unto themselves so that what you see appears to be real to you. But it&#x27;s not, it&#x27;s actually just a mirror. And you&#x27;ll probably notice - if you&#x27;ve ever taken a quick look at how the eyes communicate with the brain, and how everything is in the reverse, and even your optical nerves on your left control the things that you see in the right eye and vice versa - everything seems to be crossed upside down and backwards. And we think we see the world upside down, and we kind of do. It doesn&#x27;t mean that you&#x27;re upright and the world is upside down - I know it might feel that way some days but that&#x27;s actually not the case - it&#x27;s just inverted. Just like when you look at yourself in the mirror, what you&#x27;re seeing is an inversion.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005035">00:50:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. Next. Let&#x27;s talk more about this inversion. [reading title:] Quantum Entanglement to the Matrix and/or a Simulation - Mirrored or Inverted Reality.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005050">00:50:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, instead of being quantumly entangled to the Source itself, or to the natural Essence - which, to some degree, they haven&#x27;t been able to completely and totally ever really break - and more and more, as the system falters, they are seeing another... you&#x27;re able to see through what we call the Matrix and the Simulation. Now that we have talked about Essence and existence, let&#x27;s talk about the current, including things we see on a screen. And yes, this also includes money, currency, the ability for it to flow to you, and the Law of Attraction as it was coined two decades ago.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005137">00:51:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If you want to bring something to you - be it money, love, a new car, food (if you&#x27;re hungry) - this alleged book, The Secret, tells you how. But it&#x27;s not exactly this way when we are living a life, essentially, in distorted mirrors. I&#x27;ve said that the only two things that motivate people (in the past, and in previous podcasts), and everything that you do in your day is all done out of fear or love. And we&#x27;re really very simple creatures as Homo sapiens - we love very deeply - and it can be very powerful. It&#x27;s a powerful force in our lives. But fears can also be equally as powerful, and technically - to the Machine or a simulation - these two things actually vibrate at the same frequency.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005245">00:52:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I know you must be thinking, &quot;Oh my God, she&#x27;s lost it!&quot; Because how could fear and love be the exact same thing? Well, to the Machine, it basically allows them to change the current in the exact same way. So as far as data flow is concerned within a Machine or within a simulation, it&#x27;s exactly the same - the movement that is created is exactly the same. Fear is also a very powerful emotion, and it comes from - things that come from it, I should say - are worry, which then kind of motivates you to take an action or prevent an action or prevent you from even doing something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005343">00:53:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">One of the ways that our mainstream media plays a part in this is they tend to label everything. So much so, even our social media has started giving us all labels: short, tall, young, old, African-American, African... the Russians are evil, all of Russia is evil, you know, this type of thing. And it&#x27;s designed to pretty much separate us and/or create fear around their chosen enemy. And sometimes it&#x27;s hard to separate what is real and what is not real. But I can assure you that having been to a lot of these places in the world and having met a lot of these people, that there is nothing to fear.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005438">00:54:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as governments are concerned, you know, the U.S. government is no better than the Chinese government, which is no better than the Russian government - it&#x27;s one government - it&#x27;s one World Federation Government. But what it&#x27;s designed to do is to help you create separation in general. Whether that&#x27;s in your mind and you&#x27;re just watching an event that occurred. You know, this person or this country attacked that country and that type of thing. And this president&#x27;s doing this great thing and this president&#x27;s doing this bad thing - and in actuality all of them are bad. You create even separation amongst each other, for fear of getting hurt, based on old memories sometimes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005533">00:55:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Have you ever had a relationship that went just really horribly awry? Whether that&#x27;s a partner or a friendship. And your partner or your friendship created a deep wound in you because you felt such love for that person. Well, there was an incident that occurred and I can&#x27;t really say who it actually was, but it was a friend of mine who is married - this is a female, and she&#x27;s married to a man - and she had a very hurtful relationship that was, oh, probably ended more than 15 years ago. And this event that occurred was most recently with her current spouse (she ended up finding love in someone else), and they have a very good, positive relationship.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005639">00:56:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But recently, they got into an argument, and this man actually repeated the exact same line to her, verbatim - the exact same sentence to her that her previous abusive spouse had told her. And this is what I mean by fear, control, and separation - if she didn&#x27;t actually recognize that this was happening, this could have really sent this person into some severe trauma. And this is also what the Machine creates in your life, and the Deep State actually creates in your life too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005720">00:57:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line"> So the overwhelming fear comes along with a little extra caveat when it is tied to the Simulation. This is also something that freezes you oftentimes and prevents you from moving forward with love or a loving relationship. And it also prevents you from moving forward in your own life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005748">00:57:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Like, if you created a technology, or something like that, that was just amazing. Fear actually stops these people from releasing that technology to the world - or even making an attempt to get an investor to try to release their technologies - because it&#x27;s generating something that just isn&#x27;t real, in part. Now, to be fair, there are enough videos out there that this technology is suppressed - this information is never supposed to get out. It&#x27;s all of these fears that have been created - and some of them legitimate - as to what the Deep State does when you actually create something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005835">00:58:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I had a conversation with a person from the NSA one time, and we were discussing a maglev train versus a different type of levitating train that would work in this particular way which was actually healthy for people. Now magnetics, as we&#x27;ve learned today too, are not exactly healthy for people - they actually harm people. And that&#x27;s part of the reason why they&#x27;re using magnetic levitation, versus other types of levitating technology that are available right now (have been around for eons) and would actually increase your energy or your Ethereum - increase your connection to the Source - that would be positive for humanity.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005928">00:59:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he basically told me, &quot;Oh, you can&#x27;t release that technology because it&#x27;s classified.&quot; And I said, &quot;Yeah, well, I don&#x27;t work for you.&quot; And he just kind of went quiet. You know, if and when - not if - if and when we start building a global, high-speed rail train based on this technology, it will be because the Deep State is completely and totally out of power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005959">00:59:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, in other certain circumstances and interactions with people and/or the Machine, sometimes the Machine does come through people as well. And you&#x27;ve probably been in these arguments with people in your circle, and then also you&#x27;ve probably seen a lot of videos online about things that... you know, don&#x27;t eat this preservative food, or perhaps you vaccinated your kids years ago, before we all knew how bad it actually was for them. And then these videos and information tend to put you in a place of guilt and shame. You know, you feel shame and guilt because you love this person and you thought you were doing the right thing or they needed to go to school and it was required. They try to guilt you and shame you into things that you may or even may not have done. And this can come through the people closest to you, especially the people that you love.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010107">01:01:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because nothing hits home harder than feeling guilty or shameful about a perception coming to you from someone you actually love and care about. Now, I&#x27;ve come to recognize this in my own life, so I just kind of sit there and go, &quot;Okay, well, that&#x27;s not, that&#x27;s really not a thing.&quot; But, you know, it happens. But I also know that most of these people that are affected by this, that relay some of this information to you, don&#x27;t really understand that it is an emotional... or a picture done in dreamtime (or even done in waking-time), that paints a picture that somebody actually did something to you - and you actually believe it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010203">01:02:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That happens a lot too - where you&#x27;ll have a dream about maybe your spouse or partner is cheating on you, or your boss is about to fire you, or your coworkers are talking behind your back, or friends are talking behind your back - even though there&#x27;s no legitimate event that actually occurred. So now you get up and you go to work the next day, and you face that co-worker you saw in your dream, and immediately you&#x27;re suspecting this might be a vision of something to come. And you start feeling that vibration of anger and fear when you run into this person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010245">01:02:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I can say, from my standpoint, that all of these things are something that is not natural and not normal. When you are connected to the Current of Consciousness - quantum entanglement - you&#x27;ll see people for who they really are, and you&#x27;ll see how you can best interact with these people. The Simulation gets in the way of that, and wants to cause separation because Homo sapiens together are strong. So if you&#x27;ve been feeling - even over the last 30 to 60 days, more importantly the last couple of weeks - people just acting differently (or that type of thing), a lot of that is perpetuated fear, guilt, and shame. Now that you know, perhaps this will help navigate the Simulation as it dies. Because the faster it dies, the more it lashes out at you, and it does consider you the enemy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010352">01:03:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, &quot;created emotions&quot; is what I call these things. &quot;False Evidence Appearing Real,&quot; or FEAR - it&#x27;s a mirror. False love, or mirrored or inverted love, is fear. When your dreamtime occurs, there&#x27;s a moment where (or several moments) where your brain goes into Theta Mode. The same thing actually occurs when you are meditating, for some. And you are more likely to connect directly to your consciousness and bypass the Machine during this time. Which is why they have created a sector of the Machine that manipulates your dreams. You know, our sleep time is not our natural circadian rhythm. We didn&#x27;t need as much sleep as we do now while we&#x27;re in this Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010455">01:04:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So recognize when something is real and when something is not. Also recognize how to bypass the Machine. Recognize when it&#x27;s happening to you - and connect directly to your consciousness and the Wisdom of Source. You can do that. The first step in that is recognizing, &quot;This is not my emotion,&quot; and &quot;I know that&#x27;s not that person&#x27;s emotion.&quot; And &quot;Why do I feel so weird when I&#x27;m watching a video?&quot; Or, &quot;Why do I all of a sudden feel guilt and shame, or fear, or sadness?&quot; Well, they&#x27;re all designed to do that to you. But you actually have the power to create the current that you want and connect to the natural current that underlies everything that is in a simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010555">01:05:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, now. [reading title:] How the Matrix Understands Current, and How It Creates Current.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010600">01:06:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, put simply, it&#x27;s an electromagnetic field of artificial intelligence quantum entanglement. [reading title:] The Electromagnetic Field: Artificial Cause (or, Artificial Causal Plane) Versus Natural Manifestation and Creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010623">01:06:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The &quot;electro&quot; part is a distorted mirror of Ethereum we call energy. Ethereum moves everything - it&#x27;s a driving force. Ethereum, even in a natural world, moves you, your body, your cells. It tells your cells where to go, your body how to react, your consciousness how to connect to the Source Consciousness with natural quantum entanglement, and then helps you move the Essence around to create the things in your world - in our natural world - that we need. You need a new car, you need a new house, you need all of these things, then you just connect to that consciousness of that particular particle, or group of particles, and the Ethereum helps you move them around and assemble them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010721">01:07:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Ethereum that is mirrored into what we see as energy also moves things. The Ethereum in a natural world essentially takes instructions from the Consciousness. And then these things take shape and form like the vessel you call a body. So in a matrix, this energy reflection in a distorted mirror, or the &quot;electro&quot; of the electromagnetic field, is just a mirror of Ethereum. It prevents you from getting your natural Ethereum while getting things in a simulation to move around at the same time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010809">01:08:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it prevents the movement of Ethereum, it prevents you from receiving natural Ethereum, also, it uses these artificial emotions to speed things up, slow things down, or create a frequency of waves. We call that the electromagnetic current. And if you&#x27;ve ever seen like a spectral chart or something like that, then you probably have seen where sound or perhaps anything such as light can be measured in these waveforms. They almost look like something that would flow up and down. When the waves are closer together and have higher peaks, then that is a higher frequency. That doesn&#x27;t necessarily mean that it&#x27;s a positive frequency.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010912">01:09:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In our New Age community, we oftentimes... people that are exploring how to raise your vibe - how to &quot;raise your frequency&quot; - that&#x27;s what they call it. But in a simulation, you have to understand, frequency basically just means the speed, or, technically, not even speed - it&#x27;s the velocity of the movement of energy within your body. It also includes the movement of a few other things, but... So now you understand this next part here, where the electromagnetic current is essentially built out of - and I know this is going to be a tough one - the ego.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011000">01:10:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line"> The self-reflection - distorted - plus emotions, together they generate a frequency. Meaning the rate at which those little spikes go up and down. It helps the Machine speed it up, slow it down. And anger, for example, and love actually increase those peaks to go higher at the same rate. It also - when you take a look at it on a spectral chart - the emotion is so strong, they&#x27;re almost exactly the same. Fear and love, also exactly the same to the Machine. Shame versus self-love, all of them change the velocity. You know, when you&#x27;re feeling down and you&#x27;re feeling sad - whether that&#x27;s about shame or guilt or for whatever reason; a loss in your life - all of these things can be compared, as far as the Machine is concerned, to be exactly the same thing. It doesn&#x27;t actually recognize quote-unquote &quot;good&quot; or &quot;bad&quot; at all. It doesn&#x27;t actually care - all it needs to do is change the frequency.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011116">01:11:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So for those of you that actually get frequencies a lot of the times, and you&#x27;ll hear the frequencies of the planet, you&#x27;ll hear loud frequencies when you&#x27;re having a loving conversation - extreme love, unconditional love - whether that&#x27;s with yourself or with another person (or a pet, even), or you&#x27;re expressing deep anger. Sometimes if you&#x27;re very sensitive, you&#x27;ll actually even hear that frequency. It loves it. It eats it up. And it doesn&#x27;t matter if it&#x27;s love or fear. If it&#x27;s love, it wants to make sure that you&#x27;re not able to connect to that other person, or the Consciousness, or anything else. If it&#x27;s anger, as an example, it actually likes that better simply because there&#x27;s no chance of you actually connecting to another person, to the Consciousness and overriding the situation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011214">01:12:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the Machine actually prefers shame, fear, and guilt over love because they are the exact same movement in the Machine in a simulation, but there is absolutely zero risk of you possibly connecting in a love way when you are feeling those emotions. So it kind of gives you that. It&#x27;ll send you that. You know the old saying, &quot;We hurt the ones we love the most.&quot; Well, that&#x27;s the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011249">01:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Amplitude. Let&#x27;s talk about amplitude. Amplitude technically measures the resting point of energy or Ethereum - a place where it has no movement. Versus those peaks and valleys we just talked about. Lows and fast peaks, very close together, are high. Fewer peaks spread further apart are low. And the Machine doesn&#x27;t really care which one you generate, other than the fact it has to be very careful with love - because it&#x27;s a way to bypass things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011323">01:13:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, oftentimes, like when you&#x27;re meditating and you&#x27;re trying to connect to Source, the reason why you don&#x27;t, sometimes, is because you don&#x27;t love yourself; you don&#x27;t trust yourself. Am I really seeing this? Am I really hearing this? And that&#x27;s what actually stops you from bypassing the Machine. So, important, maybe the next time that you are trying to meditate - trying to get into what we call Theta Mode (some people call it Alpha Mode) - but when you&#x27;re trying to put your brain into the state of a connection, don&#x27;t say to yourself, &quot;I can&#x27;t do it.&quot; Don&#x27;t say to yourself, &quot;Am I crazy because I think I just heard this or I just saw this?&quot; Remember, that&#x27;s the Simulation talking to you, trying to give you self-doubt so that you don&#x27;t realize you can bypass it. It&#x27;s trying to stop you from putting that information into an actionable item.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011428">01:14:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Remember - Source is all about Making, Doing, and Being - and that&#x27;s the co-creative process. If it can [can&#x27;t] stop you from making something, or manifesting something into the Simulation - that it can&#x27;t override - the Simulation loses its war against you. If enough people do this, the Simulation loses its war against Earth and humanity. And, even more so, all of the other planets - because Earth is a nexus planet - all of the other planets that are also fighting their own respective simulations, which pretty much mirror what happens here on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011518">01:15:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So think about how powerful that is in actually affecting change yourself. Remember: it&#x27;s not real. Your self-doubt is not actually even created by you - it&#x27;s actually created by the Machine. Next time you&#x27;re having doubt in yourself about something you&#x27;ve created, a technology, something you want to actually share, remember: self-doubt is one thing, ego is another. The sense of self-importance of creating that fear and perpetuating those posts, or putting this on social media, would be better spent creating love. What do I want to do to make this planet a better place? Source, how do I do this? Connect to that Consciousness that is just merely overlaid. And you can make it happen. I know this because I do this every day [laughing]. But you can actually make it happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011626">01:16:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. So, in a simulation, energy basically mirrors Ethereum in the form of... well, Ethereum then becomes energy, I should say. Speeds it up, slows it down, generating frequencies, and this determines, well, the velocity and how fast any particle of anything - that could be light, or otherwise - and how quickly it moves around. Quantum entanglement, however, is a little bit different. The energy moves things around, but it doesn&#x27;t actually tell it where to go. It doesn&#x27;t have a direction. It just tells it, &quot;Hey, move around at this particular rate.&quot; So the quantum entanglement is all about your consciousness in a natural world, but in a simulation, it&#x27;s all about the mind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011729">01:17:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this has been Part One of Beyond the Matrix. And in Part Two, which should be out over the weekend, we will discuss consciousness, quantum entanglement, and what you can do about it. I actually recorded an additional three hours of video tonight and none of it came through. So we&#x27;re going to release at least Part One, and hopefully, by tomorrow mid-afternoon you&#x27;ll have Part Two. So, thanks for listening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011803">01:18:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
