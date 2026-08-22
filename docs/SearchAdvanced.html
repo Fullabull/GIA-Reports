@@ -151,6 +151,34 @@
     display: flex;
   }
 
+  .basic-panel {
+    display: none;
+  }
+
+  .basic-panel.ready {
+    display: block;
+  }
+
+  .basic-panel.basic-panel-active {
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--search-advanced-bg);
+    border: 1px solid var(--search-advanced-border);
+    border-left: 4px solid #159E66;
+    border-radius: 6px;
+    box-shadow:
+      0 10px 28px rgba(0,0,0,0.45),
+      0 0 0 1px var(--search-advanced-glow);
+  }
+
+  .basic-panel-heading {
+    display: none;
+  }
+
+  .basic-panel.basic-panel-active .basic-panel-heading {
+    display: block;
+  }
+
   #searchForm {
     display: flex;
     flex-direction: column;
@@ -173,6 +201,12 @@
   .row-options {
     font-size: 0.95rem;
     padding-top: 0.15rem;
+  }
+
+  .search-scope-note {
+    font-size: 0.82rem;
+    color: var(--search-text-muted);
+    line-height: 1.2;
   }
 
   #backButton,
@@ -539,8 +573,10 @@
 
     <div id="advancedPanel" class="advanced-panel-hidden" style="padding:12px; margin-top:10px;">
 
-      <div style="font-size:1.05rem; font-weight:600; margin-bottom:10px; color:var(--search-text);">
-        Advanced Search
+      <div style="margin-bottom:10px; color:var(--search-text);"
+           title="AND, OR, NOT, and grouping are evaluated within individual lines.">
+        <div style="font-size:1.05rem; font-weight:600;">Advanced Search</div>
+        <div class="search-scope-note">Line-level matching</div>
       </div>
 
       <div style="border-top:1px solid rgba(124,196,255,0.18); margin:0 0 10px 0;"></div>
@@ -575,30 +611,6 @@
 
         </div>
 
-        <!-- RIGHT SIDE -->
-        <div style="display:flex; align-items:center; gap:0.6rem;">
-
-          <label>
-            Sort:
-            <select id="advancedSortOrder">
-              <option value="newest" selected>Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </label>
-
-          <label>
-            Max:
-            <select id="advancedMaxRows">
-              <option value="25">25</option>
-              <option value="50" selected>50</option>
-              <option value="100">100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-            </select>
-          </label>
-
-        </div>
-
       </div>
 
       <!-- ADVANCED ROWS -->
@@ -613,8 +625,16 @@
       </div>
     </div>
 
-    <div id="searchRow" class="search-row">
-      <form id="searchForm">
+    <div id="basicPanel" class="basic-panel basic-panel-active">
+      <div class="basic-panel-heading"
+           title="Basic search selects or excludes whole report files."
+           style="margin-bottom:10px; color:var(--search-text);">
+        <div style="font-size:1.05rem; font-weight:600;">Basic Search</div>
+        <div class="search-scope-note">File-level matching</div>
+      </div>
+
+      <div id="searchRow" class="search-row">
+        <form id="searchForm">
 
         <!-- SEARCH FIELD -->
         <div class="row row-main">
@@ -667,14 +687,16 @@
           </select>
 
         <div style="display:flex; flex-direction:column; gap:0.15rem;">
-        <label title="Treat uppercase and lowercase letters as the same."> <input id="ignoreCaseCheckbox" type="checkbox" checked> Ignore Case </label>
+        <label title="Match uppercase and lowercase letters exactly."> <input id="basicCaseSensitiveCheckbox" type="checkbox"> Case Sensitive </label>
         <label title="Include leading labels such as Kim: and Sunny: in search results."> <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels </label>
         </div>
 
         </div>
 
 
-      </form>    </div>
+        </form>
+      </div>
+    </div>
 
     <div id="selectionBar" class="selection-bar">
       <span id="selectionCount" class="selection-count">Selected: 0</span>
@@ -734,7 +756,7 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     (function () {
-      const TOOL_VERSION = '2026-08-21.231518';
+      const TOOL_VERSION = '2026-08-22.001833';
       const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
       const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
@@ -751,13 +773,14 @@
       const caseTypeEl = document.getElementById('caseType');
       const matchTypeEl = document.getElementById('matchType');
       const excludeFilesCheckboxEl = document.getElementById('excludeFilesCheckbox');
-      const ignoreCaseCheckboxEl = document.getElementById('ignoreCaseCheckbox');
+      const basicCaseSensitiveCheckboxEl = document.getElementById('basicCaseSensitiveCheckbox');
       const includeSpeakerLabelsCheckboxEl = document.getElementById('includeSpeakerLabelsCheckbox');
       const resetButtonEl = document.getElementById('resetButton');
       const maxRowsEl = document.getElementById('maxRows');
       const resultsEl = document.getElementById('results');
       const searchFormEl = document.getElementById('searchForm');
       const searchInputEl = document.getElementById('searchInput');
+      const basicPanelEl = document.getElementById('basicPanel');
       const searchRowEl = document.getElementById('searchRow');
       const sortOrderEl = document.getElementById('sortOrder');
       const statusEl = document.getElementById('status');
@@ -774,8 +797,6 @@
       const btnAdvancedClearEl = document.getElementById('btnAdvancedClear');
       const btnAdvancedCloseEl = document.getElementById('btnAdvancedClose');
       const advancedMatchTypeEl = document.getElementById('advancedMatchType');
-      const advancedSortOrderEl = document.getElementById('advancedSortOrder');
-      const advancedMaxRowsEl = document.getElementById('advancedMaxRows');
       const caseSensitiveCheckboxEl = document.getElementById('caseSensitiveCheckbox');
 
       const selectionBarEl = document.getElementById('selectionBar');
@@ -949,16 +970,16 @@
 
         if (settings.caseType) {
           caseTypeEl.value = settings.caseType;
-          ignoreCaseCheckboxEl.checked = (settings.caseType === 'insensitive');
+          basicCaseSensitiveCheckboxEl.checked = (settings.caseType === 'sensitive');
           caseSensitiveCheckboxEl.checked = (settings.caseType === 'sensitive');
         }
 
         if (settings.sortOrder) {
-          sortOrderEl.value = advancedSortOrderEl.value = settings.sortOrder;
+          sortOrderEl.value = settings.sortOrder;
         }
 
         if (settings.maxRows) {
-          maxRowsEl.value = advancedMaxRowsEl.value = settings.maxRows;
+          maxRowsEl.value = settings.maxRows;
         }
 
         if (typeof settings.speakerLabels === 'boolean') {
@@ -1130,7 +1151,7 @@
 
       caseSensitiveCheckboxEl.addEventListener('change', function () {
         caseTypeEl.value = this.checked ? 'sensitive' : 'insensitive';
-        ignoreCaseCheckboxEl.checked = !this.checked;
+        basicCaseSensitiveCheckboxEl.checked = this.checked;
       });
 
       searchInputEl.addEventListener('input', updateFindButtonState);
@@ -1189,8 +1210,6 @@
 
       function syncAdvancedControlsFromMain() {
         advancedMatchTypeEl.value = matchTypeEl.value;
-        advancedSortOrderEl.value = sortOrderEl.value;
-        advancedMaxRowsEl.value = maxRowsEl.value;
         caseSensitiveCheckboxEl.checked = (caseTypeEl.value === 'sensitive');
       }
 
@@ -2824,8 +2843,8 @@
         }).join(' ');
       }
 
-      ignoreCaseCheckboxEl.addEventListener('change', function () {
-        caseTypeEl.value = this.checked ? 'insensitive' : 'sensitive';
+      basicCaseSensitiveCheckboxEl.addEventListener('change', function () {
+        caseTypeEl.value = this.checked ? 'sensitive' : 'insensitive';
         caseTypeEl.dispatchEvent(new Event('change'));
       });
 
@@ -2997,32 +3016,12 @@
       });
 
       sortOrderEl.addEventListener('change', function () {
-        advancedSortOrderEl.value = sortOrderEl.value;
-
-        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
-          rerenderCurrentResults();
-        }
-      });
-
-      advancedSortOrderEl.addEventListener('change', function () {
-        sortOrderEl.value = advancedSortOrderEl.value;
-
         if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
           rerenderCurrentResults();
         }
       });
 
       maxRowsEl.addEventListener('change', function () {
-        advancedMaxRowsEl.value = maxRowsEl.value;
-
-        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
-          rerenderCurrentResults();
-        }
-      });
-
-      advancedMaxRowsEl.addEventListener('change', function () {
-        maxRowsEl.value = advancedMaxRowsEl.value;
-
         if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
           rerenderCurrentResults();
         }
@@ -3464,6 +3463,7 @@
 
           updateStatusBar();
           searchRowEl.classList.add('ready');
+        basicPanelEl.classList.add('ready');
           updateSelectionCount();
           searchInputEl.focus();
 
@@ -3573,8 +3573,8 @@
           return Promise.resolve(runSearch(simpleQuery, {
             matchType: payload.matchType === 'whole' ? 'whole' : 'substring',
             caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
-            sortOrder: advancedSortOrderEl.value,
-            maxRows: parseInt(advancedMaxRowsEl.value, 10) || 50,
+            sortOrder: sortOrderEl.value,
+            maxRows: parseInt(maxRowsEl.value, 10) || 50,
             excludeFiles: false
           }));
         }
@@ -3582,8 +3582,8 @@
         console.log('SERVER SEARCH PATH (advanced logic detected).');
 
         return runServerSearch(payload, {
-          sortOrder: advancedSortOrderEl.value,
-          maxRows: parseInt(advancedMaxRowsEl.value, 10) || 50
+          sortOrder: sortOrderEl.value,
+          maxRows: parseInt(maxRowsEl.value, 10) || 50
         });
       }
 
@@ -3832,12 +3832,13 @@
         matchTypeEl.value = advancedMatchTypeEl.value;
         caseSensitiveCheckboxEl.checked = (payload.caseSensitive === true);
         caseTypeEl.value = payload.caseSensitive ? 'sensitive' : 'insensitive';
-        ignoreCaseCheckboxEl.checked = !payload.caseSensitive;
+        basicCaseSensitiveCheckboxEl.checked = (payload.caseSensitive === true);
         updateAdvancedSearchButtonState();
       }
 
       function openAdvancedPanel() {
         syncAdvancedControlsFromMain();
+        basicPanelEl.classList.remove('basic-panel-active');
 
         advancedPanelEl.classList.remove('advanced-panel-hidden');
         advancedPanelEl.classList.add('advanced-panel-enter');
@@ -3864,6 +3865,7 @@
         advancedPanelEl.classList.add('advanced-panel-enter');
 
         setBasicSearchEnabled(true);
+        basicPanelEl.classList.add('basic-panel-active');
         advancedOpenPreference = false;
 
         setTimeout(function () {
