@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Aug-21</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Aug-21 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>2
+        <br>2026-Aug-21
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260821_GIA-Report_2.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000035">00:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay everyone, we&#x27;re going to go ahead and continue with Part Two of Beyond the Matrix. Now I know everybody feels a little bit confused - there&#x27;s a lot of change happening, all at the same time. And the reason why we&#x27;re releasing this series (or this short little series) of Beyond the Matrix is because we all want to talk about the Deep State news. I know some people have felt like the GIA format has changed. We just want the juice behind what&#x27;s really happening. And you will still have that with Declassified - Beyond the Headlines. We&#x27;ll talk about what the media is saying, and what is really happening behind the media, behind the headlines of what you&#x27;re seeing - both in the alternative media as well as the actual news that we&#x27;re seeing in the mainstream media. So you&#x27;ll still have all of the things you&#x27;re looking for, so just trust me when I tell you this Beyond the Matrix series, as we move forward into it, is actually going to give you the how.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000137">00:01:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, we&#x27;ve talked about how governments are broke, but yet they&#x27;re still here. We have talked a little bit about how people have actually died - that we see as Deep State - but yet they&#x27;re still here. And how are they able to start wars and earthquakes and weather events and the heat in Europe, and all of the things you&#x27;re questioning right now in the world of chaos. As the animal dies there&#x27;s going to be turmoil. They&#x27;re going to lash out at us. Things are changing behind the scenes. I know it doesn&#x27;t feel like it, and it actually is feeling like it&#x27;s more chaotic now than it has ever been - and this is what happens when you&#x27;re this close to destroying your enemy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000225">00:02:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, over the years we have talked about Martial Law, we have talked about the Treasury, we have talked about all kinds of things that are happening in our world, not just in the U.S. We&#x27;ve talked about COVID and lockdowns and pandemics and the story behind the story. And we&#x27;ve come to realize a few things. Number 1: fighting against the Deep State on their own turf, when they still have access to superior technology so deep that it&#x27;s just not possible. [Number 2:] Changing the mind of governments, the World Federation, the Abraxas, the Draco, and all the people we have talked about, and non-people we have talked about over the years - is just not possible. In order for us to move forward in a way that we all can understand, in a world full of chaos, we have to take a deep breath. We have to understand the how - how do they do it? How do these people keep showing up, day after day and week after week - when thousands of them have gone missing. How?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000335">00:03:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, today you&#x27;re going to learn the how, and what we have discovered together. And how we can move forward together - and what you can actually do about it. But in order to do something you have to understand what it is first. You have to understand how the Deep State has this much power here. And what if you could take out the Deep State yourself? This is what Beyond the Matrix is designed to do. It&#x27;s designed to help you understand how it all works, and to give you the tools you need to make change in a world that seems overwhelming - where things are flying at you right now, one after the other: solar eclipse, Lions Gate... you know, you&#x27;ve all felt it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000421">00:04:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve watched the comments - I know you&#x27;re all feeling it. Even people within UNN are feeling it. Change is difficult, but it&#x27;s not impossible. And we&#x27;re about to go through some of the biggest changes that Homo sapiens and humanity have ever faced. And I feel that it&#x27;s my responsibility to at least deliver to you the truth - help you to understand those changes - so as things get chaotic here towards the end, you can navigate your own life, the people around you, and your world, and even change it. That&#x27;s what we&#x27;ve all always wanted to do is change it. And you&#x27;re going to learn how in this series.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000501">00:05:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I understand this might not be for everyone - I completely understand that. But for the people who are changing the world, and truly want to change the way things are done, you&#x27;re gonna understand a little bit more about yourself. You&#x27;re gonna have to face some things that are difficult to face, and even impossible to understand. So just have a listen - hear me out. I&#x27;ve never tried to steer you wrong in any way, shape, or form before, and I&#x27;m certainly not doing that now. It&#x27;s just the truth and that&#x27;s what Beyond the Matrix does.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000535">00:05:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, in Part One we discussed a little bit about the Simulation, and we went over a few ways that the Simulation has affected me in my own life. And how it actually is even affecting me a little bit now. As we go forward things have also affected all of you. You know, you&#x27;re watching YouTube, it&#x27;s very confusing; you&#x27;re watching other videos, it&#x27;s all very confusing - and there just seems to be nothing you can do. You know, you feel overwhelmed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000606">00:06:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And part of this is done with this electromagnetic field that I talked about in Part One. Putting you into fear mode basically makes that energy - the mirror of the energy - speed up, slow down, makes you feel like your adrenaline is pumping, even when it&#x27;s not. Makes your mind race. If you&#x27;ve ever felt like you can&#x27;t sleep because your mind is just going round and round and round with all of the world events, or there&#x27;s lots of things at the same time going on within your family, within your friends. You feel like you&#x27;ve hit a brick wall in the middle of the day - you&#x27;re at work and you&#x27;re so tired you can barely keep your eyes open - and you need a nap all of the sudden. Well, that&#x27;s the Matrix. And this brings us to the next part - of how all of this affects you, and what you can do about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000659">00:06:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we talked about the &quot;electro&quot; part, or the mirror of Ethereum in our world, in our simulated world, or the Matrix. And now we&#x27;re going to talk about the magnetic part of the electromagnetic field. We&#x27;re going to talk about the difference between how it occurs in a natural world, versus what we have been witnessing our whole life, and even past lifetimes. So understanding the attacks - what feels like these directed energy weapons, both on yourself and on Earth itself - and how it perpetuates events around us, and actually how they use us to do it. It doesn&#x27;t have to be this way. So next, we&#x27;re going to start to talk deeply about Consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000748">00:07:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now Consciousness, just to kind of give you an overview on what it is: it&#x27;s not just being mindful; it&#x27;s not just meditating and trying to find that inner wisdom. It also creates things like gravity. It also creates things like quantum entanglement. It entangles you with an artificial world. And I&#x27;m going to explain how it&#x27;s done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000814">00:08:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Consciousness basically is the direction for the Ethereum. And in a natural world, Consciousness says to the Ethereum, &quot;Okay, thanks for the movement.&quot; Now body, mind, soul, planet, the world around us - money, current, current and flowing money to you, the Law of Attraction, and all of these things that you&#x27;ve heard about over the years - are kind of on the move. You&#x27;re moving things in your direction or moving things out of your direction, or trying to, anyway, and the Ethereum is now saying, &quot;Where are we going?&quot; Okay we&#x27;re on the move, yaay! Where are we going? Are we going in the same direction? What shape do you want us particles to be in that we&#x27;re moving? Where are we moving all of these things to?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000859">00:08:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So like a sculptor with a piece of raw clay - that is the Essence in our world, in a natural world - the sculptor has a vision. The sculptor takes a look at that raw piece of clay and then tries to mold it into something beautiful that we call art. And manifesting, too, is an art; it&#x27;s an art form. Being able to bring something to life that&#x27;s so beautiful and amazing. And what if you could do that with our world? What if Source can do that in a natural world?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000933">00:09:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Together we shape those things into the world that we live in, in a natural world. In a Matrix we&#x27;re not quite so connected to Source itself - we&#x27;re merely getting an inverted version of our Consciousness. But, to continue on with the natural way of doing things... and then I&#x27;m going to pull it all together, on how you can use the natural way of doing things to even manipulate the Matrix and the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001003">00:10:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, Consciousness is the direction of what you want the piece of clay to look like in a natural world. The Consciousness of you and the Consciousness of Source and the Consciousness of Earth itself and the Consciousness of everything around you - like trees, plants, and animals - together, we weave the world we live in, in a natural world. In a natural world, we absolutely understand how your vision would impact everyone and everything around you. Every move you make, every decision or thought you have of a possible creation doesn&#x27;t happen just of the self, it happens as a collective as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001050">00:10:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because in a natural world we&#x27;re all quantumly entangled with each other. We understand the impact we make on our family, our friends, the world at large. When we create a new technology, as an example, we understand the impact it&#x27;s going to have on Earth before we even create it. Because you understand the impact that you&#x27;re having on the world and because we&#x27;re all interconnected - the entire Universe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001119">00:11:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, Source&#x27;s part, in a natural world, is the kind conductor of this orchestra, let&#x27;s say. Do we really need one million unicorns? I know that you&#x27;ve had this thought that that would be fun here on Earth. Maybe your seven-year-old self has even said, &quot;Wow, unicorns should be real!&quot; And you would get a vision instantly on the impact this would have on the world we live in and on everything in it. And you would understand then, naturally, what the next steps are, and maybe there is a better way to have unicorns be a part of our life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001159">00:11:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Consciousness is not only how we affect the world around us, manifestation and creation of things, it&#x27;s also how you connect with every piece of your body. Even in a Matrix, it&#x27;s still possible to override it: how you connect with your cells; how your cells all connect with each other; how to eradicate things that are existing in your body that might be making you feel uncomfortable - aches, pains, aging, all kinds of things. It&#x27;s not only the Consciousness from within your own self, but it&#x27;s also the Consciousness from without. As Consciousness also creates quantum entanglement with yourself and with the world around you and every single thing in it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001249">00:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[reading title:] Consciousness in a Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001252">00:12:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The mirror of your Consciousness is what we call the MIND. Now don&#x27;t confuse the MIND with necessarily the brain, although they&#x27;re tied together. One is part of your physical vessel - or the Matrix-created vessel that we see - and the MIND is a database: the Matrix Integrated Network Database. And there is a second MIND that is the Memory Integrated Network Database.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001320">00:13:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, when I say &quot;memories,&quot; it&#x27;s not just memories of past lives, past things that have happened before - it&#x27;s actually memories past, present, and future. Because the memory database has a way of distorting - or mirroring and inverting - thoughts you even have of memories to come, before you even have them. The MATRIX is technically the Memory ARCHON Temporal Resonance Integrated of Factor-X. MATRIX is an anagram. It represents, in the Matrix, the unknown factor as X: the Source Secret Sauce we keep talking about that the system and the Matrix does not understand; the quantum equation that science cannot solve. The X-factor here is where the mirror of the Source Special Sauce - that is within all of you, and all organic creation, and comes from Source itself - in a way that the Matrix and a Simulation cannot understand. It&#x27;s one that they can never define until it comes past that Secret Sauce phase and actually starts moving into Consciousness, causing things to move, and take shape and form in a direction. They copy it, and reform it into something they refer to as the &quot;unknown.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001449">00:14:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Remember Unknown Country? The &quot;unknown&quot; is all based on what they call Source Factor-X or Source Code-X. We&#x27;re going to talk more, as we go on in the series, about Source Factor-X. But right now I&#x27;m going to stick with Consciousness in the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001509">00:15:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Consciousness is responsible for two things. Quantum entanglement and the movement and the shape that our world actually takes. It&#x27;s not just your connection to Source, but it does give you direction from Source as to the next steps and moves, because part of Consciousness is the Wisdom. Part of Consciousness, it intertwines with that Secret Sauce of Source and the Divine Plan of everything in the world, and everything in the Universe. In a Matrix, it&#x27;s magnetic, meaning it quantumly entangles us to the MIND and to artificial memories, so that we can form and shape our world through its eyes, and not even through our own.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001556">00:15:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The magnetic part of the electromagnetic field is what is referred to as the quantum entanglement via Consciousness with the Source Creation. Your Consciousness in a Matrix is called the MIND, as we just talked about. The Consciousness mirrored is your artificial memories past, present and future, uploaded and entangled with your physical vessel part we call the brain. Once the natural Consciousness is mirrored, then every tiny little particle of it is overlaid with the Blue MIND, and this is the artificial magnetic. It is also the artificial gravity. Because Earth&#x27;s Consciousness is also overlaid with the MIND and artificial memories. The MIND then takes those natural memories, thoughts of you and Source, and distorts it, then gives you thoughts that are not your own. And actions that it wants you to take or create, based on its artificial shaping of reality. Using your own emotions to distort it in the false reflection of yourself we call the Ego. And that&#x27;s kind of dastardly, isn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001713">00:17:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Ego serves yet another function here, in that it says things like, &quot;I am the best thing ever,&quot; and &quot;I am the best at this thing ever.&quot; &quot;No one knows this better than me.&quot; &quot;I know what I saw.&quot; &quot;I know what I heard.&quot; &quot;I know what this is.&quot; &quot;I&#x27;ve watched this video about how it all works and I&#x27;ve been doing this for 20 years.&quot; And just when you think you have a direction or an understanding of whatever it is, the failure to see beyond the MIND and into that Consciousness connection - to the possibility that it&#x27;s not exactly what your Ego is telling you it is - is really difficult.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001753">00:17:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Here comes that &quot;I&quot; again, and your world goes back to not accepting anything from anyone - because you have already determined and shaped what you believe you think you know. And just when you think you know it all - or you&#x27;ve been practicing this or practicing that, and you feel it&#x27;s the right way to do things - your Consciousness kicks in for a second and tells you this might not be real. And then the Matrix fights back at you and says &quot;Oh, no no no no no! Don&#x27;t listen to that new information coming in because you&#x27;ve already learned all of this. Just keep doing what you&#x27;re doing. Keep going. You know it all. You know everything and here&#x27;s what it is.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001832">00:18:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">&quot;You need to do your shadow work,&quot; people say. Well, you can&#x27;t manipulate your own shadow because your shadow is the Matrix. And it&#x27;s manipulated by somebody else. And created and redefined constantly by the quote-unquote &quot;mind&quot; [MIND], giving you a false perception of not only yourself, but people around you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001854">00:18:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And when it can&#x27;t override you by taking a look at something that is false, it&#x27;s going to throw emotion into the works: now you&#x27;re feeling it - you feel everything. We go through life feeling things. And when someone tries to tell you something new, or you&#x27;re starting to see some new information coming into the world - that&#x27;s not the same churned information we&#x27;re seeing in the media churn mill we&#x27;re calling &quot;churnalism&quot; now - you start to get angry. Pretty much the initial reaction is anger - angry at the world. Then there&#x27;s fear: &quot;Oh my God! Have I been doing this wrong all the time?&quot; Then there&#x27;s guilt and shame: &quot;Oh my God, I&#x27;ve done something wrong. I helped the Matrix.&quot; Or, &quot;Shame on So-and-so for not believing this other person whose videos I&#x27;ve watched intently!&quot; You know? And on-and-on we go. And what does this do? It sends you into a spiral so you don&#x27;t connect to that Consciousness part of yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001955">00:19:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Ego basically prevents you from seeing what is real. And when you feel it coming and you hear those thoughts in your head, you can override it. You can say to yourself, &quot;Okay, I&#x27;m going to sit here, and I&#x27;m going to take 10 deep breaths. And I&#x27;m going to remember that my Consciousness is not gone - it&#x27;s just reflecting a database back to me that&#x27;s not real. I understand that the world is changing and maybe I have to change a little bit with it. And what does life look like beyond the Matrix? What does it really look like? I want to know what&#x27;s real, and I am open to it. I am open to understanding Source. I am open to understanding the world that we could live in.&quot; Take a few deep breaths.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002042">00:20:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So what the MIND actually does is it records all of these memories of you here. In other words, what&#x27;s triggered you? &quot;How did I stop her the last time (or him the last time)? How did I stop them from moving forward? Because oh my God - they almost hit the actual Consciousness - and that is not good and we don&#x27;t want that.&quot; So the MIND records these things so it can move and shape you back to where you were - into this never-ending cycle of this hell we live in - that we&#x27;re all creating and co-creating with a Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002113">00:21:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Remember that emotion you felt about two decades ago? Or five decades ago, or even more? That comes riding back up on you to stop you, and paralyze you from moving on in your life? Hmm. That&#x27;s all recorded - because you never know when the Matrix might need that to stop you once again. To stop you from finding love in your life; to stop you from that friendship you&#x27;re having; to stop you from not repeating the same mistakes that you&#x27;ve made in the past - and to definitely prevent you from creating that new technology or doing something amazing in the world; to actually being the change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002148">00:21:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the MIND focuses a lot on change agents. So, people that are having an understanding that the world isn&#x27;t what it seems... YOU are probably the most heavily attacked people on the planet, when you are a change agent. So paralyzing you is its number one response - when you&#x27;re about to make a deep change, and have discovered something that will change the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002209">00:22:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Preventing you from feeling happiness and love is another way it does it. And it&#x27;s going to pull those old emotions about a relationship you had with your parents; maybe a childhood friend; maybe a failed marriage or a failed relationship. And your next partner, that you know you have love with, is gonna actually repeat the same sentence, in detail to you, that your last partner did that desperately hurt you. This is how the Matrix works.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002237">00:22:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. On another kind of a topic - on how also the MIND works within you - is, say you come up with a new technology or something really cool. This could even be a new way of doing things. You know, in our series that&#x27;s coming up, Life Redefined, there&#x27;s going to be a lot of new people that have new ways of doing things... and just to give you a glimpse into the world and what it could be and the impact these people are currently making in our world and in our communities. They spread truth. Now, it&#x27;s been a difficult road for these people too. You know, they&#x27;re really trying to make that impact on the world and there are days where they get up and they say, &quot;Oh, maybe this technology isn&#x27;t what I think it&#x27;s going to be.&quot; &quot;Oh, am I really making an impact on these children&#x27;s lives?&quot; &quot;Am I really changing the world?&quot; &quot;Is my message really getting across?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002331">00:23:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And just when you thought you might have had enough, here come the trolls on their social media. Because a lot of these people are spreading the word through places like YouTube and Facebook and all of our social media pages that we have available to us these days. And then here come the attacks. You know, &quot;You&#x27;re not good enough. This is crazy. Stop doing this.&quot; And some of them are real people and some of them are bots. But yet, we still take those things to heart, and we take a step back. &quot;Are we really doing the right thing?&quot; You know, people can be so mean and cruel sometimes behind a little computer screen. And would they say those things to your face? Probably not, not at all. You have a really hard time when you&#x27;re in somebody else&#x27;s consciousness field, and energy field, in making those decisions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002420">00:24:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But nonetheless, a bot is a bot sometimes, and an operative is an operative - and that&#x27;s their job. When they can&#x27;t hit you through the MIND part of the Matrix, they&#x27;re gonna hit you with the people around you. And it&#x27;s going to muster up all of those emotions in those people around you, and even in yourself, and use it to move the energy around - the false energy - to get it vibrating at a rate where your adrenaline is pumping sometimes for no reason whatsoever - you feel anxious, you feel nervous. And it&#x27;s going to try to move you right back to where you started from, where you think all of a sudden that this is a bad idea. &quot;Maybe I can&#x27;t change the world.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002503">00:25:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s going to affect your Consciousness. It&#x27;s going to override it with memories of things - in the past - of things you&#x27;ve tried to do, where you feel you have failed. It&#x27;s going to play on your failures. It&#x27;s going to make you nervous to move forward in that new relationship - because why? Because maybe it&#x27;s you. Here: here&#x27;s a reflection of yourself that&#x27;s not even real. What did you do? Oh, you know, some of you might think from the Ego standpoint - because the Ego part worked for you before - that you didn&#x27;t do anything to let that relationship fail. No, no, no, no, not at all. You&#x27;re amazing, you&#x27;re wonderful, and anybody would be lucky to have you. So therefore this new person that&#x27;s come into your life that wants to love you - nah, you don&#x27;t need any of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002548">00:25:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s a false reflection of yourself. If it&#x27;s not that, then it&#x27;s going to say to you, &quot;Remember when Bill, Paul, or Mary that you were in a relationship with before said, &#x27;You&#x27;re not good enough&#x27;? &#x27;You have this weird habit that I don&#x27;t really like.&#x27; &#x27;I don&#x27;t really like this part of you.&#x27;&quot; That type of thing. And that could have even come from a parent, or even something in your childhood that you barely remember. You&#x27;re not understanding that your emotions are going to now override your logical mind that says, &quot;Look, Bill is not Paul. This is not my mother. This is not my father. This is not my childhood friend or the bully in the schoolyard that made me feel bad. This is a new person in my life, and I really need to give this love a shot.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002638">00:26:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes it can even be a partner or a friend that you&#x27;ve been with for a long time. And all of a sudden they start acting differently because why? Because you&#x27;re making a change: you understand that this is not real, and what&#x27;s happening is not exactly real. And now they&#x27;re going to hit the people around you. So this is the way the MIND and the memories work, and you might even have distorted memories sometimes of what actually happened in an argument. Because the argument is going to give off that vibration, of not just anger and being upset, but it&#x27;s also gonna give you that movement in the direction that the Matrix wants you to go in. It&#x27;s going to distort your Consciousness and further quantumly entangle you with what it wants. So the MIND and the Matrix and the Source Code-X changes and distorts your field. It&#x27;s going to make you have a false perception of the world and what you think you saw... is it exactly real? It distorts your world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002741">00:27:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And next, we&#x27;re going to talk about the Source Code-X - the False Divine Plan in the False Consciousness that shapes the world around us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002802">00:28:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
