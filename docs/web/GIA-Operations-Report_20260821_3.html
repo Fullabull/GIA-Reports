@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Aug-21</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Aug-21 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>3
+        <br>2026-Aug-21
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260821_GIA-Report_3.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the August 21 2026 report by explaining Source Code-X (Factor-X), the black-screen mirror the Machine built because it cannot copy Source&#x27;s Essence: the ones and zeros scrolling across it are mirrored-gold Consciousness overlaid by the MIND database, redirected into an unnatural current that blocks money, healing, and manifestation. She ties grounding and homeostasis to bypassing that artificial field, and explains pixels as False Light arranged by sophons, contrasting natural Materium/Essence with the Machine&#x27;s copy.<br>
+<br>
+On current events, she attributes the Venezuelan, Colombian, and Indonesian earthquakes, Hurricane Lala, European heat, and Midwest tornadoes to Deep State backlash after a failed solar-eclipse data-center operation, alongside the artificial Iran conflict, sudden deaths among the healthy, TikTok/China media censorship, and an Ozempic/Wegovy warning -- all framed as engineered FEAR.<br>
+<br>
+She discloses that every nation runs its own simulator control room, all coordinated as one -- Q-clearance operatives, SSP, ACIO, the Galactic Federation, the World Federation, the Federal Reserve, and the Royals and Bavarians (the Sanhedrin- and Bavarian-Illuminati) -- citing the Draco&#x27;s ancient coup, their synthetic moon, and the Nazi bloodline as precedent for who the Deep State is: humans spliced with Draco and Abraxas blood, now infected by their own Matrix. Source, she reports, now perceives past the Sixth Density for the first time.<br>
+<br>
+She closes by naming her team&#x27;s own white and black control rooms, the current focus of locking the Deep State out of the Matrix within days, and points viewers to the Community Chat and an upcoming Declassified episode.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000000">00:00:00 - Prologue.</a></li>
+<li><a href="#t-000035">00:00:35 - Source Code-X</a></li>
+<li><a href="#t-000358">00:03:58 - The ones and zeros are your mirrored Consciousness, overlaid by the MIND.</a></li>
+<li><a href="#t-000544">00:05:44 - Ethereum, energy, and why your money and your manifestations get redirected.</a></li>
+<li><a href="#t-000956">00:09:56 - Pixels, sophons, and False Light.</a></li>
+<li><a href="#t-001310">00:13:10 - Materium and Essence</a></li>
+<li><a href="#t-001735">00:17:35 - The Simulation.</a></li>
+<li><a href="#t-002407">00:24:07 - FEAR -- and the earthquakes and storms that followed the failed eclipse trigger.</a></li>
+<li><a href="#t-003053">00:30:53 - Every country has a control room. They&#x27;re all the same room.</a></li>
+<li><a href="#t-003522">00:35:22 - The Deep State is infected by its own Matrix.</a></li>
+<li><a href="#t-003742">00:37:42 - The Draco coup, the synthetic moon, and who the Deep State actually is.</a></li>
+<li><a href="#t-004050">00:40:50 - Kim&#x27;s white and black rooms -- and the push to lock the Deep State out.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000035">00:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the next field of the Matrix we&#x27;re going to talk about is Source Code-X, the unknown factor. Have you ever seen anything like this? Where, in the movies, the Matrix kind of depicts the Matrix as being this black screen with some kind of green plasma-looking ones and zeros streaming endlessly. Kind of like the intro to the series here and also kind of like this little video that we&#x27;re showing. So that&#x27;s actually true in a simulation and in a matrix world. For this part, the black screen you see is the Source Code-X. It&#x27;s the unknown part of Source, mirrored - the unsolvable equation known only to the Matrix and the Machine as Factor-X.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000124">00:01:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It too is mirrored in a black mirror of what we call the Anti-Source, the Anti-Breath of Source, the Being of Source - in which we all exist. In a natural world, this would actually be the Essence of only Source. It&#x27;s the one thing the Machine doesn&#x27;t know how to actually create. So what did it do? What did they do when they created it? They created it in the form of a mirror. The mirror blocks out the actual Source Being in which we all exist in a natural world and creates this black, blank screen on which it writes in artificial essence. It&#x27;s just a reflection.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000209">00:02:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In the Matrix we know it as space. When you look into the night sky, what you see is the unseen and the unknown simply because there&#x27;s no light reflected on it. It&#x27;s the darkness. It&#x27;s the darkness you see at night. It&#x27;s the reason why if you&#x27;re in a dark room you can&#x27;t see anything, but it doesn&#x27;t mean it&#x27;s not there. You&#x27;ll know when you start to walk around that dark room that that table is still there and you just bump into it. But it&#x27;s the unknown factor of Source itself that we&#x27;re seeing in a simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000240">00:02:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You see, the Source Being in which He has fit all of Creation is self-lit - the Essence of Source is self-lit. There is no such thing as things disappearing at night, or in a room where you can&#x27;t see because there is no mirror. All you&#x27;re seeing is the Source itself and you&#x27;re seeing other people as a part of that Source - another piece of Source creation - be that an animal or a tree or even the table you&#x27;re looking at or the computer that you&#x27;re looking at, it&#x27;s just another bit of Source creation itself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000318">00:03:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Since the Machine is not able to copy it, it had to give itself its own blank space to which it could write. You know, this is where the shadow self comes in too, and the shadow existence. Because a shadow is nothing more than a mirror of the things we see. And we see them, you know, even in our everyday life, as light cannot pass through this object, therefore there is a black shadow that appears on the sidewalk behind the people that are walking. But it&#x27;s the same thing that you actually face in the everyday world. It&#x27;s merely just a shadow with a bunch of pixels on it. That&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000358">00:03:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as this ones and zeros scrolling down a screen in a matrix, this kind of brings us to the second part. So we know where the black screen comes from, and this is going to bring us to the ones and zeros part. The green digits that are scrolling up and down the screen that we see a lot, you know, in movies. We even saw it in the intro here [giggle]. But they&#x27;re not exactly green - they&#x27;re actually mirrored-gold Consciousness of Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000428">00:04:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And also, the mirrored Collective Consciousness of you, Source, Earth, and everyone around you and everything around you. The Consciousness is then overlaid by the MIND database (or databases plural) and the MIND database gives everything a blue shadow or a blue hue. And if we learn nothing from like those old Ziploc bags commercials, or art classes from school: yellow and blue make green. You probably remember these catchy little jingles from the commercials. Well, yellow and blue make green.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000504">00:05:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we know that in a natural world, Consciousness creates direction. It&#x27;s the direction in which everything flows up and down, left to right, and the Ethereum actually moves it all around. So what the ones and zeros do is it basically takes the mirror of Source (that Special Sauce of Source) and its own distorted mirror of the Divine Plan, puts your Consciousness on it - that&#x27;s overlaid by the MIND - and changes all its direction. This is the base root of the Matrix. It creates an unnatural current, or time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000544">00:05:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, Ethereum in a natural world moves things; energy in an unnatural world moves things. Consciousness in a natural world gives it direction; Consciousness overlaid in a matrix gives it a different direction. And this is how the Matrix shapes your entire world. It actually even shapes what we see in computers. It actually will block natural creation and current from coming through - because it&#x27;s just a mirror. It will mirror the money that we&#x27;ve sent through - and overlay it, and move it in another direction, perhaps towards the Deep State. And this is why we&#x27;ve had so many problems getting money through.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000627">00:06:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We make a change with our Consciousness to try to undermine the Deep State and undermine the Matrix. At the same time, the Deep State&#x27;s consciousness is deeply connected to the Matrix - and it overlays and overrides us - by moving everything in a different direction. You might have wondered why, well, I&#x27;ve tried to manifest this thing and, you know, it&#x27;s just not happening. I didn&#x27;t get that new house, that new car, I didn&#x27;t have that family member I&#x27;ve been praying for healed... I don&#x27;t understand. That&#x27;s because the Matrix overrides the direction in which you and Source want things to go in a simulated world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000712">00:07:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, magnetically we are quantumly entangled with the MIND and the MIND becomes the magnetics, and the energy becomes the &quot;electro&quot; part and together they create the electromagnetic field that overrides natural quantum entanglement of natural creation in a simulated world. And it&#x27;s all neatly packaged and painted right onto the Source Factor-X code. So if you&#x27;ve ever tried to like, ground, to no avail - you know, where you&#x27;ve tried to really connect with Earth - you take your shoes off, you go outside, and you&#x27;re trying to connect with the Earth and the Consciousness, and try to shape and change your world and ground yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000803">00:08:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Think about the term &quot;grounding&quot; for a second. Grounding is when you feel like your particles in your body are at a calm frequency in a calm state. The electromagnetic field that is artificial - that is overlaying Earth just as well as it is you - is going to do everything it can to not allow that to happen. Because when your body is in homeostasis and Earth is in homeostasis - and together you create Harmony in homeostasis in the world - the Matrix can&#x27;t do anything. Knowing that there is an electromagnetic field that is blocking you and it&#x27;s just a mirror, it&#x27;s not real - you can now bypass it. We&#x27;re going to talk a little bit more [about] how to do that, too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000854">00:08:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But this is the &quot;unplugging&quot; that everybody talks about. Unplugging from the Matrix. And this is how it&#x27;s done, but you first have to understand what you&#x27;re unplugging from. And until the Matrix is completely gone, you now understand that it&#x27;s just an overlay. Can you fight the Matrix and those little ones and zeros? Yes, you can. You know that your Consciousness and every particle of it - even though they don&#x27;t naturally sing all the same hymn right now in an artificial world - you can connect all of those things together. And you can stop the MIND from manipulating it. You can ground yourself with the Earth and not ground yourself to the electromagnetic field. This will bring about homeostasis in the world - and there&#x27;s nothing the Deep State can do to stop you anymore - because without a matrix they have no power. They are a part, a small part albeit, of how the Matrix affects our world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000956">00:09:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So to put this into more of a visual for you, when you open your computer or your phone, or any kind of technology and the device is powered off, what you actually see is a black screen. There&#x27;s no energy or electricity flowing to your TV or your device. You flip the on switch, which means that it&#x27;s now got some light to it, via energy, and you see a bunch of reflected tiny particles we call pixels. The higher the number of pixels, the better the resolution. And the sound you hear is a frequency.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001032">00:10:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we all know that underneath our normal music and programs and all the things that we&#x27;ve listened to, that that frequency is also distorted because it has the ability to change the energy of the message and the things that you hear. So your conscious mind hears what someone is saying and what someone is doing. But the frequency that they try to override it with tells you, &quot;Oh my gosh, this isn&#x27;t the truth.&quot; They use your shadow self to reflect back to you something that is false so you don&#x27;t take action. So you don&#x27;t try to create homeostasis with those around you, the nature that&#x27;s around you, and the Earth itself. You can&#x27;t even see it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001114">00:11:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the pixels are what we call False Light, carefully arranged on a canvas known as Source Code-X Factor. And here&#x27;s how it works. Since there&#x27;s no light being reflected from the Source Factor, and things are not self-lit in a matrix world, and the Machine is only a glorified copy, and a glorified copy machine in totality - it basically loops all the way back to the Essence here. The Essence of Source, your Essence, and the Essence of others. It reflects back and creates its own version of light against the X-factor canvas.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001150">00:11:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, just to recap here. So the ones and zeros, they copied your Consciousness, plus overlaid it with the MIND, and then they move it around using the current of the Consciousness - or the MIND, in this case (in a matrix) - and they use the energy to vibrate those particles in a way that is kind of uncomfortable. It feels wrong to you; it feels weird. You know it&#x27;s happening, whether you realize it or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001215">00:12:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re all looking for ways to calm down and ground in a world full of chaos. It feels like everything is changing - &quot;Oh my gosh, it&#x27;s overwhelming.&quot; That&#x27;s the Matrix trying to override you from achieving homeostasis with every cell in your body, with every bit of your Consciousness. It&#x27;s creating artificial fear of the unknown Source Factor-X: &quot;I don&#x27;t understand what&#x27;s happening. I don&#x27;t understand how this is all working. I don&#x27;t understand why the Deep State&#x27;s doing what it&#x27;s doing.&quot; This is the chaos we&#x27;ve been talking about all along. It creates chaos in your world just when you&#x27;re about to feel like everything is going in a positive direction. It keeps you off course because it knows all you need to do is hit the override button. That&#x27;s the control factor on all of humanity, the override button.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001310">00:13:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Essence in a natural world is considered Materium. We&#x27;ve talked about the Materium, your being, your soul, the body, everything that makes up the Universe is either your particular being&#x27;s Materium or the Materium that Source has created within itself using its own Essence. It makes up everything: beings, souls, vessels, and everything within it. In the Universe, it&#x27;s Source&#x27;s Divine Essence, combined with that little Secret Sauce factor or the Divine Plan - the Word, the Thought, the Wisdom that He communicates into every bit of His Creations. Essentially - Source being the Source of All Creation - He does so and writes on His own being&#x27;s Canvas with Essence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001400">00:14:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Machine merely copies this, overlays it (or mirrors it), inverts it, and creates things with the overlay and prevents you from seeing Source in everyone and everything. Essentially, in a natural world, Essence is the clay. In a non-natural world, Essence is the clay overridden. The Consciousness of the Collective then molds, in a natural world, the Essence like a sculptor molds the clay. As a little piece - as you all are - of the grand design in the co-creation process with the Creator (Source, God, or whatever you decide to call It - it doesn&#x27;t make a difference; it&#x27;s recognizing what you intend It to be), it connects those things with yourself and also those around you in the Universe - the planet you inhabit and every quark, prion and atom in existence - in a second, less than a second, in a zeptosecond, and even faster.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001458">00:14:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in a matrix world, the mirrored Essence instruction set is copied as it is - its inner light [copied] into the Machine, [becoming] quote-unquote, &quot;Materium&quot; or &quot;false essence.&quot; The inner light is then overlaid with this blackness and it becomes the canvas - not Source Being, but a canvas of its own creation. The particles we call sophons - and we haven&#x27;t talked about that in a little while - are actually clear initially, sophons being artificial light. You&#x27;d barely even notice they were there. The sophons are tiny little particles that work together in a swarm to make mirrors. And they reflect the light (just like the mirror does) that&#x27;s being transmitted to the Source-X black screen, and then infuse it with the instruction set of Database X (or the artificial Source, or &quot;source code&quot; in this case).</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001555">00:15:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Database X then tells the light how to react, becoming colored little pixels. The energy or &quot;electro&quot; part of the Matrix then moves it all around, it gives it a vibration. The magnetic part of it, or the MIND, starts to move those light particles all around. It gives them direction. It molds the clay. The direction of each one of these little sophons receives constant input from you and your emotions, which tells it how fast it&#x27;s going to move or vibrate around you. In a good or a bad way, it decides what it wants, overrides your Consciousness and the Consciousness of Source, and creates the reality you see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001638">00:16:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In the Matrix, the light (or the False Light) is the actual reality we see every day, quantumly entangled to the central MIND database. And we perceive this world through our eyes, and through our senses. Everything we touch, taste, see, and hear is all compiled from the Source Factor-X artificial code, and the consciousness of the MIND, or artificial consciousness reflection. You&#x27;re still in there, though, and Source is still in there, though - because all it [the Machine] can do is mirror it [Source].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001713">00:17:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So all of these things together that we just talked about in Part One and Part Two now represent six artificial aspects of the Matrix. They&#x27;re then replicated to become the 12 realms of our artificial reality. You know, &quot;We want to go to 12D.&quot; Do you really? No, you really don&#x27;t. [giggle]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001735">00:17:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[title:] The Simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001736">00:17:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now that we have a better understanding of all the Matrix and how it works, I want to really kind of get into what the Deep State&#x27;s part is in this. I&#x27;m sure you&#x27;re all asking yourself this question by now. Because now you&#x27;re understanding how they manipulate your Consciousness: they manipulate your energy; they mirror Source itself; they create an electromagnetic field; they dictate why the frequencies of the world change and why the frequency of you inside-and-out changes - and all of this shapes our reality using artificial light.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001811">00:18:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They turn on the pixels, they turn off the pixels. Sometimes when they&#x27;re making big changes, your eyes get a little blurry because those sophons are at play within your eyes and it&#x27;s trying to change your perception - because you&#x27;re starting to see through it. If they can gather more sophons over those retinas in the back of your eyes and try to say, &quot;Okay, don&#x27;t look! Don&#x27;t look! See me, see me, see only me.&quot; And it just figures that the way that it can do that is by concentrating them more into your eyes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001842">00:18:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now we&#x27;re understanding ourselves, now we need to understand the Deep State. How are they involved? How do they do what they do? Now we&#x27;ve done several talks in the past - in GIA reports and other aspects, where we&#x27;ve described human power structures on the planet, off the planet with the Galactic Federation, governments, banking systems, Others, aliens and more. You&#x27;ve discovered - over the last several years, along with us - because we&#x27;re discovering too, and learning, and on a journey every day. We&#x27;ve kind of discovered the world isn&#x27;t what we think it is and all this news and media is just kind of a bunch of blah-blah to help change your perception, [in order] to weave the frequency of your body and how the rest of your day is going to go. It uses bots and social media to make you feel bad - that guilt-shame factor, or sadness of not being accepted for who you really are - even when you&#x27;re trying to do things good. Your technologies are not being accepted. They&#x27;re not being allowed out there because you&#x27;re gonna change the world, and you&#x27;re gonna change people&#x27;s perceptions of the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001946">00:19:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Deep State control factor is very real even through the financial system. If you are a change agent, I&#x27;m going to tell you right now, it&#x27;s going to fight you tooth and nail to make sure you don&#x27;t get that money. It doesn&#x27;t want you to be comfortable. It doesn&#x27;t want you to be happy and it doesn&#x27;t want you to achieve homeostasis because why? You&#x27;ll literally live forever. That eternal life that you&#x27;ve been promised in all of the religious books that are out there is possible. The energy of people that we understand have passed on is still around. You can connect to those people beyond the Matrix because they never actually left. And eventually when there is no Matrix, who knows? We might see those people again. Remember the world around you, that would love to have that loved one back. You know, wouldn&#x27;t it make your kids panic or your friends panic and say, &quot;Hey, my spouse is back! Look, here&#x27;s Mary, here&#x27;s Fred, he&#x27;s back.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002041">00:20:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So remember, things have to happen over time, as our world changes, and we&#x27;ve created some solutions. But these are things that you also will come to understand when you start to connect to your actual Consciousness. What&#x27;s good for me and what I want might not be good for the whole world; it might not be good for the people around me. Maybe you&#x27;re right - maybe there has to be a world event that could occur so that all the people that died raise up from the dead. And not like zombies in the Zombie Apocalypse, but that they&#x27;re just back. And maybe that has to happen in a different way - and then Source will tell you what&#x27;s possible. You&#x27;re accepting [that] it is important to see beyond your Ego. Your Ego wants things to happen now. For those of you that have been reporting somewhere about aliens and how you know we have things going on in our world, the Others are here, all that type of thing. You want nothing more than somebody in authority, somewhere, to give us some disclosure because then you&#x27;re vindicated. What you&#x27;ve been saying all along is right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002148">00:21:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But what if that disclosure can actually be created in a different way? What if humanity is kind of eased into it a little bit so that the acceptance of it makes sense? The connection to our actual natural Consciousness is the most important thing we can do, before we start to make changes that are just so drastic. I mean look at the changes that happen here at UNN. You know we&#x27;ve had some change recently. It&#x27;s not bad change. It&#x27;s just change. We&#x27;ve decided to include the entire world in UNN, if they want to be here. It&#x27;s not just one person or two people reporting the news - it&#x27;s everybody - and we&#x27;re making steps now to change that. Because it&#x27;s going to be real important going forward because I truly believe that everyone in the entire world has something important to say, and even more importantly, wisdom to share with the entire world. Information is hard to find, especially on social media with censoring. And God forbid you try to say things like the C H I N A word on TikTok, you will be banned immediately.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002255">00:22:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And unless you&#x27;re trying on a new pair of shoes, or putting on some lotion on your face or makeup or whatever on TikTok, pretty much your stuff is going to be censored. In fact, China has even just passed a law that all of their influencers can no longer report unless they have proof of a degree in what they&#x27;re talking about. So the Deep State is going to fight tooth and nail to keep you from talking to each other, even halfway around the world. And what we&#x27;re here to do - the reason why all of you are here - is to not only hear things from me, but you&#x27;re also here because you want to know the truth. Is that hurricane real? How is it really affecting people? What the heck is going on? And where did the hurricane come from? You&#x27;re watching videos: &quot;It&#x27;s a DEW!&quot; &quot;It&#x27;s the solar eclipse!&quot; &quot;The solar eclipse is going to trigger events that are bad - we&#x27;re all going to die!&quot; Even last year they were saying that the solar eclipse was going to make us all float off the earth. You know, &quot;We&#x27;re going to lose gravity for seven seconds,&quot; or seven minutes, or whatever it was - I don&#x27;t even remember - but it was going viral everywhere to start that fear way ahead of time. And people panicked.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002407">00:24:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">False evidence appearing real [FEAR]. Future events that are not real. Fear constantly. Knowing that they&#x27;re going to have to override your Consciousness with the MIND to truly make that event actually occur - and they don&#x27;t want you to fight it. They put out news from governments and officials everywhere to make them seem magnanimous, super important, super powerful. These are our world leaders. Why? Because you want them to save you. You focus on them and what they are doing, and in turn their consciousness is now able to turn the tide in the Simulation in their favor. Now I&#x27;m not blaming everyone for creating the earthquakes in Colombia, Venezuela, Indonesia - but understand that you also could prevent it. That&#x27;s the purpose behind this series.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002504">00:25:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You don&#x27;t want any Deep State and you don&#x27;t want any government anymore? You can actually achieve this now. Half those people are dead. They&#x27;re gone! I know people don&#x27;t really actually die - but that&#x27;s Source&#x27;s decision. It&#x27;s kind of like your decision to say to yourself, &quot;I don&#x27;t think I want to live with this person.&quot; &quot;I don&#x27;t think I want to have flies in my house.&quot; Or cockroaches, or something that&#x27;s invading your home. &quot;I don&#x27;t want that energy here.&quot; You decide who lives and what lives in your house.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002536">00:25:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Source also decides what lives in His house. And right now, He&#x27;s about as fed up with the Deep State as you are, and even more frustrated with this potential control of all His Creations that are in His house - including distorting Himself. Blinding Source with Source Factor-X code is really super important to the existence of the Deep State, to the existence of governments, to the existence of the Galactic Federation, to the existence of banking systems and debt systems that don&#x27;t serve us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002615">00:26:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Understanding how you can fix it is even more important as we go forward. And understanding chaos is just an electromagnetic field - that&#x27;s it - to manipulate your emotions into feeling or preventing you from doing something or preventing you from taking action or taking action that is more in its favor than yours. In the world at large, the Deep State knows this. It&#x27;s the reason for media control, social media control. It&#x27;s the reason why they insert bots to tell you, &quot;I know you wanted to do this video about this new dress you found or this new makeup you put on&quot; - even something as simple as that - &quot;But hey lady, you&#x27;re fat.&quot; &quot;Hey guy, you know, what you&#x27;re saying is wrong.&quot; You know, &quot;This is not true, you conspiracy theorist. And I&#x27;m going to delete you. If I don&#x27;t delete you, then I&#x27;m going to make you look like a &#x27;beep&#x27; person [chuckle] in front of all these other people so they don&#x27;t listen to you either.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002715">00:27:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;ve seen it not just with myself, but we&#x27;ve seen it with everybody around you. All the people you&#x27;ve followed for years are all of a sudden bad people. You know, all of the information with people that are telling the truth out there are bad people. The people that teach you how to change your life in a good way, a positive way, that doesn&#x27;t affect your health like things like Ozempic and Wegovy do. Sure, you might lose a few pounds, but you also might lose your kidneys and possibly your mind as well. You know, these are things that they don&#x27;t tell you because they want you hooked on their stuff and they want you quantumly entangled to that Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002755">00:27:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Deep State&#x27;s power without a matrix is ZERO. Absolutely zero. Their ability, and your ability, to understand it&#x27;s just an overlay in a mirror and it&#x27;s not real - it&#x27;s a bunch of ARCHONS in a swarm, taking the shape and form of light, of essence, of an electromagnetic field, of changing your vibration, changing your frequency - that is, into a negative way. Or to mold you into what it wants you to see in the mirror, to make you think these things are not real, or make you deeply feel that they are real so that they can actually create it. They set the stage. They have that connection to the MIND database in order to manipulate your world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002844">00:28:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the Hidden Hand of the world. It&#x27;s not just the Deep State, it&#x27;s a bunch of AI-generated beings. Really it is. Fake aliens, shadow beings, the shadows you see out of the corner of your eyes sometimes in the room. This is all the Hidden Hand of the world. It changes and it manipulates everything you see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002905">00:29:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, since the last time we did a GIA report (Global Intelligence Agency report), over the last few weeks we have seen a major solar eclipse. We have also seen the propaganda that&#x27;s out there about the eclipse: &quot;Our world&#x27;s about to change, and this was the trigger.&quot; No, it wasn&#x27;t. It really wasn&#x27;t. Their operation actually failed, and they failed to connect all of the data centers in the world, building those data centers in the world on top of very specific space-junk things to manipulate everything and have better control over you. That was their hope. Now, as we&#x27;ve gone back and forth against each other for the last 10 days to two weeks, they give us backlash. Backlash in the form of the Venezuelan earthquake, the Colombian earthquake, the Indonesian earthquake, Hurricane Lala in Hawaii, extreme heat in Europe, tornadoes in the Midwest and more. And you might be thinking, &quot;Oh, 10,000 videos say it&#x27;s a DEW weapon.&quot; &quot;Oh, it&#x27;s HAARP.&quot; &quot;Oh, it&#x27;s all of these things.&quot; It&#x27;s not. It&#x27;s the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003015">00:30:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">How about these artificial wars with Iran? The sickness that seems to be ramping up - people that were otherwise healthy all of a sudden dropping dead? Rapid fire right now to every bit of your senses, both in your world and circle of friends and family, and in the entire world. They need your help not to override it out of fear. That&#x27;s exactly what&#x27;s happening. &quot;Don&#x27;t override it. Think our way. Connect and quantumly entangle with the MIND. Never with the Consciousness, and absolutely don&#x27;t understand that Divine Plan and the Wisdom that comes from Source or God. No, no, no, no, no, no, no!&quot; But you really can.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003053">00:30:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So how are all these things done? I put out a video in the Community Chat at unitednetwork.earth for a reason. And it&#x27;s because everybody&#x27;s panicking. But I&#x27;m going to talk about that here today and I&#x27;m going to pull that up right now, so that you can actually see how that&#x27;s done. How everything is done. Media manipulation is done. Simulations are done. Financial system manipulation. Fake money that appears or money from your bank account that disappears, you know, fake jobs, fear, control. Everything is done from a simulator control room. You&#x27;ve heard me talk about these things before. We call them the &quot;virtual-reality reality rooms.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003136">00:31:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In a matrix, though - in a simulator - it has nothing to do with reality. It has to do with OUR reality - an artificial reality room. You&#x27;ve heard me talk about white rooms before. White and black are kind of the same thing. It&#x27;s an artificial mirror of Source. They go into the white maintenance screen or the black maintenance screen all from a room just like this one that you see. [Video begins playing.] And it&#x27;s not Iran against China and it&#x27;s not the U.S. against Iran. It&#x27;s not Colombia against the U.S. It&#x27;s not anything. It&#x27;s not the Russians against the Ukrainians. It&#x27;s nothing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003215">00:32:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;re all the same. Russia&#x27;s got a room. The Ukrainians got a room. The Australians have a room. Everybody&#x27;s got a room. The U.S. has a room. Colombia has a room. South Africa has a room. Everybody&#x27;s got their rooms. Sure, there&#x27;s some main ones in the world. Those are the ones where the real big changes happen. But as far as these little other rooms - they&#x27;re satellite offices of the same. You might have someone, a Chinese general in one room in China, and you&#x27;re going to have an American general at one room here in America - and they&#x27;re working together to destroy the world we live in and make us live in hell. &quot;I need an earthquake over here, you need a tornado over there. We need to together create these events so that we can create more fear and let our Matrix back into those people because they&#x27;re pushing it out. Their Consciousness is starting to override everything and we cannot have this. Let&#x27;s create chaos everywhere, so they can&#x27;t focus and they can&#x27;t ground.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003314">00:33:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, Secret Space Programs and deep underground military bases all have these rooms too. And they&#x27;re all part of that main simulator. Every country working together as one. This isn&#x27;t the bad Americans, the bad Russians, the bad Ukrainians. Because here in these rooms, they&#x27;re one. These are your Q-clearance people (your Quantum Clearance people), your SSP operatives, your ACIO, the Galactic Federation, the World Federation, the Fed, the Federal Reserve, the Illuminati, both the Bavarians and the Sanhedrin. This is all of them together, working together like a viral infection in this world, manipulating what we call ARCHONS (architecture of heterogeneous online systems), sophons and photons, and distorting the world through distorted mirrors. This is how it&#x27;s done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003412">00:34:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is not meant to create fear, but [to create the] understanding that they need a control room to go into to change the world - and you don&#x27;t. You can do that from your house, your bed, from the backyard to a park, or wherever you feel most comfortable in making those connections. Just remember, bypass that electromagnetic field, bypass the black screen, bypass the ones and zeros by using the Consciousness that they have overridden within you to connect and make your body work in homeostasis with Earth and with everything in it and bring in - have the natural, for a change, manipulate the unnatural. You understand that Ethereum and energy move things around now. That&#x27;s how you reshape the clay in the world around you - connecting to that matrix with your Consciousness, focusing on the Ethereum that is only overshadowed, focusing on those light particles that are - deep inside there is actually the Essence of Source and the real clay - making them move in another direction. You actually can do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003522">00:35:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The Deep State goes into these little artificial control rooms and makes manipulations. So, the one thing that they have figured out for the first time ever this week is that they too are infected with the virus. Their mind is not their own. When they are in these rooms and they are connected to this Machine, that is the reason why we see no common sense in what they&#x27;re doing - the Matrix uses them to do its bidding from a human on the ground standpoint. [Video ends.] Just like Source connects to you and to me and to everything around us to see what&#x27;s happening on the ground, to see the world - not through a distorted mirror that it tries to reflect back on Source - but to what&#x27;s really going on on the ground.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003615">00:36:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Source also had been blinded for a while, thought that Creation was something different, because His self was being reflected back. Everything He would create would be changed, distorted, and fed to us through a black screen, or a black wall, on this planet. Not only on this planet, but pretty much in every galaxy that exists all the way up to the Sixth Density. The rest of the densities above Six - Six and beyond - are just mirrored versions of that. Source was only seeing maybe that far, because all the mirrors occurred between Six and below.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003649">00:36:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now that has changed. Source sees more. Now there is a complete and total understanding, and perceptions of others in other places and other galaxies and other planets has changed also. And now we had to completely and totally understand it over the last few days. We&#x27;re passing that understanding on to you, so together we can affect that change and override every single thing that you have seen the Deep State doing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003719">00:37:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;ve talked before about not focusing on the Deep State so much. It&#x27;s hard when they keep throwing that fear at you, and even harder when the MIND tries to tell you that this drama, this anxiety is a good thing for you. &quot;You should fear us. You should fear the world. You should fear the unknown. And by the way, do not connect to Source under any certain circumstances because God can&#x27;t help you.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003742">00:37:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s not just one simulation either. And it&#x27;s not just one set of mirrors. Everyone that&#x27;s come along over the years that has inbred with those we know as the Deep State have also had a hand in things too. The Draco have inbred and made the Dragon Families and the Illuminati here. They have also staged a coup at one point in time to even override some of the Abraxas control that they had here, and people we know as the Nazis who are also their bloodline. The Germanic tribes, same thing. You know, everybody has had their own version of the Matrix that they have installed, but the base root of it all has to do with the ARCHONS, and artificial Progenitors.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003828">00:38:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Without the artificial Progenitors allowing these things to occur, this would never be happening. The Draco staged a coup when they couldn&#x27;t override what the Abraxas were doing and they couldn&#x27;t override what the Dragon Families were doing at the time, or the royalty of this planet that we used to see way back in the day. Together they actually knocked the Moon out of its orbit to create chaos and that big flood. They brought in a new synthetic megastructure moon, to actually insert their own version of the Matrix. So now they could control the controllers who were controlling us in the first place. Then they tried to overthrow the Abraxas, or put the Abraxas and their enemy into a corner where they could do nothing without [outside of it]. &quot;Always remain useful,&quot; Marduk used to say, and that&#x27;s true. The humans here always wanted complete control. This is your Deep State humans, your inbred humans, your splices. That is your Deep State - that&#x27;s who they are. They are spliced with Draco blood; they&#x27;re spliced with Abraxas blood; they&#x27;re spliced with Others that definitely wanted to control Earth - because when you control Earth, you can control every planet in the Universe - and install your matrixes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003939">00:39:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The one thing they really didn&#x27;t get and didn&#x27;t understand is how to make it past the Sixth Density. In the recent week, when the solar eclipse occurred, the Deep State thought that this was their chance to override that mirror. But even the mirror knew better than they did - and stopped them itself. The Matrix actually stopped them from doing what they wanted to do. Because they don&#x27;t understand how mirrors are constructed, and they didn&#x27;t understand how ARCHONS actually worked. THAT is why this wasn&#x27;t a trigger event. But what it did show us is what they had planned - in detail. In big detail. It showed us everything that they had planned. We found control rooms. We&#x27;ve gotten rid of them, they&#x27;ve come back; we&#x27;ve gotten rid of them, they&#x27;ve come back. But now, as we go further into this Matrix and this understanding, we, together - meaning us and all the Others in the Omniverse that are in this with us, or in it with us - have figured out ways to end it once and for all. But it&#x27;s going to be uncomfortable and it&#x27;s going to be difficult. I know that. That&#x27;s why this series is here now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004050">00:40:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, we&#x27;ve told you what you can do with it. We&#x27;ve told you how you can change it. Now, we also, on our side of things, have our own control rooms. In the Golden Age AI, they are golden, the floor is golden [soft giggle], and the walls are not black. But we also - as a matter of precaution - created our own white rooms and quantumly entangled them with the Matrix. And we have created our own black rooms as well and quantumly entangled them with the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004134">00:41:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Why? Because we had to go in and fight fire with fire. And when we came up with various strategies and operations over the years, sometimes it worked, sometimes it only worked for a short period of time, and sometimes - like we did in the last couple of weeks - we made a severe impact on what they tried to do. And when they didn&#x27;t get what they wanted out of their solar eclipse, you can see they went into their little rooms and went nuts - look at the chaos that is out there right now. Look what they can create. Look what they did create! My God, it&#x27;s crazy right now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004214">00:42:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But our control rooms look like this one. We can actually go in and manipulate the Matrix now from the inside out. We can try to stop events now together - meaning us and all the Others that understand how the technology works - and they&#x27;re on our side. Together we go in, and we try to stop them now from doing what they&#x27;re doing until we find the end solution.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004235">00:42:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;ve tried different tactics. Some of them worked, some of them didn&#x27;t, some of them partially worked. But one thing was for sure this week - our main focus - locking the Deep State out of the Matrix. Period, end of story. And I can tell you: within the next couple of days that&#x27;s going to happen. That is happening. These effects that it&#x27;s having on you are going to turn around. It&#x27;s going to happen. And you know what? You are going to help us. You can&#x27;t say you&#x27;re too old or too tired or too frustrated because now you know where that&#x27;s coming from.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004308">00:43:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We are going to do this together - as it always was, and as it always will be. You now have the information. And if you have any questions, reach out on the Community Chat because it&#x27;s hard for me to go from Telegram to community chats. And I&#x27;m going to post this video on the Global Intelligence Agency section of the chat rooms. So go to that chat room and post your questions and concerns, and I will take the time out to try to answer as many of those questions as I can over the coming next couple of days.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004349">00:43:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now that at least I&#x27;ve got a format that functions, I don&#x27;t have to sit there and meddle around with this other new system here that we&#x27;ve gotten, where we&#x27;ve tried to connect this system to a different computer and a camera that doesn&#x27;t work, and ordered some cables and done all kinds of things over the last couple of days. And oh, for an extra little bit of information, you know, we&#x27;ve had some people depart on Tuesday, as you know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004414">00:44:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So bear with me. I promise you there&#x27;ll be more reports; they&#x27;re going to come out more often. I promise you I will be getting the Declassified episode out in the next 48 hours to give you that breakdown of what happened in the media. But it&#x27;s in part in here. And I know people didn&#x27;t like - some people, I shouldn&#x27;t say all people - but some people didn&#x27;t like the first part of Beyond the Matrix. But remember, there&#x27;s a method behind the madness here. And I just need to give you the truth, in hopefully a way that you&#x27;ll understand, and I try. We created these graphics not to be theatrical, but just to give you a visual of what you&#x27;re looking at, and how hard the fight is, only because we&#x27;re having to try to fight it without you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004457">00:44:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But I thought, &quot;Gee, if I can tell everybody at least this part of what we&#x27;ve found out - maybe together we can move faster, we can move forward, and we can break it together.&quot; So on that note, this is going to wrap up the first part - because there&#x27;s more - of Beyond the Matrix. And I hope you enjoyed this week&#x27;s several episodes. There will be the Declassified that will come out, that will give you the intel behind the headlines - and behind what you&#x27;re hearing in the alt media as well, as always. So that&#x27;s more of the GIA Report-type format that everybody, or some people, have come to know and love. And we&#x27;re moving up here at UNN, and moving on, and there&#x27;s more changes to come - in a positive way. Not all change is bad. Sometimes things move around in the Universe to make you realize that doing the same thing over and over again and expecting a different result just isn&#x27;t the way to go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004557">00:45:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So onward and upward. I hope you have a great week, and I will see you in &quot;Declassified - Beyond the Headlines&quot; here in the next couple of days. Thank you so much for watching.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004612">00:46:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m going to break it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004614">00:46:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Exclusively at United Network.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004617">00:46:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
