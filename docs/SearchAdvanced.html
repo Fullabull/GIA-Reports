@@ -204,6 +204,19 @@
     padding-top: 0.15rem;
   }
 
+  .basic-control-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .basic-control-label {
+    min-width: 4.6rem;
+    font-weight: 600;
+    color: var(--search-text-muted);
+  }
+
   .search-scope-note {
     font-size: 0.82rem;
     color: var(--search-text-muted);
@@ -630,8 +643,8 @@
       <div class="basic-panel-heading"
            title="Basic search selects or excludes whole report files."
            style="margin-bottom:10px; color:var(--search-text);">
-        <div style="font-size:1.05rem; font-weight:600;">Basic Search</div>
-        <div class="search-scope-note">File-level matching</div>
+          <div style="font-size:1.05rem; font-weight:600;">Basic Search</div>
+          <div class="search-scope-note">File-level matching</div>
       </div>
 
       <div id="searchRow" class="search-row">
@@ -639,10 +652,6 @@
 
         <!-- SEARCH FIELD -->
         <div class="row row-main">
-          <label title="If checked, files containing matching text will NOT be selected."
-                 style="display:inline-flex; align-items:center; gap:0.3rem; white-space:nowrap; font-size:0.95rem; cursor:pointer;">
-            <input id="excludeFilesCheckbox" type="checkbox"> Exclude:
-          </label>
           <input id="searchInput"
                  type="text"
                  placeholder="Enter search text..."
@@ -662,11 +671,42 @@
           <button type="button" id="clearButton" title="Clear the current search and results."> Clear Search </button>
         </div>
 
-        <!-- SEARCH OPTIONS -->
-        <div class="row row-options">
+        <!-- FILE-LEVEL OPERATOR -->
+        <div class="basic-control-row">
+          <span class="basic-control-label">Operator:</span>
+          <label title="Exclude files containing the search text."
+                 style="display:inline-flex; align-items:center; gap:0.3rem; white-space:nowrap; cursor:pointer;">
+            <input id="excludeFilesCheckbox" type="checkbox"> NOT
+          </label>
+        </div>
 
-          <!-- <label for="matchType">Match:</label> -->
-          <select id="matchType" title="Choose whether to match text anywhere or as complete words only."> <option value="substring" selected>Substring</option> <option value="whole">Whole word</option> </select>
+        <!-- MATCH SETTINGS -->
+        <div class="basic-control-row">
+          <span class="basic-control-label">Match:</span>
+
+          <select id="matchType" title="Choose whether to match text anywhere or as complete words only.">
+            <option value="substring" selected>Substring</option>
+            <option value="whole">Whole word</option>
+          </select>
+
+          <!-- Existing JS still uses this internally for now -->
+          <select id="caseType" style="display:none;">
+            <option value="insensitive" selected>Ignore case</option>
+            <option value="sensitive">Match case</option>
+          </select>
+
+          <label title="Match uppercase and lowercase letters exactly.">
+            <input id="basicCaseSensitiveCheckbox" type="checkbox"> Case Sensitive
+          </label>
+
+          <label title="Include leading labels such as Kim: and Sunny: in search results.">
+            <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels
+          </label>
+        </div>
+
+        <!-- RESULT SETTINGS -->
+        <div class="basic-control-row">
+          <span class="basic-control-label">Results:</span>
 
           <select id="sortOrder">
             <option value="newest" selected>Newest first</option>
@@ -680,20 +720,7 @@
             <option value="200">200 rows</option>
             <option value="500">500 rows</option>
           </select>
-
-          <!-- Existing JS still uses this internally for now -->
-          <select id="caseType" style="display:none;">
-            <option value="insensitive" selected>Ignore case</option>
-            <option value="sensitive">Match case</option>
-          </select>
-
-        <div style="display:flex; flex-direction:column; gap:0.15rem;">
-        <label title="Match uppercase and lowercase letters exactly."> <input id="basicCaseSensitiveCheckbox" type="checkbox"> Case Sensitive </label>
-        <label title="Include leading labels such as Kim: and Sunny: in search results."> <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels </label>
         </div>
-
-        </div>
-
 
         </form>
       </div>
@@ -757,8 +784,119 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     (function () {
-      const TOOL_VERSION = '2026-08-22.001833';
-      const ZIP_URL = '/GIA-Reports/docs/search/search.zip';
+      // TEST ONLY: preserve application console traffic across reloads in this tab.
+      // Remove this block after the proving-ground work is finished.
+      const GIA_CONSOLE_LOG_KEY = 'GIAConsoleLog';
+      const GIA_CONSOLE_LOG_MAX_LINES = 5000;
+
+      function formatConsoleArg(value) {
+        if (typeof value === 'string') return value;
+        if (value instanceof Error) return value.stack || value.message || String(value);
+
+        if (value && typeof value === 'object') {
+          try {
+            const seen = new WeakSet();
+            return JSON.stringify(value, function (key, item) {
+              if (typeof item === 'object' && item !== null) {
+                if (seen.has(item)) return '[Circular]';
+                seen.add(item);
+              }
+              return item;
+            });
+          } catch (err) {
+            return String(value);
+          }
+        }
+
+        return String(value);
+      }
+
+      function appendConsoleLog(level, args) {
+        try {
+          const now = new Date();
+          const stamp = now.toTimeString().slice(0, 8) + '.' +
+                        String(now.getMilliseconds()).padStart(3, '0');
+          const line = stamp + ' ' + level.padEnd(5, ' ') + ' ' +
+                       Array.from(args).map(formatConsoleArg).join(' ');
+
+          const prior = sessionStorage.getItem(GIA_CONSOLE_LOG_KEY) || '';
+          let lines = prior ? prior.split('\n') : [];
+          lines.push(line);
+
+          if (lines.length > GIA_CONSOLE_LOG_MAX_LINES) {
+            lines = lines.slice(lines.length - GIA_CONSOLE_LOG_MAX_LINES);
+          }
+
+          sessionStorage.setItem(GIA_CONSOLE_LOG_KEY, lines.join('\n'));
+        } catch (err) {
+          // The recorder must never interfere with Search.
+        }
+      }
+
+      ['log', 'warn', 'error', 'info'].forEach(function (level) {
+        const original = console[level].bind(console);
+        console[level] = function () {
+          appendConsoleLog(level.toUpperCase(), arguments);
+          original.apply(console, arguments);
+        };
+      });
+
+
+      // TEST ONLY: record network activity that DevTools normally shows too fast
+      // to inspect comfortably. This wraps fetch without changing its behavior.
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async function (input, init) {
+        const url = (typeof input === 'string')
+          ? input
+          : (input && input.url ? input.url : String(input));
+        const cacheMode = init && init.cache ? init.cache : 'default';
+        const started = performance.now();
+
+        appendConsoleLog('FETCH', ['START', url, 'cache=' + cacheMode]);
+
+        try {
+          const response = await originalFetch(input, init);
+          appendConsoleLog('FETCH', [
+            'DONE',
+            response.status,
+            url,
+            Math.round(performance.now() - started) + 'ms'
+          ]);
+          return response;
+        } catch (err) {
+          appendConsoleLog('FETCH', [
+            'FAIL',
+            url,
+            Math.round(performance.now() - started) + 'ms',
+            err && err.message ? err.message : String(err)
+          ]);
+          throw err;
+        }
+      };
+
+      window.addEventListener('error', function (event) {
+        appendConsoleLog('ERROR', [
+          'UNCAUGHT:',
+          event.message || 'Unknown error',
+          event.filename || '',
+          event.lineno ? 'line ' + event.lineno : ''
+        ]);
+      });
+
+      window.addEventListener('unhandledrejection', function (event) {
+        appendConsoleLog('ERROR', [
+          'UNHANDLED PROMISE:',
+          event.reason instanceof Error
+            ? (event.reason.stack || event.reason.message)
+            : event.reason
+        ]);
+      });
+
+      appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
+
+      const TOOL_VERSION = '2026-08-27.124853';
+      const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
+      const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
       const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
 
@@ -785,6 +923,24 @@
       const searchRowEl = document.getElementById('searchRow');
       const sortOrderEl = document.getElementById('sortOrder');
       const statusEl = document.getElementById('status');
+
+
+      // TEST ONLY: record every visible status-bar transition.
+      let lastRecordedStatus = statusEl ? statusEl.textContent : '';
+      if (statusEl) {
+        const statusObserver = new MutationObserver(function () {
+          const next = statusEl.textContent;
+          if (next !== lastRecordedStatus) {
+            lastRecordedStatus = next;
+            appendConsoleLog('STATUS', [next]);
+          }
+        });
+        statusObserver.observe(statusEl, {
+          childList: true,
+          characterData: true,
+          subtree: true
+        });
+      }
       const clearButtonEl = document.getElementById('clearButton');
       const findButtonEl = document.getElementById('findButton');
       const backButtonEl = document.getElementById('backButton');
@@ -886,8 +1042,8 @@
           theme: {
             pageBg: '#E4E8F1',
             surfaceBg: '#F7F8FB',
-            bannerBg: '#374776',       /* Exact UNN Blue */
-            bannerText: '#FFFFFF',
+            bannerBg: '#374776',       /* <--- Added: Your exact UNN blue! */
+            bannerText: '#FFFFFF',     /* <--- Added */
             basicAccent: 'rgba(55, 71, 118, 0.95)',   /* Anchors to UNN navy banner */
             blockBg: '#E1E5EE',
             blockHoverBg: '#D5DBE7',
@@ -904,9 +1060,9 @@
             disabledTextColor: '#7B8190',
             feedbackColor: '#374776',
             advancedBg: '#DCE2EF',
-            advancedBorder: 'rgba(55, 71, 118, 0.35)',
+            advancedBorder: 'rgba(55,71,118,0.35)',
             advancedAccent: 'rgba(91, 112, 166, 0.85)', /* Steel-blue tone: lighter than banner, darker than cyan */
-            advancedGlow: 'rgba(55, 71, 118, 0.12)'
+            advancedGlow: 'rgba(55,71,118,0.12)'
           }
         }
       ];
@@ -925,7 +1081,17 @@
       window.GIAReSearchHistory = [];
       window.GIAReSearchMode = false;
       window.GIAServerOnline = null;
-      window.GIASearchArchive = { loaded: false, files: [] };
+      window.GIASearchArchive = {
+        loaded: false,
+        complete: false,
+        loading: true,
+        loadFailed: false,
+        failureMessage: '',
+        totalFiles: 0,
+        segmentsLoaded: 0,
+        segmentsTotal: 0,
+        files: []
+      };
       window.GIASearchBaseFiles = [];
       window.GIASearchResults = [];
       window.GIASelectedResults = [];
@@ -1444,6 +1610,8 @@
 
       function updateFindButtonState() {
         findButtonEl.disabled =
+          !basicSearchEnabled ||
+          window.GIASearchArchive.loaded !== true ||
           searchInputEl.value.trim().length === 0;
       }
 
@@ -2005,6 +2173,36 @@
         return false;
       }
 
+      function getArchiveStatusText() {
+        const archive = window.GIASearchArchive;
+        const loadedCount = Array.isArray(archive.files) ? archive.files.length : 0;
+        const totalCount = archive.totalFiles || 0;
+
+        if (archive.complete) {
+          return 'Archive loaded: ' + loadedCount + ' files ready.';
+        }
+
+        if (archive.loadFailed) {
+          const savedSearchNote = pendingSavedSearch ? ' Saved search not run.' : '';
+
+          if (archive.loaded && totalCount > 0) {
+            return loadedCount + ' of ' + totalCount +
+              ' files loaded - could not load older reports.' + savedSearchNote;
+          }
+
+          return 'Search archive unavailable' +
+            (archive.failureMessage ? ': ' + archive.failureMessage : '.') +
+            savedSearchNote;
+        }
+
+        if (totalCount > 0) {
+          return loadedCount + ' of ' + totalCount + ' files loaded - ' +
+            (archive.loaded ? 'loading older reports...' : 'loading newest reports...');
+        }
+
+        return 'Loading search manifest...';
+      }
+
       function updateStatusBar() {
         const hasResults =
           Array.isArray(window.GIASearchResults) &&
@@ -2041,10 +2239,12 @@
               ' - ' + window.GIASearchResults.length + ' files found.';
               // + ' Default Enter: ' + defaultLabel + '.';
           }
+
+          if (!window.GIASearchArchive.complete) {
+            statusEl.textContent += ' ' + getArchiveStatusText();
+          }
         } else {
-          statusEl.textContent =
-            'Archive loaded: ' + window.GIASearchArchive.files.length + ' files ready.';
-            // + ' Default Enter: ' + defaultLabel + '.';
+          statusEl.textContent = getArchiveStatusText();
         }
 
         if (window.GIAServerOnline === false) {
@@ -2860,6 +3060,8 @@
           return;
         }
 
+        pendingSavedSearch = null;
+
         if (window.GIAReSearchMode) {
           await executeBasicReSearch(query, false);
         } else {
@@ -3011,6 +3213,8 @@
 
         const query = searchInputEl.value.trim();
         if (!query) return;
+
+        pendingSavedSearch = null;
 
         // The one primary button and Enter always perform the same action.
         if (window.GIAReSearchMode) {
@@ -3421,66 +3625,172 @@
         }
       }
 
+      async function loadSearchSegment(segment, forceFresh) {
+        if (!segment || !segment.zip) {
+          throw new Error('Manifest segment is missing its zip name.');
+        }
+
+        const segmentUrl = SEARCH_SEGMENT_BASE_URL + segment.zip;
+        const fetchOptions = forceFresh ? { cache: 'no-store' } : undefined;
+        const response = fetchOptions
+          ? await fetch(segmentUrl, fetchOptions)
+          : await fetch(segmentUrl);
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status + ' while fetching ' + segment.zip);
+        }
+
+        const zipBuffer = await response.arrayBuffer();
+        const zip = await JSZip.loadAsync(zipBuffer);
+        const manifestFiles = Array.isArray(segment.files) ? segment.files : [];
+        const metadataByName = new Map();
+
+        for (const metadata of manifestFiles) {
+          if (metadata && metadata.name) {
+            metadataByName.set(metadata.name.replace(/\\/g, '/').split('/').pop(), metadata);
+          }
+        }
+
+        const segmentFiles = [];
+        const entries = Object.keys(zip.files);
+
+        for (const entryName of entries) {
+          const entry = zip.files[entryName];
+          if (entry.dir) {
+            continue;
+          }
+
+          const baseName = entryName.replace(/\\/g, '/').split('/').pop();
+          const metadata = metadataByName.get(baseName);
+
+          if (!metadata) {
+            throw new Error('Manifest metadata missing for ' + baseName);
+          }
+
+          const rawText = await entry.async('string');
+          const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+          const yearMatch = metadata.name.match(/^(\d{4})/);
+
+          segmentFiles.push({
+            name: metadata.name,
+            display: metadata.display || metadata.name,
+            url: metadata.url || '',
+            text: normalizedText,
+            year: yearMatch ? parseInt(yearMatch[1], 10) : 0
+          });
+        }
+
+        if (typeof segment.count === 'number' && segmentFiles.length !== segment.count) {
+          throw new Error(
+            segment.zip + ' contained ' + segmentFiles.length +
+            ' files; manifest expected ' + segment.count
+          );
+        }
+
+        window.GIASearchArchive.files.push(...segmentFiles);
+        window.GIASearchArchive.segmentsLoaded += 1;
+      }
+
       async function loadSearchArchive() {
+        const archive = window.GIASearchArchive;
+
+        archive.loaded = false;
+        archive.complete = false;
+        archive.loading = true;
+        archive.loadFailed = false;
+        archive.failureMessage = '';
+        archive.totalFiles = 0;
+        archive.segmentsLoaded = 0;
+        archive.segmentsTotal = 0;
+        archive.files = [];
+        updateStatusBar();
+
+        let manifest;
+
         try {
-          statusEl.textContent = 'Fetching search.zip...';
-
-          const response = await fetch(ZIP_URL, { cache: 'no-store' });
-          if (!response.ok) {
-            throw new Error('HTTP ' + response.status + ' while fetching ' + ZIP_URL);
+          const manifestResponse = await fetch(SEARCH_MANIFEST_URL, { cache: 'no-store' });
+          if (!manifestResponse.ok) {
+            throw new Error(
+              'HTTP ' + manifestResponse.status + ' while fetching search_manifest.json'
+            );
           }
 
-          statusEl.textContent = 'Reading zip into memory...';
-          const zipBuffer = await response.arrayBuffer();
+          manifest = await manifestResponse.json();
 
-          statusEl.textContent = 'Inflating archive...';
-          const zip = await JSZip.loadAsync(zipBuffer);
-
-          const files = [];
-          const entries = Object.keys(zip.files);
-
-          for (const name of entries) {
-            const entry = zip.files[name];
-            if (entry.dir) {
-              continue;
-            }
-
-            const rawText = await entry.async('string');
-            const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            const year = parseInt(name.match(/\d{4}/)[0], 10);
-
-            const htmlName = name
-              .replace('_WSR.txt', '_GIA_Report.html')
-              .replace('.txt', '_GIA_Report.html');
-
-            const url = '/GIA-Reports/docs/' + htmlName;
-
-            files.push({
-              name: name,
-              url: url,
-              text: text,
-              year: year
-            });
+          if (!manifest || !Array.isArray(manifest.segments) || manifest.segments.length === 0) {
+            throw new Error('search_manifest.json contains no search segments.');
           }
 
-          window.GIASearchArchive.loaded = true;
-          window.GIASearchArchive.files = files;
-
+          archive.segmentsTotal = manifest.segments.length;
+          archive.totalFiles = manifest.segments.reduce(function(total, segment) {
+            return total + (Number(segment.count) || 0);
+          }, 0);
+          archive.manifest = manifest;
           updateStatusBar();
-          searchRowEl.classList.add('ready');
-        basicPanelEl.classList.add('ready');
-          updateSelectionCount();
-          searchInputEl.focus();
 
-          if (pendingSavedSearch) {
-            if (serverCheckPromise) {
-              await serverCheckPromise;
-            }
-            await replayPendingSavedSearch();
-          }
         } catch (err) {
           console.error(err);
-          statusEl.textContent = 'Failed to load search archive: ' + err.message;
+          archive.loading = false;
+          archive.loadFailed = true;
+          archive.failureMessage = err.message;
+
+          // Keep the page usable for server-backed Advanced Search.
+          searchRowEl.classList.add('ready');
+          basicPanelEl.classList.add('ready');
+          setBasicSearchEnabled(true);
+          updateStatusBar();
+          return;
+        }
+
+        for (let index = 0; index < manifest.segments.length; index++) {
+          const segment = manifest.segments[index];
+
+          try {
+            // Segment 1 is open-ended and changes as new reports arrive.
+            // Closed historical segments are allowed to use the browser cache.
+            await loadSearchSegment(segment, index === 0);
+          } catch (err) {
+            console.error(err);
+            archive.loading = false;
+            archive.loadFailed = true;
+            archive.failureMessage = err.message;
+
+            if (!archive.loaded) {
+              // First segment failed: Basic Search has no local corpus, but
+              // Advanced Search can still use Render if the server is online.
+              searchRowEl.classList.add('ready');
+              basicPanelEl.classList.add('ready');
+              setBasicSearchEnabled(true);
+            }
+
+            updateStatusBar();
+            return;
+          }
+
+          if (!archive.loaded) {
+            archive.loaded = true;
+            searchRowEl.classList.add('ready');
+            basicPanelEl.classList.add('ready');
+            setBasicSearchEnabled(true);
+            updateSelectionCount();
+            searchInputEl.focus();
+
+          }
+
+          if (index < manifest.segments.length - 1) {
+            updateStatusBar();
+          }
+        }
+
+        archive.loading = false;
+        archive.complete = true;
+        updateStatusBar();
+
+        if (pendingSavedSearch) {
+          if (serverCheckPromise) {
+            await serverCheckPromise;
+          }
+          await replayPendingSavedSearch();
         }
       }
 
@@ -3606,6 +3916,8 @@
         if (!payload.rows || payload.rows.length === 0) {
           return;
         }
+
+        pendingSavedSearch = null;
 
         const pretty = JSON.stringify(payload, null, 2);
 
@@ -3897,13 +4209,19 @@
 
       function setBasicSearchEnabled(isEnabled) {
         basicSearchEnabled = isEnabled;
-        searchInputEl.disabled = !isEnabled;
-        findButtonEl.disabled = !isEnabled;
-        excludeFilesCheckboxEl.disabled = !isEnabled;
-        matchTypeEl.disabled = !isEnabled;
-        caseTypeEl.disabled = !isEnabled;
-        sortOrderEl.disabled = !isEnabled;
-        maxRowsEl.disabled = !isEnabled;
+
+        const clientReady = window.GIASearchArchive.loaded === true;
+        const controlsEnabled = isEnabled && clientReady;
+
+        searchInputEl.disabled = !controlsEnabled;
+        excludeFilesCheckboxEl.disabled = !controlsEnabled;
+        matchTypeEl.disabled = !controlsEnabled;
+        caseTypeEl.disabled = !controlsEnabled;
+        sortOrderEl.disabled = !controlsEnabled;
+        maxRowsEl.disabled = !controlsEnabled;
+        basicCaseSensitiveCheckboxEl.disabled = !controlsEnabled;
+
+        updateFindButtonState();
         updateAdvancedServerState();
       }
 
