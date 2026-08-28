@@ -766,6 +766,7 @@
             <input id="excludeFilesCheckbox" type="checkbox"> NOT
           </label>
 
+
           <select id="matchType" title="Choose whether to match text anywhere or as complete words only.">
             <option value="substring" selected>Substring</option>
             <option value="whole">Whole word</option>
@@ -824,6 +825,10 @@
 
           <label title="Refine current results using exact uppercase and lowercase letters.">
             <input id="filterCaseSensitiveCheckbox" type="checkbox"> Case Sensitive
+          </label>
+
+          <label title="Show only GIA reports dated 2024-09-30 and later in the current results.">
+            <input id="giaOnlyCheckbox" type="checkbox"> GIA only
           </label>
 
           <label title="Include leading labels such as Kim: and Sunny: in the current results.">
@@ -1003,13 +1008,14 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-08-28.034435';
+      const TOOL_VERSION = '2026-08-28.052149';
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
       const GIA_SEARCH_LOG_URL = 'https://lance-exteriors-app.onrender.com/gia-search-log';
 
       const KNOWN_SPEAKER_LABELS = [ 'Kim:', 'Sunny:' ];
+      const GIA_START_DATE = '2024-09-30';
 
       const searchLogoEl = document.getElementById('searchLogo');
       const exitButtonEl = document.getElementById('exitButton');
@@ -1021,6 +1027,7 @@
       const caseTypeEl = document.getElementById('caseType');
       const matchTypeEl = document.getElementById('matchType');
       const excludeFilesCheckboxEl = document.getElementById('excludeFilesCheckbox');
+      const giaOnlyCheckboxEl = document.getElementById('giaOnlyCheckbox');
       const basicCaseSensitiveCheckboxEl = document.getElementById('basicCaseSensitiveCheckbox');
       const includeSpeakerLabelsCheckboxEl = document.getElementById('includeSpeakerLabelsCheckbox');
       const filterResultsRowEl = document.getElementById('filterResultsRow');
@@ -1370,6 +1377,7 @@
           excludeFiles: (typeof options.excludeFiles === 'boolean')
             ? options.excludeFiles
             : excludeFilesCheckboxEl.checked,
+          giaOnly: options.giaOnly === true,
           includeSpeakerLabels: (typeof options.includeSpeakerLabels === 'boolean')
             ? options.includeSpeakerLabels
             : includeSpeakerLabelsCheckboxEl.checked
@@ -1402,6 +1410,7 @@
         last.matchType = filterMatchTypeEl.value;
         last.caseType = filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive';
         last.includeSpeakerLabels = includeSpeakerLabelsCheckboxEl.checked;
+        last.giaOnly = giaOnlyCheckboxEl.checked;
       }
 
       function updateUndoFilterButtonState() {
@@ -1440,7 +1449,8 @@
           includeSpeakerLabels:
             (typeof activeOptions.includeSpeakerLabels === 'boolean')
               ? activeOptions.includeSpeakerLabels
-              : includeSpeakerLabelsCheckboxEl.checked
+              : includeSpeakerLabelsCheckboxEl.checked,
+          giaOnly: activeOptions.giaOnly === true
         };
       }
 
@@ -1448,7 +1458,8 @@
         window.GIAActiveResultFilterState = {
           matchType: filterMatchTypeEl.value || 'substring',
           caseType: filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive',
-          includeSpeakerLabels: includeSpeakerLabelsCheckboxEl.checked
+          includeSpeakerLabels: includeSpeakerLabelsCheckboxEl.checked,
+          giaOnly: giaOnlyCheckboxEl.checked
         };
       }
 
@@ -1477,6 +1488,7 @@
           filterMatchType: activeFilterState.matchType || 'substring',
           filterCaseSensitive: activeFilterState.caseType === 'sensitive',
           includeSpeakerLabels: includeSpeakerLabels,
+          giaOnly: activeFilterState.giaOnly === true,
           speakerLabelsPreference: includeSpeakerLabels,
           speakerFilterDegraded: window.GIASpeakerFilterDegraded === true,
           resultsHTML: resultsEl.innerHTML,
@@ -1493,6 +1505,37 @@
 
         window.GIAFilterUndoStack.push(captureFilterUndoSnapshot());
         updateUndoFilterButtonState();
+      }
+
+      function filterStatesMatch(a, b) {
+        return !!a && !!b &&
+          (a.matchType || 'substring') === (b.matchType || 'substring') &&
+          (a.caseType || 'insensitive') === (b.caseType || 'insensitive') &&
+          (a.includeSpeakerLabels !== false) === (b.includeSpeakerLabels !== false) &&
+          (a.giaOnly === true) === (b.giaOnly === true);
+      }
+
+      function collapseFilterUndoHistoryToCurrentState() {
+        if (!Array.isArray(window.GIAFilterUndoStack) || window.GIAFilterUndoStack.length === 0) {
+          return;
+        }
+
+        const currentState = getActiveResultFilterState();
+
+        for (let i = window.GIAFilterUndoStack.length - 1; i >= 0; i--) {
+          const snapshot = window.GIAFilterUndoStack[i];
+          const snapshotState = {
+            matchType: snapshot.filterMatchType || 'substring',
+            caseType: snapshot.filterCaseSensitive ? 'sensitive' : 'insensitive',
+            includeSpeakerLabels: snapshot.includeSpeakerLabels !== false,
+            giaOnly: snapshot.giaOnly === true
+          };
+
+          if (filterStatesMatch(currentState, snapshotState)) {
+            window.GIAFilterUndoStack.length = i;
+            break;
+          }
+        }
       }
 
       function wireRestoredResultLinks() {
@@ -1545,11 +1588,13 @@
         filterMatchTypeEl.value = prev.filterMatchType || 'substring';
         filterCaseSensitiveCheckboxEl.checked = prev.filterCaseSensitive === true;
         includeSpeakerLabelsCheckboxEl.checked = prev.includeSpeakerLabels === true;
+        giaOnlyCheckboxEl.checked = prev.giaOnly === true;
         speakerLabelsPreference = prev.speakerLabelsPreference === true;
         window.GIAActiveResultFilterState = {
           matchType: prev.filterMatchType || 'substring',
           caseType: prev.filterCaseSensitive ? 'sensitive' : 'insensitive',
-          includeSpeakerLabels: prev.includeSpeakerLabels === true
+          includeSpeakerLabels: prev.includeSpeakerLabels === true,
+          giaOnly: prev.giaOnly === true
         };
 
         resetViewerState();
@@ -1584,6 +1629,7 @@
           speakerLabelsPreference = activeOptions.includeSpeakerLabels;
         }
 
+        giaOnlyCheckboxEl.checked = activeOptions.giaOnly === true;
         rememberCurrentResultFilterState();
 
         // A completed Find/ReSearch starts a new filtering phase.
@@ -1625,21 +1671,29 @@
 
         const activeOptions = window.lastSearchOptions || {};
         const pendingText = searchInputEl.value;
+        const baseFiles = window.GIASearchBaseFiles.slice();
+        const filterSourceFiles = giaOnlyCheckboxEl.checked
+          ? baseFiles.filter(isGiaSearchFile)
+          : baseFiles;
 
         pushFilterUndoSnapshot();
 
         await Promise.resolve(runSearch(window.lastSearchQuery, {
-          sourceFiles: window.GIASearchBaseFiles.slice(),
+          sourceFiles: filterSourceFiles,
           matchType: filterMatchTypeEl.value,
           caseType: filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive',
           excludeFiles: !!activeOptions.excludeFiles,
+          giaOnly: giaOnlyCheckboxEl.checked,
           includeSpeakerLabels: includeSpeakerLabelsCheckboxEl.checked,
           liveFilter: true
         }));
 
+        // Live filters refine the established Basic scope; they never replace it.
+        window.GIASearchBaseFiles = baseFiles;
         searchInputEl.value = pendingText;
         rememberCurrentResultFilterState();
         replaceLastBasicRecipeFilters();
+        collapseFilterUndoHistoryToCurrentState();
         updateFindButtonState();
         updateUndoFilterButtonState();
       }
@@ -1779,6 +1833,8 @@
           await applyBasicResultFilters();
         }
       });
+
+      giaOnlyCheckboxEl.addEventListener('change', applyBasicResultFilters);
 
       function applySortOrderChange() {
         if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
@@ -3068,16 +3124,32 @@
            window.GIASearchResults.length - 1);
       }
 
-      function getSearchSourceFiles() {
-        if (
+      function isGiaSearchFile(file) {
+        const baseName = String(file && file.name ? file.name : '')
+          .replace(/\\/g, '/')
+          .split('/')
+          .pop();
+        const match = baseName.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+        if (!match) return false;
+
+        const reportDate = match[1] + '-' + match[2] + '-' + match[3];
+        return reportDate >= GIA_START_DATE;
+      }
+
+      function getSearchSourceFiles(giaOnlyOverride) {
+        const allFiles = window.GIASearchArchive.files || [];
+        const currentScope = (
           window.GIAReSearchMode &&
           Array.isArray(window.GIAFullSearchResults) &&
           window.GIAFullSearchResults.length > 0
-        ) {
-          return window.GIAFullSearchResults;
-        }
+        )
+          ? window.GIAFullSearchResults
+          : allFiles;
 
-        return window.GIASearchArchive.files;
+        return giaOnlyOverride === true
+          ? currentScope.filter(isGiaSearchFile)
+          : currentScope;
       }
 
       function runSearch(query, options) {
@@ -3091,7 +3163,8 @@
         const caseType = options.caseType || caseTypeEl.value;
         const sortOrder = options.sortOrder || sortOrderEl.value;
         const maxRows = options.maxRows || parseInt(maxRowsEl.value, 10);
-        const sourceFiles = options.sourceFiles || getSearchSourceFiles();
+        const giaOnly = options.giaOnly === true;
+        const sourceFiles = options.sourceFiles || getSearchSourceFiles(giaOnly);
         const liveFilter = options.liveFilter === true;
         const isBasicSearch = options.basicSearch !== false;
         const excludeFiles = (typeof options.excludeFiles === 'boolean')
@@ -3121,7 +3194,8 @@
             maxRows: maxRows,
             sourceFiles: sourceFiles,
             liveFilter: liveFilter,
-            basicSearch: isBasicSearch
+            basicSearch: isBasicSearch,
+            giaOnly: giaOnly
           });
         }
 
@@ -3131,6 +3205,7 @@
           sortOrder: sortOrder,
           maxRows: maxRows,
           excludeFiles: excludeFiles,
+          giaOnly: giaOnly,
           includeSpeakerLabels: includeSpeakerLabels,
           basicSearch: isBasicSearch
         };
@@ -3708,9 +3783,10 @@
         try {
           options = options || {};
 
+          const giaOnly = options.giaOnly === true;
           const sourceFiles = Array.isArray(options.sourceFiles)
             ? options.sourceFiles
-            : getSearchSourceFiles();
+            : getSearchSourceFiles(giaOnly);
 
           const allFiles = window.GIASearchArchive.files || [];
 
@@ -3902,6 +3978,7 @@
             caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
             sortOrder: options.sortOrder || 'newest',
             maxRows: maxRows,
+            giaOnly: giaOnly,
             includeSpeakerLabels: payload.includeSpeakerLabels !== false,
             serverBacked: true,
             advancedPayload: payload,
@@ -4045,6 +4122,7 @@
                 matchType: step.matchType || matchTypeEl.value,
                 caseType: step.caseType || caseTypeEl.value,
                 excludeFiles: step.excludeFiles === true,
+                giaOnly: step.giaOnly === true,
                 includeSpeakerLabels: step.includeSpeakerLabels !== false,
                 sortOrder: sortOrderEl.value,
                 maxRows: parseInt(maxRowsEl.value, 10) || 50,
@@ -4276,6 +4354,7 @@
       function clearMainSearch() {
         searchInputEl.value = '';
         excludeFilesCheckboxEl.checked = false;
+        giaOnlyCheckboxEl.checked = false;
         resultsEl.style.display = 'none';
         resultsEl.innerHTML = '';
         clearButtonEl.style.display = 'none';
@@ -4709,6 +4788,7 @@
           window.GIAFilterUndoStack.length === 0;
         filterMatchTypeEl.disabled = !controlsEnabled;
         filterCaseSensitiveCheckboxEl.disabled = !controlsEnabled;
+        giaOnlyCheckboxEl.disabled = !controlsEnabled;
 
         updateFindButtonState();
         updateAdvancedServerState();
