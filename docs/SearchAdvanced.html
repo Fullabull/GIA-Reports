@@ -284,7 +284,8 @@
   }
 
   #filterResultsButton,
-  #undoFilterButton {
+  #undoFilterButton,
+  #redoFilterButton {
     padding: 0.55rem 0.8rem;
     font-size: 0.95rem;
   }
@@ -815,6 +816,7 @@
 
           <button id="filterResultsButton" type="button" aria-expanded="false">Filter Results</button>
           <button id="undoFilterButton" type="button" style="display:none;" disabled>Undo Filter</button>
+          <button id="redoFilterButton" type="button" style="display:none;" disabled>Redo Filter</button>
         </div>
 
         <div id="filterResultsPanel" class="basic-filter-panel" hidden>
@@ -1008,7 +1010,8 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-08-28.052149';
+      const TOOL_VERSION = '2026-08-28.124650';
+      const FILTER_HISTORY_LIMIT = 20;
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
@@ -1033,6 +1036,7 @@
       const filterResultsRowEl = document.getElementById('filterResultsRow');
       const filterResultsButtonEl = document.getElementById('filterResultsButton');
       const undoFilterButtonEl = document.getElementById('undoFilterButton');
+      const redoFilterButtonEl = document.getElementById('redoFilterButton');
       const filterResultsPanelEl = document.getElementById('filterResultsPanel');
       const filterMatchTypeEl = document.getElementById('filterMatchType');
       const filterCaseSensitiveCheckboxEl = document.getElementById('filterCaseSensitiveCheckbox');
@@ -1222,6 +1226,7 @@
       window.GIASpeakerFilterDegraded = false;
       window.GIASearchRecipe = [];
       window.GIAFilterUndoStack = [];
+      window.GIAFilterRedoStack = [];
       window.GIAActiveResultFilterState = null;
       window.lastSearchOptions = {};
       window.lastSearchQuery = '';
@@ -1417,6 +1422,9 @@
         const hasUndo =
           Array.isArray(window.GIAFilterUndoStack) &&
           window.GIAFilterUndoStack.length > 0;
+        const hasRedo =
+          Array.isArray(window.GIAFilterRedoStack) &&
+          window.GIAFilterRedoStack.length > 0;
         const controlsEnabled =
           basicSearchEnabled &&
           window.GIASearchArchive &&
@@ -1427,10 +1435,21 @@
         undoFilterButtonEl.title = hasUndo
           ? 'Restore the previous live-filter state.'
           : 'No live filter to undo.';
+
+        redoFilterButtonEl.style.display = hasRedo ? 'inline-block' : 'none';
+        redoFilterButtonEl.disabled = !hasRedo || !controlsEnabled;
+        redoFilterButtonEl.title = hasRedo
+          ? 'Reapply the live-filter state that was just undone.'
+          : 'No live filter to redo.';
+      }
+
+      function clearFilterRedoHistory() {
+        window.GIAFilterRedoStack = [];
       }
 
       function clearFilterUndoHistory() {
         window.GIAFilterUndoStack = [];
+        window.GIAFilterRedoStack = [];
         updateUndoFilterButtonState();
       }
 
@@ -1504,6 +1523,9 @@
         }
 
         window.GIAFilterUndoStack.push(captureFilterUndoSnapshot());
+        if (window.GIAFilterUndoStack.length > FILTER_HISTORY_LIMIT) {
+          window.GIAFilterUndoStack.shift();
+        }
         updateUndoFilterButtonState();
       }
 
@@ -1555,46 +1577,37 @@
         }
       }
 
-      function undoBasicResultFilter() {
-        if (
-          !Array.isArray(window.GIAFilterUndoStack) ||
-          window.GIAFilterUndoStack.length === 0
-        ) {
-          return;
-        }
-
-        const prev = window.GIAFilterUndoStack.pop();
-
-        window.GIASearchResults = Array.isArray(prev.results)
-          ? prev.results.slice()
+      function restoreFilterSnapshot(snapshot) {
+        window.GIASearchResults = Array.isArray(snapshot.results)
+          ? snapshot.results.slice()
           : [];
-        window.GIAFullSearchResults = Array.isArray(prev.fullResults)
-          ? prev.fullResults.slice()
+        window.GIAFullSearchResults = Array.isArray(snapshot.fullResults)
+          ? snapshot.fullResults.slice()
           : window.GIASearchResults.slice();
-        window.GIASearchBaseFiles = Array.isArray(prev.baseFiles)
-          ? prev.baseFiles.slice()
+        window.GIASearchBaseFiles = Array.isArray(snapshot.baseFiles)
+          ? snapshot.baseFiles.slice()
           : [];
-        window.GIAReSearchChain = Array.isArray(prev.chain)
-          ? prev.chain.slice()
+        window.GIAReSearchChain = Array.isArray(snapshot.chain)
+          ? snapshot.chain.slice()
           : [];
-        window.GIAReSearchMode = prev.reSearchMode === true;
-        window.lastSearchQuery = prev.lastSearchQuery || '';
-        window.lastSearchOptions = cloneJSON(prev.lastSearchOptions || {});
-        window.GIASearchRecipe = Array.isArray(prev.recipe)
-          ? cloneJSON(prev.recipe)
+        window.GIAReSearchMode = snapshot.reSearchMode === true;
+        window.lastSearchQuery = snapshot.lastSearchQuery || '';
+        window.lastSearchOptions = cloneJSON(snapshot.lastSearchOptions || {});
+        window.GIASearchRecipe = Array.isArray(snapshot.recipe)
+          ? cloneJSON(snapshot.recipe)
           : [];
-        window.GIASpeakerFilterDegraded = prev.speakerFilterDegraded === true;
+        window.GIASpeakerFilterDegraded = snapshot.speakerFilterDegraded === true;
 
-        filterMatchTypeEl.value = prev.filterMatchType || 'substring';
-        filterCaseSensitiveCheckboxEl.checked = prev.filterCaseSensitive === true;
-        includeSpeakerLabelsCheckboxEl.checked = prev.includeSpeakerLabels === true;
-        giaOnlyCheckboxEl.checked = prev.giaOnly === true;
-        speakerLabelsPreference = prev.speakerLabelsPreference === true;
+        filterMatchTypeEl.value = snapshot.filterMatchType || 'substring';
+        filterCaseSensitiveCheckboxEl.checked = snapshot.filterCaseSensitive === true;
+        includeSpeakerLabelsCheckboxEl.checked = snapshot.includeSpeakerLabels === true;
+        giaOnlyCheckboxEl.checked = snapshot.giaOnly === true;
+        speakerLabelsPreference = snapshot.speakerLabelsPreference === true;
         window.GIAActiveResultFilterState = {
-          matchType: prev.filterMatchType || 'substring',
-          caseType: prev.filterCaseSensitive ? 'sensitive' : 'insensitive',
-          includeSpeakerLabels: prev.includeSpeakerLabels === true,
-          giaOnly: prev.giaOnly === true
+          matchType: snapshot.filterMatchType || 'substring',
+          caseType: snapshot.filterCaseSensitive ? 'sensitive' : 'insensitive',
+          includeSpeakerLabels: snapshot.includeSpeakerLabels === true,
+          giaOnly: snapshot.giaOnly === true
         };
 
         resetViewerState();
@@ -1604,18 +1617,59 @@
           clearButtonEl.style.display = 'inline-block';
           rerenderCurrentResults();
         } else {
-          resultsEl.innerHTML = prev.resultsHTML || '';
-          resultsEl.style.display = prev.resultsDisplay || 'block';
-          clearButtonEl.style.display = prev.clearButtonDisplay || 'inline-block';
+          resultsEl.innerHTML = snapshot.resultsHTML || '';
+          resultsEl.style.display = snapshot.resultsDisplay || 'block';
+          clearButtonEl.style.display = snapshot.clearButtonDisplay || 'inline-block';
           wireRestoredResultLinks();
         }
+
         updateSelectionCount();
-        selectionBarEl.classList.toggle('ready', prev.selectionBarReady === true);
+        selectionBarEl.classList.toggle('ready', snapshot.selectionBarReady === true);
         updateFilterResultsAvailability();
         updateStatusBar();
         updateReSearchState();
         updateFindButtonState();
         updateUndoFilterButtonState();
+      }
+
+      function undoBasicResultFilter() {
+        if (
+          !Array.isArray(window.GIAFilterUndoStack) ||
+          window.GIAFilterUndoStack.length === 0
+        ) {
+          return;
+        }
+
+        if (!Array.isArray(window.GIAFilterRedoStack)) {
+          window.GIAFilterRedoStack = [];
+        }
+
+        window.GIAFilterRedoStack.push(captureFilterUndoSnapshot());
+        if (window.GIAFilterRedoStack.length > FILTER_HISTORY_LIMIT) {
+          window.GIAFilterRedoStack.shift();
+        }
+        const prev = window.GIAFilterUndoStack.pop();
+        restoreFilterSnapshot(prev);
+      }
+
+      function redoBasicResultFilter() {
+        if (
+          !Array.isArray(window.GIAFilterRedoStack) ||
+          window.GIAFilterRedoStack.length === 0
+        ) {
+          return;
+        }
+
+        if (!Array.isArray(window.GIAFilterUndoStack)) {
+          window.GIAFilterUndoStack = [];
+        }
+
+        window.GIAFilterUndoStack.push(captureFilterUndoSnapshot());
+        if (window.GIAFilterUndoStack.length > FILTER_HISTORY_LIMIT) {
+          window.GIAFilterUndoStack.shift();
+        }
+        const next = window.GIAFilterRedoStack.pop();
+        restoreFilterSnapshot(next);
       }
 
       function syncResultFiltersFromExecutedSearch() {
@@ -1676,6 +1730,7 @@
           ? baseFiles.filter(isGiaSearchFile)
           : baseFiles;
 
+        clearFilterRedoHistory();
         pushFilterUndoSnapshot();
 
         await Promise.resolve(runSearch(window.lastSearchQuery, {
@@ -1822,6 +1877,7 @@
       });
 
       undoFilterButtonEl.addEventListener('click', undoBasicResultFilter);
+      redoFilterButtonEl.addEventListener('click', redoBasicResultFilter);
 
       filterMatchTypeEl.addEventListener('change', applyBasicResultFilters);
 
@@ -1835,18 +1891,6 @@
       });
 
       giaOnlyCheckboxEl.addEventListener('change', applyBasicResultFilters);
-
-      function applySortOrderChange() {
-        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
-          rerenderCurrentResults();
-        }
-      }
-
-      function applyMaxRowsChange() {
-        if (window.lastSearchQuery && window.GIAFullSearchResults.length > 0) {
-          rerenderCurrentResults();
-        }
-      }
 
       function syncAdvancedControlsFromMain() {
         advancedMatchTypeEl.value = matchTypeEl.value;
@@ -2030,70 +2074,90 @@
       }
 
       function moveToPreviousHit() {
-        if (!window.GIAHitElements || window.GIAHitElements.length === 0) {
-          return;
-        }
+        const resultCount = Array.isArray(window.GIASearchResults)
+          ? window.GIASearchResults.length
+          : 0;
 
-        if (window.GIACurrentHitIndex > 0) {
+        if (resultCount === 0) return;
+
+        if (
+          window.GIAHitElements &&
+          window.GIAHitElements.length > 0 &&
+          window.GIACurrentHitIndex > 0
+        ) {
           window.GIACurrentHitIndex--;
           updateCurrentHit();
           return;
         }
 
-        if (window.GIACurrentResultIndex > 0) {
-          window.GIACurrentResultIndex--;
-          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        let nextIndex = window.GIACurrentResultIndex;
+        let didWrap = false;
+
+        for (let checked = 0; checked < resultCount; checked++) {
+          if (nextIndex <= 0) {
+            nextIndex = resultCount - 1;
+            didWrap = true;
+          } else {
+            nextIndex--;
+          }
+
+          window.GIACurrentResultIndex = nextIndex;
+          const file = window.GIASearchResults[nextIndex];
           openViewer(file, window.lastSearchQuery);
 
           if (window.GIAHitElements.length > 0) {
             window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
             updateCurrentHit();
+
+            if (didWrap) {
+              flashWrap('backward');
+            }
+            return;
           }
-          return;
-        }
-
-        window.GIACurrentResultIndex = window.GIASearchResults.length - 1;
-        const file = window.GIASearchResults[window.GIACurrentResultIndex];
-        openViewer(file, window.lastSearchQuery);
-
-        if (window.GIAHitElements.length > 0) {
-          window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
-          updateCurrentHit();
-          flashWrap('backward');
         }
       }
 
       function moveToNextHit() {
-        if (!window.GIAHitElements || window.GIAHitElements.length === 0) {
-          return;
-        }
+        const resultCount = Array.isArray(window.GIASearchResults)
+          ? window.GIASearchResults.length
+          : 0;
 
-        if (window.GIACurrentHitIndex < window.GIAHitElements.length - 1) {
+        if (resultCount === 0) return;
+
+        if (
+          window.GIAHitElements &&
+          window.GIAHitElements.length > 0 &&
+          window.GIACurrentHitIndex < window.GIAHitElements.length - 1
+        ) {
           window.GIACurrentHitIndex++;
           updateCurrentHit();
           return;
         }
 
-        if (window.GIACurrentResultIndex < window.GIASearchResults.length - 1) {
-          window.GIACurrentResultIndex++;
-          const file = window.GIASearchResults[window.GIACurrentResultIndex];
+        let nextIndex = window.GIACurrentResultIndex;
+        let didWrap = false;
+
+        for (let checked = 0; checked < resultCount; checked++) {
+          if (nextIndex >= resultCount - 1) {
+            nextIndex = 0;
+            didWrap = true;
+          } else {
+            nextIndex++;
+          }
+
+          window.GIACurrentResultIndex = nextIndex;
+          const file = window.GIASearchResults[nextIndex];
           openViewer(file, window.lastSearchQuery);
 
           if (window.GIAHitElements.length > 0) {
             window.GIACurrentHitIndex = 0;
             updateCurrentHit();
+
+            if (didWrap) {
+              flashWrap('forward');
+            }
+            return;
           }
-          return;
-        }
-
-        window.GIACurrentResultIndex = 0;
-        const file = window.GIASearchResults[window.GIACurrentResultIndex];
-        openViewer(file, window.lastSearchQuery);
-
-        if (window.GIAHitElements.length > 0) {
-          window.GIACurrentHitIndex = 0;
-          updateCurrentHit();
-          flashWrap('forward');
         }
       }
 
@@ -2165,21 +2229,6 @@
         root.style.setProperty('--search-banner-bg', theme.bannerBg);
         root.style.setProperty('--search-banner-text', theme.bannerText);
   
-      }
-
-      function extractDateFromFilename(filename) {
-        const m = filename.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (!m) {
-          return '00000000';
-        }
-        return m[1] + m[2] + m[3]; // YYYYMMDD
-      }
-
-      function normalizeTime(ts) {
-        if (!ts) {
-          return '00:00:00';
-        }
-        return ts;
       }
 
       function escapeHtml(s) {
@@ -2289,13 +2338,6 @@
         });
       }
 
-      function needsSpeakerLabelServer(query, matchType, caseType) {
-        if (includeSpeakerLabelsCheckboxEl.checked) return false;
-        if (window.GIAServerOnline !== true) return false;
-
-        return queryCanMatchSpeakerLabel(query, matchType, caseType);
-      }
-
       function getBlockBounds(fullText, hitIndex) {
         const timestampRegex = /^(\d{2}:\d{2}:\d{2})$/gm;
         const starts = [];
@@ -2319,14 +2361,19 @@
         let blockStart = starts[0];
         let blockEnd = fullText.length;
 
-        for (let i = 0; i < starts.length; i++) {
-          const start = starts[i];
-          const nextStart = (i + 1 < starts.length) ? starts[i + 1] : fullText.length;
+        if (hitIndex < starts[0]) {
+          blockStart = 0;
+          blockEnd = starts[0];
+        } else {
+          for (let i = 0; i < starts.length; i++) {
+            const start = starts[i];
+            const nextStart = (i + 1 < starts.length) ? starts[i + 1] : fullText.length;
 
-          if (hitIndex >= start && hitIndex < nextStart) {
-            blockStart = start;
-            blockEnd = nextStart;
-            break;
+            if (hitIndex >= start && hitIndex < nextStart) {
+              blockStart = start;
+              blockEnd = nextStart;
+              break;
+            }
           }
         }
 
@@ -2606,7 +2653,11 @@
         lines.push('Generated: ' + nowIso);
         lines.push('Search query: ' + (window.lastSearchQuery || ''));
         lines.push('Match/Case: ' + matchTypeEl.value + '/' + caseTypeEl.value);
-        lines.push('Files searched: ' + window.GIASearchArchive.files.length);
+        lines.push('Files searched: ' + (
+          Array.isArray(window.GIASearchBaseFiles) && window.GIASearchBaseFiles.length > 0
+            ? window.GIASearchBaseFiles.length
+            : window.GIASearchArchive.files.length
+        ));
         lines.push('Tool version: ' + TOOL_VERSION);
         /* lines.push('Max rows: ' + maxRowsEl.value); */
         /* lines.push('Total selections: ' + window.GIASelectedResults.length); */
@@ -2643,23 +2694,6 @@
         window.GIASelectedResults = [];
         updateSelectionCount();
         updateSelectButtonState();
-      }
-
-      function advancedNeedsServer() {
-        const rows = document.querySelectorAll('#advancedRows .adv-row');
-
-        for (const row of rows) {
-          if (row.data && typeof row.data === 'function') {
-            if (row.data('not')) return true;
-            if (row.data('groupStart')) return true;
-            if (row.data('groupEnd')) return true;
-          }
-
-          const activeOpBtn = row.querySelector('.op-btn.active');
-          if (activeOpBtn) return true;
-        }
-
-        return false;
       }
 
       function getArchiveStatusText() {
@@ -3789,8 +3823,15 @@
             : getSearchSourceFiles(giaOnly);
 
           const allFiles = window.GIASearchArchive.files || [];
-
-          const isFullScope = sourceFiles.length === allFiles.length;
+          const allFileNames = new Set(allFiles.map(function (file) {
+            return String(file.name || '').replace(/\\/g, '/').split('/').pop();
+          }));
+          const isFullScope =
+            sourceFiles.length === allFiles.length &&
+            sourceFiles.every(function (file) {
+              const baseName = String(file.name || '').replace(/\\/g, '/').split('/').pop();
+              return allFileNames.has(baseName);
+            });
 
           const serverPayload = Object.assign({}, payload);
 
@@ -4368,6 +4409,7 @@
         window.GIAReSearchHistory = [];
         window.GIASearchRecipe = [];
         window.GIAFilterUndoStack = [];
+        window.GIAFilterRedoStack = [];
         window.GIAActiveResultFilterState = null;
         window.lastSearchOptions = {};
         window.lastSearchQuery = '';
@@ -4786,6 +4828,9 @@
         undoFilterButtonEl.disabled = !controlsEnabled ||
           !Array.isArray(window.GIAFilterUndoStack) ||
           window.GIAFilterUndoStack.length === 0;
+        redoFilterButtonEl.disabled = !controlsEnabled ||
+          !Array.isArray(window.GIAFilterRedoStack) ||
+          window.GIAFilterRedoStack.length === 0;
         filterMatchTypeEl.disabled = !controlsEnabled;
         filterCaseSensitiveCheckboxEl.disabled = !controlsEnabled;
         giaOnlyCheckboxEl.disabled = !controlsEnabled;
@@ -4794,14 +4839,11 @@
         updateAdvancedServerState();
       }
 
-        /*
       document.addEventListener('keydown', function (e) {
         if (viewerOverlayEl.style.display !== 'block') return;
 
         const tag = document.activeElement.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-        if (!window.GIAHitElements || window.GIAHitElements.length === 0) return;
 
         if (e.key === 'ArrowLeft') {
           e.preventDefault();
@@ -4812,97 +4854,6 @@
         if (e.key === 'ArrowRight') {
           e.preventDefault();
           moveToNextHit();
-          return;
-        }
-
-      });
-        */
-
-      document.addEventListener('keydown', function (e) {
-        if (viewerOverlayEl.style.display !== 'block') return;
-
-        const tag = document.activeElement.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-        if (!window.GIAHitElements || window.GIAHitElements.length === 0) return;
-
-        // left arrow key
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-
-          // Move within file
-          if (window.GIACurrentHitIndex > 0) {
-            window.GIACurrentHitIndex--;
-            updateCurrentHit();
-            return;
-          }
-
-          /* Move to previous file (NO wrap)
-          if (window.GIACurrentResultIndex <= 0) {
-            return; // hard stop at beginning
-          }
-          */
-
-          // Move to previous file OR wrap to last
-          let didWrap = false;
-
-          if (window.GIACurrentResultIndex <= 0) {
-            window.GIACurrentResultIndex = window.GIASearchResults.length - 1;
-            didWrap = true;
-          } else {
-            window.GIACurrentResultIndex--;
-          }
-
-          const file = window.GIASearchResults[window.GIACurrentResultIndex];
-          openViewer(file, window.lastSearchQuery);
-
-          if (window.GIAHitElements.length > 0) {
-            window.GIACurrentHitIndex = window.GIAHitElements.length - 1;
-            updateCurrentHit();
-
-            if (didWrap) {
-              flashWrap('backward');
-            }
-          }
-
-          return;
-        }
-          
-        // right arrow key
-        if (e.key === 'ArrowRight') {
-          e.preventDefault();
-
-          // Move within file
-          if (window.GIACurrentHitIndex < window.GIAHitElements.length - 1) {
-            window.GIACurrentHitIndex++;
-            updateCurrentHit();
-            return;
-          }
-
-          // Move to next file OR wrap to first
-          let didWrap = false;
-
-          if (window.GIACurrentResultIndex >= window.GIASearchResults.length - 1) {
-            // WRAP to first file
-            window.GIACurrentResultIndex = 0;
-            didWrap = true;
-          } else {
-            window.GIACurrentResultIndex++;
-          }
-
-          const file = window.GIASearchResults[window.GIACurrentResultIndex];
-          openViewer(file, window.lastSearchQuery);
-
-          if (window.GIAHitElements.length > 0) {
-            window.GIACurrentHitIndex = 0;
-            updateCurrentHit();
-
-            if (didWrap) {
-              flashWrap('forward');
-            }
-          }
-
-          return;
         }
       });
 
