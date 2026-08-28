@@ -217,6 +217,82 @@
     color: var(--search-text-muted);
   }
 
+  .basic-help-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .basic-help-button {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .basic-help-tip {
+    display: none;
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 6px);
+    left: 0;
+    width: min(270px, calc(100vw - 3rem));
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--search-border-color);
+    border-radius: 6px;
+    background: var(--search-surface-bg);
+    color: var(--search-text);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.28);
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  .basic-help-wrap.basic-help-open .basic-help-tip,
+  .basic-help-wrap:focus-within .basic-help-tip {
+    display: block;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .basic-help-wrap:hover .basic-help-tip {
+      display: block;
+    }
+  }
+
+  .basic-filter-panel {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-left: 5.35rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--search-border-color);
+    border-radius: 6px;
+    background: var(--search-block-bg);
+  }
+
+  .basic-filter-panel[hidden] {
+    display: none;
+  }
+
+  #filterResultsButton,
+  #undoFilterButton {
+    padding: 0.55rem 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 600px) {
+    .basic-filter-panel {
+      margin-left: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
   .search-scope-note {
     font-size: 0.82rem;
     color: var(--search-text-muted);
@@ -671,18 +747,14 @@
           <button type="button" id="clearButton" title="Clear the current search and results."> Clear Search </button>
         </div>
 
-        <!-- FILE-LEVEL OPERATOR -->
+        <!-- SEARCH OPERATORS: prepare the next Find/ReSearch -->
         <div class="basic-control-row">
-          <span class="basic-control-label">Operator:</span>
+          <span class="basic-control-label">Operators:</span>
+
           <label title="Exclude files containing the search text."
                  style="display:inline-flex; align-items:center; gap:0.3rem; white-space:nowrap; cursor:pointer;">
             <input id="excludeFilesCheckbox" type="checkbox"> NOT
           </label>
-        </div>
-
-        <!-- MATCH SETTINGS -->
-        <div class="basic-control-row">
-          <span class="basic-control-label">Match:</span>
 
           <select id="matchType" title="Choose whether to match text anywhere or as complete words only.">
             <option value="substring" selected>Substring</option>
@@ -699,9 +771,11 @@
             <input id="basicCaseSensitiveCheckbox" type="checkbox"> Case Sensitive
           </label>
 
-          <label title="Include leading labels such as Kim: and Sunny: in search results.">
-            <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels
-          </label>
+          <span class="basic-help-wrap">
+            <button id="operatorsHelpButton" class="basic-help-button" type="button"
+                    aria-label="About Operators" aria-expanded="false">i</button>
+            <span class="basic-help-tip" role="tooltip">Controls used by your next Find or ReSearch.</span>
+          </span>
         </div>
 
         <!-- RESULT SETTINGS -->
@@ -720,6 +794,36 @@
             <option value="200">200 rows</option>
             <option value="500">500 rows</option>
           </select>
+        </div>
+
+
+        <!-- LIVE RESULT FILTERS: available only after a Basic search has results -->
+        <div id="filterResultsRow" class="basic-control-row" style="display:none;">
+          <span class="basic-control-label">Filters:</span>
+
+          <button id="filterResultsButton" type="button" aria-expanded="false">Filter Results</button>
+          <button id="undoFilterButton" type="button" style="display:none;" disabled>Undo Filter</button>
+
+          <span class="basic-help-wrap">
+            <button id="filtersHelpButton" class="basic-help-button" type="button"
+                    aria-label="About Filter Results" aria-expanded="false">i</button>
+            <span class="basic-help-tip" role="tooltip">Live controls that refine the results already on screen.</span>
+          </span>
+        </div>
+
+        <div id="filterResultsPanel" class="basic-filter-panel" hidden>
+          <select id="filterMatchType" title="Refine current results using substring or whole-word matching.">
+            <option value="substring" selected>Substring</option>
+            <option value="whole">Whole word</option>
+          </select>
+
+          <label title="Refine current results using exact uppercase and lowercase letters.">
+            <input id="filterCaseSensitiveCheckbox" type="checkbox"> Case Sensitive
+          </label>
+
+          <label title="Include leading labels such as Kim: and Sunny: in the current results.">
+            <input id="includeSpeakerLabelsCheckbox" type="checkbox"> Speaker Labels
+          </label>
         </div>
 
         </form>
@@ -894,7 +998,7 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-08-27.124853';
+      const TOOL_VERSION = '2026-08-28.025354';
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
       const GIA_CLIENT_URL = 'https://lance-exteriors-app.onrender.com/gia-client';
@@ -914,6 +1018,14 @@
       const excludeFilesCheckboxEl = document.getElementById('excludeFilesCheckbox');
       const basicCaseSensitiveCheckboxEl = document.getElementById('basicCaseSensitiveCheckbox');
       const includeSpeakerLabelsCheckboxEl = document.getElementById('includeSpeakerLabelsCheckbox');
+      const filterResultsRowEl = document.getElementById('filterResultsRow');
+      const filterResultsButtonEl = document.getElementById('filterResultsButton');
+      const undoFilterButtonEl = document.getElementById('undoFilterButton');
+      const filterResultsPanelEl = document.getElementById('filterResultsPanel');
+      const filterMatchTypeEl = document.getElementById('filterMatchType');
+      const filterCaseSensitiveCheckboxEl = document.getElementById('filterCaseSensitiveCheckbox');
+      const operatorsHelpButtonEl = document.getElementById('operatorsHelpButton');
+      const filtersHelpButtonEl = document.getElementById('filtersHelpButton');
       const resetButtonEl = document.getElementById('resetButton');
       const maxRowsEl = document.getElementById('maxRows');
       const resultsEl = document.getElementById('results');
@@ -1097,6 +1209,8 @@
       window.GIASelectedResults = [];
       window.GIASpeakerFilterDegraded = false;
       window.GIASearchRecipe = [];
+      window.GIAFilterUndoStack = [];
+      window.GIAActiveResultFilterState = null;
       window.lastSearchOptions = {};
       window.lastSearchQuery = '';
 
@@ -1272,7 +1386,7 @@
         window.GIASearchRecipe.push(cloneJSON(step));
       }
 
-      function replaceLastBasicRecipeOptions() {
+      function replaceLastBasicRecipeFilters() {
         if (!Array.isArray(window.GIASearchRecipe) || window.GIASearchRecipe.length === 0) {
           return;
         }
@@ -1280,8 +1394,249 @@
         const last = window.GIASearchRecipe[window.GIASearchRecipe.length - 1];
         if (!last || last.kind !== 'basic') return;
 
-        last.matchType = matchTypeEl.value;
-        last.caseType = caseTypeEl.value;
+        last.matchType = filterMatchTypeEl.value;
+        last.caseType = filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive';
+        last.includeSpeakerLabels = includeSpeakerLabelsCheckboxEl.checked;
+      }
+
+      function updateUndoFilterButtonState() {
+        const hasUndo =
+          Array.isArray(window.GIAFilterUndoStack) &&
+          window.GIAFilterUndoStack.length > 0;
+        const controlsEnabled =
+          basicSearchEnabled &&
+          window.GIASearchArchive &&
+          window.GIASearchArchive.loaded === true;
+
+        undoFilterButtonEl.style.display = hasUndo ? 'inline-block' : 'none';
+        undoFilterButtonEl.disabled = !hasUndo || !controlsEnabled;
+        undoFilterButtonEl.title = hasUndo
+          ? 'Restore the previous live-filter state.'
+          : 'No live filter to undo.';
+      }
+
+      function clearFilterUndoHistory() {
+        window.GIAFilterUndoStack = [];
+        updateUndoFilterButtonState();
+      }
+
+      function getActiveResultFilterState() {
+        if (
+          window.GIAActiveResultFilterState &&
+          typeof window.GIAActiveResultFilterState === 'object'
+        ) {
+          return cloneJSON(window.GIAActiveResultFilterState);
+        }
+
+        const activeOptions = window.lastSearchOptions || {};
+        return {
+          matchType: activeOptions.matchType || 'substring',
+          caseType: activeOptions.caseType || 'insensitive',
+          includeSpeakerLabels:
+            (typeof activeOptions.includeSpeakerLabels === 'boolean')
+              ? activeOptions.includeSpeakerLabels
+              : includeSpeakerLabelsCheckboxEl.checked
+        };
+      }
+
+      function rememberCurrentResultFilterState() {
+        window.GIAActiveResultFilterState = {
+          matchType: filterMatchTypeEl.value || 'substring',
+          caseType: filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive',
+          includeSpeakerLabels: includeSpeakerLabelsCheckboxEl.checked
+        };
+      }
+
+      function captureFilterUndoSnapshot() {
+        const activeOptions = window.lastSearchOptions || {};
+        const activeFilterState = getActiveResultFilterState();
+        const includeSpeakerLabels = activeFilterState.includeSpeakerLabels !== false;
+
+        return {
+          results: Array.isArray(window.GIASearchResults)
+            ? window.GIASearchResults.slice()
+            : [],
+          fullResults: Array.isArray(window.GIAFullSearchResults)
+            ? window.GIAFullSearchResults.slice()
+            : [],
+          baseFiles: Array.isArray(window.GIASearchBaseFiles)
+            ? window.GIASearchBaseFiles.slice()
+            : [],
+          chain: Array.isArray(window.GIAReSearchChain)
+            ? window.GIAReSearchChain.slice()
+            : [],
+          reSearchMode: window.GIAReSearchMode === true,
+          lastSearchQuery: window.lastSearchQuery || '',
+          lastSearchOptions: cloneJSON(activeOptions),
+          recipe: cloneSearchRecipe(),
+          filterMatchType: activeFilterState.matchType || 'substring',
+          filterCaseSensitive: activeFilterState.caseType === 'sensitive',
+          includeSpeakerLabels: includeSpeakerLabels,
+          speakerLabelsPreference: includeSpeakerLabels,
+          speakerFilterDegraded: window.GIASpeakerFilterDegraded === true,
+          resultsHTML: resultsEl.innerHTML,
+          resultsDisplay: resultsEl.style.display,
+          clearButtonDisplay: clearButtonEl.style.display,
+          selectionBarReady: selectionBarEl.classList.contains('ready')
+        };
+      }
+
+      function pushFilterUndoSnapshot() {
+        if (!Array.isArray(window.GIAFilterUndoStack)) {
+          window.GIAFilterUndoStack = [];
+        }
+
+        window.GIAFilterUndoStack.push(captureFilterUndoSnapshot());
+        updateUndoFilterButtonState();
+      }
+
+      function wireRestoredResultLinks() {
+        const resultLinks = resultsEl.querySelectorAll('.resultLink');
+
+        for (const link of resultLinks) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const resultIndex = parseInt(this.getAttribute('data-result-index'), 10);
+            const file = window.GIASearchResults[resultIndex];
+            if (!file) return;
+
+            window.GIACurrentResultIndex = resultIndex;
+            openViewer(file, window.lastSearchQuery);
+          });
+        }
+      }
+
+      function undoBasicResultFilter() {
+        if (
+          !Array.isArray(window.GIAFilterUndoStack) ||
+          window.GIAFilterUndoStack.length === 0
+        ) {
+          return;
+        }
+
+        const prev = window.GIAFilterUndoStack.pop();
+
+        window.GIASearchResults = Array.isArray(prev.results)
+          ? prev.results.slice()
+          : [];
+        window.GIAFullSearchResults = Array.isArray(prev.fullResults)
+          ? prev.fullResults.slice()
+          : window.GIASearchResults.slice();
+        window.GIASearchBaseFiles = Array.isArray(prev.baseFiles)
+          ? prev.baseFiles.slice()
+          : [];
+        window.GIAReSearchChain = Array.isArray(prev.chain)
+          ? prev.chain.slice()
+          : [];
+        window.GIAReSearchMode = prev.reSearchMode === true;
+        window.lastSearchQuery = prev.lastSearchQuery || '';
+        window.lastSearchOptions = cloneJSON(prev.lastSearchOptions || {});
+        window.GIASearchRecipe = Array.isArray(prev.recipe)
+          ? cloneJSON(prev.recipe)
+          : [];
+        window.GIASpeakerFilterDegraded = prev.speakerFilterDegraded === true;
+
+        filterMatchTypeEl.value = prev.filterMatchType || 'substring';
+        filterCaseSensitiveCheckboxEl.checked = prev.filterCaseSensitive === true;
+        includeSpeakerLabelsCheckboxEl.checked = prev.includeSpeakerLabels === true;
+        speakerLabelsPreference = prev.speakerLabelsPreference === true;
+        window.GIAActiveResultFilterState = {
+          matchType: prev.filterMatchType || 'substring',
+          caseType: prev.filterCaseSensitive ? 'sensitive' : 'insensitive',
+          includeSpeakerLabels: prev.includeSpeakerLabels === true
+        };
+
+        resetViewerState();
+
+        if (window.GIAFullSearchResults.length > 0) {
+          resultsEl.style.display = 'block';
+          clearButtonEl.style.display = 'inline-block';
+          rerenderCurrentResults();
+        } else {
+          resultsEl.innerHTML = prev.resultsHTML || '';
+          resultsEl.style.display = prev.resultsDisplay || 'block';
+          clearButtonEl.style.display = prev.clearButtonDisplay || 'inline-block';
+          wireRestoredResultLinks();
+        }
+        updateSelectionCount();
+        selectionBarEl.classList.toggle('ready', prev.selectionBarReady === true);
+        updateFilterResultsAvailability();
+        updateStatusBar();
+        updateReSearchState();
+        updateFindButtonState();
+        updateUndoFilterButtonState();
+      }
+
+      function syncResultFiltersFromExecutedSearch() {
+        const activeOptions = window.lastSearchOptions || {};
+
+        filterMatchTypeEl.value = activeOptions.matchType || 'substring';
+        filterCaseSensitiveCheckboxEl.checked = (activeOptions.caseType === 'sensitive');
+
+        if (typeof activeOptions.includeSpeakerLabels === 'boolean') {
+          includeSpeakerLabelsCheckboxEl.checked = activeOptions.includeSpeakerLabels;
+          speakerLabelsPreference = activeOptions.includeSpeakerLabels;
+        }
+
+        rememberCurrentResultFilterState();
+
+        // A completed Find/ReSearch starts a new filtering phase.
+        clearFilterUndoHistory();
+        filterResultsPanelEl.hidden = true;
+        filterResultsButtonEl.setAttribute('aria-expanded', 'false');
+      }
+
+      function setFilterResultsAvailable(isAvailable) {
+        const available = isAvailable === true;
+        filterResultsRowEl.style.display = available ? 'flex' : 'none';
+
+        if (!available) {
+          filterResultsPanelEl.hidden = true;
+          filterResultsButtonEl.setAttribute('aria-expanded', 'false');
+          window.GIAActiveResultFilterState = null;
+          clearFilterUndoHistory();
+        }
+      }
+
+      function updateFilterResultsAvailability() {
+        const hasBasicSearch =
+          window.lastSearchOptions &&
+          window.lastSearchOptions.basicSearch === true &&
+          typeof window.lastSearchQuery === 'string' &&
+          window.lastSearchQuery.trim().length > 0;
+
+        setFilterResultsAvailable(hasBasicSearch);
+      }
+
+      async function applyBasicResultFilters() {
+        if (
+          !window.lastSearchQuery ||
+          !Array.isArray(window.GIASearchBaseFiles) ||
+          window.GIASearchBaseFiles.length === 0
+        ) {
+          return;
+        }
+
+        const activeOptions = window.lastSearchOptions || {};
+        const pendingText = searchInputEl.value;
+
+        pushFilterUndoSnapshot();
+
+        await Promise.resolve(runSearch(window.lastSearchQuery, {
+          sourceFiles: window.GIASearchBaseFiles.slice(),
+          matchType: filterMatchTypeEl.value,
+          caseType: filterCaseSensitiveCheckboxEl.checked ? 'sensitive' : 'insensitive',
+          excludeFiles: !!activeOptions.excludeFiles,
+          includeSpeakerLabels: includeSpeakerLabelsCheckboxEl.checked,
+          liveFilter: true
+        }));
+
+        searchInputEl.value = pendingText;
+        rememberCurrentResultFilterState();
+        replaceLastBasicRecipeFilters();
+        updateFindButtonState();
+        updateUndoFilterButtonState();
       }
 
       restoreStartupDefaults();
@@ -1360,9 +1715,59 @@
         }
       });
 
-      includeSpeakerLabelsCheckboxEl.addEventListener('change', function () {
+      function closeBasicHelpPopups(exceptButton) {
+        [operatorsHelpButtonEl, filtersHelpButtonEl].forEach(function (button) {
+          if (!button || button === exceptButton) return;
+          const wrap = button.closest('.basic-help-wrap');
+          if (wrap) wrap.classList.remove('basic-help-open');
+          button.setAttribute('aria-expanded', 'false');
+        });
+      }
+
+      function wireBasicHelpButton(button) {
+        if (!button) return;
+
+        button.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const wrap = button.closest('.basic-help-wrap');
+          if (!wrap) return;
+
+          const willOpen = !wrap.classList.contains('basic-help-open');
+          closeBasicHelpPopups(button);
+          wrap.classList.toggle('basic-help-open', willOpen);
+          button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+      }
+
+      wireBasicHelpButton(operatorsHelpButtonEl);
+      wireBasicHelpButton(filtersHelpButtonEl);
+
+      document.addEventListener('click', function () {
+        closeBasicHelpPopups(null);
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          closeBasicHelpPopups(null);
+        }
+      });
+
+      filterResultsButtonEl.addEventListener('click', function () {
+        const opening = filterResultsPanelEl.hidden;
+        filterResultsPanelEl.hidden = !opening;
+        this.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      });
+
+      undoFilterButtonEl.addEventListener('click', undoBasicResultFilter);
+
+      filterMatchTypeEl.addEventListener('change', applyBasicResultFilters);
+
+      filterCaseSensitiveCheckboxEl.addEventListener('change', applyBasicResultFilters);
+
+      includeSpeakerLabelsCheckboxEl.addEventListener('change', async function () {
         if (!this.disabled) {
           speakerLabelsPreference = this.checked;
+          await applyBasicResultFilters();
         }
       });
 
@@ -1437,7 +1842,12 @@
             ? window.lastSearchOptions.caseType
             : caseTypeEl.value;
 
-        const countRegex = excludeFiles ? null : getSearchRegex(
+        const isServerBacked = !!(
+          window.lastSearchOptions &&
+          window.lastSearchOptions.serverBacked
+        );
+
+        const countRegex = (excludeFiles || isServerBacked) ? null : getSearchRegex(
           window.lastSearchQuery,
           effectiveMatchType,
           effectiveCaseType,
@@ -1451,8 +1861,20 @@
           html += '<tr>';
 
           if (!excludeFiles) {
-            const hits = file.text.match(countRegex);
-            const count = hits ? hits.length : 0;
+            let count = 0;
+
+            if (isServerBacked && Array.isArray(file.serverHits)) {
+              const advancedPayload = window.lastSearchOptions.advancedPayload;
+              count = advancedPayload && Array.isArray(advancedPayload.rows)
+                ? file.serverHits.length
+                : file.serverHits.reduce(function (total, hit) {
+                    return total + (hit.matchCount || 0);
+                  }, 0);
+            } else {
+              const hits = file.text.match(countRegex);
+              count = hits ? hits.length : 0;
+            }
+
             html += '<td style="text-align:center;padding-right:1rem;">' + count + '</td>';
           }
 
@@ -1508,6 +1930,7 @@
       async function executeBasicFind(query) {
         const step = makeBasicSearchStep(query);
         window.GIASearchRecipe = [];
+        clearFilterUndoHistory();
 
         await Promise.resolve(runFindSearch(query, step));
         rememberExecutedStep(step);
@@ -1516,6 +1939,7 @@
       async function executeBasicReSearch(query, freshScope) {
         const step = makeBasicSearchStep(query);
 
+        clearFilterUndoHistory();
         logGIAAction('research', query);
 
         if (freshScope) {
@@ -2230,13 +2654,13 @@
           if (hasPriorRefinement) {
             statusEl.textContent =
               'ReSearching ' + chainText +
-              ' - ' + window.GIASearchResults.length + ' files active.';
+              ' - ' + window.GIAFullSearchResults.length + ' files active.';
               // + ' Default Enter: ' + defaultLabel + '.';
           } else {
             const firstQuery = chain.length > 0 ? chain[0] : (window.lastSearchQuery || '');
             statusEl.textContent =
               'Results for "' + firstQuery + '"' +
-              ' - ' + window.GIASearchResults.length + ' files found.';
+              ' - ' + window.GIAFullSearchResults.length + ' files found.';
               // + ' Default Enter: ' + defaultLabel + '.';
           }
 
@@ -2659,6 +3083,8 @@
         const sortOrder = options.sortOrder || sortOrderEl.value;
         const maxRows = options.maxRows || parseInt(maxRowsEl.value, 10);
         const sourceFiles = options.sourceFiles || getSearchSourceFiles();
+        const liveFilter = options.liveFilter === true;
+        const isBasicSearch = options.basicSearch !== false;
         const excludeFiles = (typeof options.excludeFiles === 'boolean')
           ? options.excludeFiles
           : excludeFilesCheckboxEl.checked;
@@ -2684,7 +3110,9 @@
           }, {
             sortOrder: sortOrder,
             maxRows: maxRows,
-            sourceFiles: sourceFiles
+            sourceFiles: sourceFiles,
+            liveFilter: liveFilter,
+            basicSearch: isBasicSearch
           });
         }
 
@@ -2694,7 +3122,8 @@
           sortOrder: sortOrder,
           maxRows: maxRows,
           excludeFiles: excludeFiles,
-          includeSpeakerLabels: includeSpeakerLabels
+          includeSpeakerLabels: includeSpeakerLabels,
+          basicSearch: isBasicSearch
         };
 
         const fileMatchRegex = getSearchRegex(query, matchType, caseType, false);
@@ -2735,7 +3164,7 @@
         resultsEl.style.display = 'block';
 
         if (matches.length === 0) {
-          const isReSearch = window.GIAReSearchMode && priorResults.length > 0;
+          const isReSearch = !liveFilter && window.GIAReSearchMode && priorResults.length > 0;
 
           if (isReSearch) {
             // Preserve prior state in history so Back works
@@ -2776,11 +3205,19 @@
             return;
           }
 
-          // Fresh Find/Search → normal behavior
+          // Fresh Find/Search or live filter with zero matches.
           resultsEl.textContent = 'No matches found.';
           window.GIASearchResults = [];
-          clearButtonEl.style.display = 'none';
+          window.GIAFullSearchResults = [];
           selectionBarEl.classList.remove('ready');
+
+          if (liveFilter) {
+            clearButtonEl.style.display = 'inline-block';
+            updateFilterResultsAvailability();
+          } else {
+            clearButtonEl.style.display = 'none';
+            setFilterResultsAvailable(false);
+          }
 
           updateStatusBar();
           updateReSearchState();
@@ -2800,7 +3237,7 @@
           }
         });
 
-        if (window.GIAReSearchMode && priorResults.length > 0) {
+        if (!liveFilter && window.GIAReSearchMode && priorResults.length > 0) {
           window.GIAReSearchHistory.push({
             results: priorResults,
             fullResults: Array.isArray(window.GIAFullSearchResults)
@@ -2826,14 +3263,16 @@
           window.GIAReSearchChain = [];
         }
 
-        if (!window.GIAReSearchMode) {
-          window.GIAReSearchMode = true;
-          window.GIAReSearchChain = [chainEntry];
-        } else if (
-          window.GIAReSearchChain.length === 0 ||
-          window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainEntry
-        ) {
-          window.GIAReSearchChain.push(chainEntry);
+        if (!liveFilter) {
+          if (!window.GIAReSearchMode) {
+            window.GIAReSearchMode = true;
+            window.GIAReSearchChain = [chainEntry];
+          } else if (
+            window.GIAReSearchChain.length === 0 ||
+            window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainEntry
+          ) {
+            window.GIAReSearchChain.push(chainEntry);
+          }
         }
 
         updateStatusBar();
@@ -2887,8 +3326,20 @@
         }
 
         clearButtonEl.style.display = 'inline-block';
-        searchInputEl.focus();
-        searchInputEl.value = '';
+
+        if (!liveFilter) {
+          if (isBasicSearch) {
+            syncResultFiltersFromExecutedSearch();
+          }
+          searchInputEl.focus();
+          searchInputEl.value = '';
+        }
+
+        if (isBasicSearch) {
+          updateFilterResultsAvailability();
+        } else {
+          setFilterResultsAvailable(false);
+        }
         updateReSearchState();
       }
 
@@ -3113,6 +3564,11 @@
 
         excludeFilesCheckboxEl.checked = !!window.lastSearchOptions.excludeFiles;
 
+        if (window.lastSearchOptions.basicSearch === true) {
+          syncResultFiltersFromExecutedSearch();
+        }
+        updateFilterResultsAvailability();
+
         resetViewerState();
 
         if (window.GIAFullSearchResults.length > 0) {
@@ -3236,23 +3692,8 @@
         }
       });
 
-      matchTypeEl.addEventListener('change', async function () {
-        if (window.lastSearchQuery) {
-          await Promise.resolve(runSearch(window.lastSearchQuery, {
-            sourceFiles: window.GIASearchBaseFiles.slice()
-          }));
-          replaceLastBasicRecipeOptions();
-        }
-      });
-
-      caseTypeEl.addEventListener('change', async function () {
-        if (window.lastSearchQuery) {
-          await Promise.resolve(runSearch(window.lastSearchQuery, {
-            sourceFiles: window.GIASearchBaseFiles.slice()
-          }));
-          replaceLastBasicRecipeOptions();
-        }
-      });
+      // Basic Match and Case are operators: changing them prepares the next
+      // Find/ReSearch and must not alter the results that are already on screen.
 
       async function runServerSearch(payload, options) {
         try {
@@ -3268,7 +3709,12 @@
 
           const serverPayload = Object.assign({}, payload);
 
-          if (!isFullScope) { serverPayload.scopeFiles = sourceFiles.map(file => file.name); }
+          if (!isFullScope) {
+            serverPayload.scopeFiles = sourceFiles.map(function (file) {
+              const baseName = String(file.name || '').replace(/\\/g, '/').split('/').pop();
+              return 'search/' + baseName;
+            });
+          }
 
           console.log("runAdvancedSearchServer scope =", isFullScope ? "ALL" : serverPayload.scopeFiles.length);
           console.log("SENDING TO SERVER:");
@@ -3321,13 +3767,14 @@
             : [];
 
           const priorSearchOptions = Object.assign({}, window.lastSearchOptions || {});
+          const liveFilter = options.liveFilter === true;
 
           const chainLabel = Array.isArray(payload.rows)
             ? buildAdvancedChainLabel(payload.rows)
             : (payload.query || '').trim();
 
           if (!data.results || data.results.length === 0) {
-            if (window.GIAReSearchMode && priorResults.length > 0) {
+            if (!liveFilter && window.GIAReSearchMode && priorResults.length > 0) {
               window.GIAReSearchHistory.push({
                 results: priorResults,
                 fullResults: priorFullResults,
@@ -3342,22 +3789,32 @@
               window.GIAReSearchChain = [];
             }
 
-            if (
-              chainLabel &&
-              (
-                window.GIAReSearchChain.length === 0 ||
-                window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainLabel
-              )
-            ) {
-              window.GIAReSearchChain.push(chainLabel);
+            if (!liveFilter) {
+              if (
+                chainLabel &&
+                (
+                  window.GIAReSearchChain.length === 0 ||
+                  window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainLabel
+                )
+              ) {
+                window.GIAReSearchChain.push(chainLabel);
+              }
+
+              window.lastSearchQuery = chainLabel;
             }
 
-            window.lastSearchQuery = chainLabel;
             window.GIASearchResults = [];
+            window.GIAFullSearchResults = [];
 
             resultsEl.textContent = 'No matches found.';
             clearButtonEl.style.display = 'inline-block';
             selectionBarEl.classList.remove('ready');
+
+            if (options.basicSearch === true) {
+              updateFilterResultsAvailability();
+            } else {
+              setFilterResultsAvailable(false);
+            }
 
             updateStatusBar();
             updateReSearchState();
@@ -3413,7 +3870,7 @@
             }
           });
 
-          if (window.GIAReSearchMode && priorResults.length > 0) {
+          if (!liveFilter && window.GIAReSearchMode && priorResults.length > 0) {
             window.GIAReSearchHistory.push({
               results: priorResults,
               fullResults: priorFullResults,
@@ -3438,7 +3895,8 @@
             maxRows: maxRows,
             includeSpeakerLabels: payload.includeSpeakerLabels !== false,
             serverBacked: true,
-            advancedPayload: payload
+            advancedPayload: payload,
+            basicSearch: options.basicSearch === true
           };
 
           if (!Array.isArray(window.GIAReSearchChain)) {
@@ -3447,7 +3905,7 @@
 
           window.GIAReSearchMode = true;
 
-          if (chainLabel) {
+          if (!liveFilter && chainLabel) {
             if (
               window.GIAReSearchChain.length === 0 ||
               window.GIAReSearchChain[window.GIAReSearchChain.length - 1] !== chainLabel
@@ -3504,6 +3962,18 @@
           }
 
           clearButtonEl.style.display = 'inline-block';
+
+          if (options.basicSearch === true) {
+            if (!liveFilter) {
+              syncResultFiltersFromExecutedSearch();
+              searchInputEl.focus();
+              searchInputEl.value = '';
+              updateFindButtonState();
+            }
+            updateFilterResultsAvailability();
+          } else {
+            setFilterResultsAvailable(false);
+          }
         } catch (err) {
           console.error("runServerSearch ERROR:", err);
           resultsEl.style.display = 'block';
@@ -3809,9 +4279,12 @@
         window.GIAReSearchChain = [];
         window.GIAReSearchHistory = [];
         window.GIASearchRecipe = [];
+        window.GIAFilterUndoStack = [];
+        window.GIAActiveResultFilterState = null;
         window.lastSearchOptions = {};
         window.lastSearchQuery = '';
         resetViewerState();
+        setFilterResultsAvailable(false);
 
         updateStatusBar();
         updateReSearchState();
@@ -3890,7 +4363,8 @@
             caseType: payload.caseSensitive ? 'sensitive' : 'insensitive',
             sortOrder: sortOrderEl.value,
             maxRows: parseInt(maxRowsEl.value, 10) || 50,
-            excludeFiles: false
+            excludeFiles: false,
+            basicSearch: false
           }));
         }
 
@@ -4220,6 +4694,12 @@
         sortOrderEl.disabled = !controlsEnabled;
         maxRowsEl.disabled = !controlsEnabled;
         basicCaseSensitiveCheckboxEl.disabled = !controlsEnabled;
+        filterResultsButtonEl.disabled = !controlsEnabled;
+        undoFilterButtonEl.disabled = !controlsEnabled ||
+          !Array.isArray(window.GIAFilterUndoStack) ||
+          window.GIAFilterUndoStack.length === 0;
+        filterMatchTypeEl.disabled = !controlsEnabled;
+        filterCaseSensitiveCheckboxEl.disabled = !controlsEnabled;
 
         updateFindButtonState();
         updateAdvancedServerState();
