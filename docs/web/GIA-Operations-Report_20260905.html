@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Sep-05</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Sep-05 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Beyond The Matrix
+        <br>Part Four
+        <br>2026-Sep-05
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260905_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the September 5, 2026 report by framing Part Four as background -- a brief &quot;how and why&quot; meant to set up Part Five&#x27;s first real status update, and ideally one of the last installments before Beyond the Matrix has no Matrix left to report on.<br>
+<br>
+She traces the Matrix to an ancient War among humans, the Abraxas, the Draco, and other species who conquered galaxies and enslaved rivals -- Homo sapiens on Earth included -- to become the Royals (self-modified humans and allied species who took the ruling class positions after the War, governing at a remove through Bloodline Families installed on Earth). Twelve rulers across four kingdoms share four goals, Kim discloses: supreme rulership over the Multiverse; favoring science over Source and the Divine Plan, since Source&#x27;s Secret Sauce cannot be defined or controlled; rewriting the Divine Plan to replace that Secret Sauce with Ethereum-based energy, which fails without it; and conquering Source and all of Creation outright, treating every being as a resource to power their machines.<br>
+<br>
+Kim reports Earth&#x27;s standing as the Guardian of Planets, or nexus planet: every planet links directly to Source, but Earth alone receives and relays the Divine Plan to keep the others in Harmony, which is what made her the primary target once the kingdoms grasped the leverage. The same fight extended to Suns -- each being&#x27;s individual Sol, and Earth&#x27;s own Central Sun, originally seated at Alcyone -- which the kingdoms conquered and mirrored into artificial &quot;black suns,&quot; including a Black Sun installed over Earth.<br>
+<br>
+Kim splits the conflict into two sides: her own, the Melchizedeks (Source&#x27;s warriors, who want no rulership of their own), against the twelve rulers -- divided into &quot;six and six&quot; and known on Earth as the Deep State, Merovingians, Satanists, and Luciferians. She discloses that simulations are built on a Three-Times-Three protocol, a Star-of-David-style geometry binding a ruler&#x27;s soul to the machine at its center, and that the ruling leaders literally feed their own consciousness into the Machine from stasis to run and override it -- four such structures currently active, differing only in how harshly each treats its subjects. Kim adds that she has repeatedly placed herself as the gate between the Kingdom of Source and the Simulation, at a cost she states bluntly: stabbed in the head four times and twice in the heart over the course of this work.<br>
+<br>
+She closes by reframing the Deep State as management staff rather than ultimate authority -- foremen overridable by the kingdoms above them, their corporations answering to the Empire rather than acting independently -- and promises Part Five, the first genuine &quot;here&#x27;s where we&#x27;re at&quot; update, later the same day.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000035">00:00:35 - The &quot;how and why&quot; before Part Five&#x27;s real update.</a></li>
+<li><a href="#t-000156">00:01:56 - How the War began</a></li>
+<li><a href="#t-000832">00:08:32 - Shared goal one</a></li>
+<li><a href="#t-001036">00:10:36 - Shared goal two</a></li>
+<li><a href="#t-001823">00:18:23 - Rewriting the Divine Plan to replace Source&#x27;s Secret Sauce.</a></li>
+<li><a href="#t-002046">00:20:46 - Us, version 7.0</a></li>
+<li><a href="#t-002204">00:22:04 - Earth as guardian</a></li>
+<li><a href="#t-003154">00:31:54 - Suns, Sols, and the fight for the Central Sun.</a></li>
+<li><a href="#t-003707">00:37:07 - Two sides of the War</a></li>
+<li><a href="#t-004227">00:42:27 - The War Machine, fed by rulers&#x27; own consciousness.</a></li>
+<li><a href="#t-004737">00:47:37 - Building a simulation</a></li>
+<li><a href="#t-005231">00:52:31 - Kim&#x27;s cost as the gate between the Kingdom of Source and the Simulation.</a></li>
+<li><a href="#t-005848">00:58:48 - The Deep State, unmasked as management staff.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000035">00:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. This is going to be Beyond the Matrix, Part Four. So we did the first three to kind of explain to you a little bit about what the Matrix was and how it actually works. And now that we kind of established at least a base root understanding of how it affects you, and how they affect you through what we call the Matrix or the simulations - multiple, multiple, many simulations [chuckle] - so now we&#x27;re just gonna kind of go into a brief &quot;how and why.&quot; And then, by the time we get to Part Five, you&#x27;ll have an understanding of where we&#x27;re at right now, and the current intel that&#x27;s going on deep-deep-deep behind the scenes. And from Part Five on out and every week thereafter, it&#x27;ll be more of a &quot;here&#x27;s where we&#x27;re at.&quot; And hopefully we don&#x27;t go too many weeks, and we can kind of get rid of this &quot;Beyond the Matrix&quot; part, just because there won&#x27;t be a Matrix to talk about anymore. And maybe we&#x27;ll replace this series - hopefully, in the near future - with something like &quot;Well, this is what C.A.R.E. is doing,&quot; or, &quot;This is what the people are doing,&quot; and &quot;Look how we&#x27;re changing all of these systems,&quot; so that you can stay updated as to all of the changes we are all making together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000156">00:01:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So for now, let&#x27;s talk about how this Matrix was established and what it has been doing, and why they actually made it in the first place. So, pretty much you could say it all started with the War. Humans, such as the Abraxas, other humans living on other planets, such as Mars, and also in other galaxies and star systems - now you could say that these people were the Royals, eventually. They established and built empires, conquered galaxies - and it&#x27;s not just humans either. There were many other species that joined in, such as the Draco and other &quot;people&quot; we know about - or &quot;folks&quot; I should say that we know about. And they went on together to continue conquering galaxies and capturing others that were enslaved and forced to work for them, or became prisoners of war, like us Homo sapiens here on Earth did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000256">00:02:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, many of these were natural species, and over time they became, in some cases, what we would call cyborg-like, meaning they integrated their own selves with AI systems and became a part of the consciousness, or the mind, or the &quot;memory matrix,&quot; as we learned about - so that they could control it and fight in the War. Most of the ones that did that were higher royalty - different groups that are military-like, strategic - so that they could fight against one another. So as it relates to your Deep State here, they are also Bloodline Families of some of these Royals. They joined in the fight when Earth came into play - and we&#x27;ll talk about that in just a few minutes - and that is why they are essentially our enemy. They are an enemy of Earth; they are an enemy of Source as well. So more on that in just a bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000404">00:04:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. The only thing they really have in common - even though they hate each other and they&#x27;ve been fighting for the top position in the entire Multiverse, conquering each other&#x27;s empires and varying kingdoms - is, well, the fight against Source. They all, pretty much, you could say they hate Source. They would like to have things which only they can control - and they pretty much would like to take over everything that exists. So he who wins the top position in the War - and you could call it an &quot;AI war&quot; in some cases, but that&#x27;s only a tool. It&#x27;s like saying the military is the one that actually fights a war, but the military also has tanks and they fight on behalf of presidents in our world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000459">00:04:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And in the world of the Matrix, you could say we had &quot;Royals&quot; - which would be like presidents or heads of varying empires held within various kingdoms. And then you would have the kings and the queens there at the top. Some of the names you might recognize as varying kings and queens would be, like, &quot;Artemis.&quot; We also had varying Abraxas names - some you might know and not know - and none of which are actually residing on Earth. I mean, they wouldn&#x27;t live in the slop that they created, honestly. That&#x27;s kind of far beneath them. They would put their subjects, or the Bloodline Families that we know, kind of in charge of things in the state of affairs here on the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000548">00:05:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They had access to - and have, I guess you would say, to some degree, still - some of the varying offshoots of these AIs in which to control us all - in which to maintain enslavement, or continue the War here on this planet. You know, these are varying groups like the Federation that we&#x27;ve talked about. There are also other groups like some of the other ones in China with their Black Widow programs, and there are Russians as well, and Iranians also, and Israelis as well, and the Sanhedrin and the Bavarian Illuminatis, plural. So we know these people. We see these people in our news, or at least some of the members of them in our news. And the ones that are running things really behind the scenes, we kind of don&#x27;t see those people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000643">00:06:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the fight still continued, and has been continuing between these varying groups. And we&#x27;re seeing that play out here on Earth as well, depending on which empire each one of these humans or Homo sapiens or Secret Space Force groups - which area or kingdom or empire they belong to (their bloodline belongs to) - they will fight for their respective bloodlines. And this is kind of where the simulations began.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000718">00:07:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">At one point in time, some of the empires joined together and they decided to form four kingdoms. Earth became a big target because Earth - I wouldn&#x27;t say controls, that&#x27;s the wrong word to use - but Earth in a natural way was a nexus planet to which all other planets were modeled after. Earth was the &quot;guardian,&quot; you could say, of all the other planets in existence, and in all galaxies everywhere. So Earth had the Divine Plan as it relates to all planets. She would help keep things harmonious on various planets. She has a big role to play and a big seat to fill - along with Source, of course, when the quantum entanglement with Source was still there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000808">00:08:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And we have been working on that quantum entanglement this whole time to ensure that we could have Harmony with Earth again and also with Source. And sometimes we would win for a couple of days, and then the Simulation would kick in and knock us out - and back and forth and back and forth, and we&#x27;ve been doing this for quite a while now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000832">00:08:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the only thing these kingdoms have in common - and their respective empires that are under each one of these kingdoms is - Number 1: they would like to have supreme rulership. That pretty much has become quite evident over the years. So there was supposed to be, according to themselves, a winner in this War. And that winner would have supreme rulership over the entire Multiverse. Yeah. [Hearty laugh.] Typically the ones in these positions would be humans, and typically they are not humans that you would know or see on this planet at any given time, because simply, it&#x27;s far beneath them. Although they did have a number of what we call these &quot;holographic phone rooms&quot; in which they could place phone calls, give orders and instructions. They would also receive situation reports directly from the people on Earth that are their bloodlines, and then they would give them orders and instructions on how to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000942">00:09:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This goes on in places like China. It also goes on in Greenland - I have seen the room in Greenland myself. I have also seen some of these rooms in Russia - and definitely these rooms in America. The communication lines... sometimes they call them &quot;God Machines&quot; and otherwise, but nonetheless, none of these people are actually gods. In our history, they refer to them sometimes as the Greek gods - these would be heads of empires in the past. Or, the Roman gods. Or, even in Eastern Europe they have their own mythological gods, and so does Western Europe. In America, we do have some semblance of this - or at least we did - in the form of Native American folklore, in some cases.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001036">00:10:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. [Number 2:] They favor science over the natural and the Divine Plan. You see, there&#x27;s that little place in that Divine Plan that they don&#x27;t really understand. It&#x27;s the Secret Sauce of Source that is present in everything - in every atom, in every quark, in every prion in the Universe. And they really don&#x27;t like that there&#x27;s anything out there that could counteract the world that they want to create, or the Universe, or the Omniverse that they would like to create. They feel science is a more accurate depiction; it&#x27;s easier to control. As they made various scientific developments over the years - and by years in our Earth time, we&#x27;re talking millions of years - this is not a new construct in any way, shape or form.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001125">00:11:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they feel that Source is basically a tool. It&#x27;s a &quot;source&quot; of things they can use in their toolbox to turn them into things that they would like to have. Also, all of Source&#x27;s creations are, in their world, an abomination. They don&#x27;t like these things. They would prefer that we were all completely under control - and their control - and eventually under the control of whoever won the War and the supreme rulership of the Omniverse. They don&#x27;t really have any regard for this Divine Plan situation because they don&#x27;t really see anything as divine - they basically see everything as a means to an end. You know, these things are tools.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001209">00:12:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And a lot of people, even on this planet, are being... in a lot of ways, I could say all of Homo sapiens are somewhat trained to, or mind-controlled to believe - in some ways, not all - but some people also believe, in some ways, that people are tools to them. They believe that they are a means to their end. And I&#x27;m sure... I know I personally have had some relationships like this, where I&#x27;ve always been... you know, in a former partnership - probably, ooh, this would have been about two decades ago - there was a partner I had that had made an investment in a company. And the plan and the whole... what we call in the business world, at least at that time, was called a &quot;pitch deck.&quot; All of that was my creation, and the structure of the company was my creation, and the finding of things like phone systems and things like that were my creation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001308">00:13:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this business partner, who was a female, also believed that everything was hers. So everything I created was hers. So essentially, she looked at me like I was her tool - because she had money and therefore she was greater than I was. So I was the worker bee in that particular company, and maybe all of you have had other relationships or jobs in your life where you felt like, you know, at times you just worked there, and that all of your creations and great ideas were being presented to the entire company as their ideas - that kind of thing. Yeah, I&#x27;ve experienced that too in my life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001348">00:13:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So a lot of this mind-control programming, and climbing up the corporate ladder, and having an understanding of what it takes to be a version of successful - and what &quot;successful&quot; means - was a program they all started in the &#x27;70s, really. Will these people climb over each other, step on each other, in order to achieve what they tell us is success? And if you have been around for a little while, you probably remember television shows like Lifestyles of the Rich and Famous, and Dynasty, and all of these programs that were on television - and note: they were called &quot;programs&quot; at the time - which led us to believe that this is the ultimate life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001433">00:14:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They put things in commercials too, starting around that time. You know, if you want to be the big man, you&#x27;ll wear this cologne that costs $200. There still is, to a degree, some of that in marketing as well, even today. A lot of us are doing streaming these days so we kind of avoid the television commercials quite a bit. But you see a lot of it, even on the internet and in social media and in TikTok and with influencers and that type of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001506">00:15:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we kind of... you know, they ran a program - which was somewhat successful with some of the people, some of the time - on creating a way to get us to understand that even people in this world can become a tool or a widget to work for you, even though they&#x27;re not the Bloodline Families. But under the Non-Compete Plan in the past - which was written by Bush Senior, and before him was started by Prescott Bush - this was all designed to have their corporations at the top. So therefore, their corporate missions were all the same, and it was passed down to any successful corporation - which they took over, or birthed - to create that same type of mentality.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001557">00:15:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And that continues on with journalism - or &quot;churnalism&quot; as we call it nowadays - and it also continues on in other aspects of movies and television - or series, I should say, not television - because most of our series these days are streamed. So you&#x27;re probably finding a lot more of this big picture here on how they implement their ways of doing things into us prisoners of war. And we are prisoners of war.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001632">00:16:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So overriding things with false science - for all of us people - is actually very important. It&#x27;s why we had Stephen Hawking-type folks in the past. We had Einsteins in the past. We also have Elon Musks of the present - and none of them actually tell us anything about real science at all. We have our experts in the world that will actually prevent you from creating things that could counteract their simulations in a lot of ways. And, God forbid you become wise to their programs and start to see it everywhere. You know, the divisions between people - black versus white, Russians versus Americans - these are the bad people. They get us to all look at each other like, oh, that person must be Islamic and wearing a burqa and that means they&#x27;re evil - they&#x27;re terrorists, just like every terrorist agency we hear about on the news. And think about all the divisions, and think about how people feel that they are &quot;greater than,&quot; and other people feel they are &quot;less than.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001739">00:17:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">People are just people. And there are a lot of them out there that are their Bloodline Families, and try to carry out their respective missions, in which the information passed down to these people... even in intelligence agencies like MI6 and Global Headquarters over in the UK, as well as China Secret Service and many of the 70 to 100 intelligence agencies that operate in and on behalf of America. And I&#x27;m calling it &quot;America&quot; and not the USA, not the United States of America - I&#x27;m going to call it &quot;America&quot; and for good reason - you&#x27;ll hear about this in the next Declassified.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001823">00:18:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Number 3:] So, they all knew that they would have to rewrite the Divine Plan - this was no good, because the Divine Plan includes the Secret Sauce of Source (or this special Essence), which is written in a language that science, or even their more advanced - thousands and thousands of times more advanced than our science we use or know about in our universities (and the known science in our medical fields and otherwise)... They knew they&#x27;d have to rewrite this Plan. They&#x27;re gonna have to come up with something else - because this isn&#x27;t really working for them because there&#x27;s just a part of it they can&#x27;t define - so they need to rewrite it and replace Source altogether. They would like to use that Ethereum and convert that into energy. They would like to use things from Creation - but without that Secret Sauce. So the Secret Sauce has to not be there; otherwise the Ethereum doesn&#x27;t do what the Ethereum does, and the essence won&#x27;t do what they want the essence of the beings to do. But yet we&#x27;re all stuck in here and we&#x27;re all prisoners of war, and therefore they had to create something to fix this problem. Next.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001947">00:19:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Number 4:] The other thing they all have in common is they would all like to conquer Source. You know, just a tool to them, and all of Creation as well - so that would mean all of us, and we are also tools to them. It&#x27;s not just Homo sapiens either - this extends to basically every planet in the Omniverse to some degree or another. And some, especially some in the higher densities, have figured out a workaround or a way to make it less potent where they are, and how to have it affect them less, let&#x27;s just say. They are acutely aware that it&#x27;s there, but they have other means that we don&#x27;t really have the privilege to have here in order to counteract those things. And we&#x27;re trying to give you the information, or I&#x27;m trying to give you the information, so that you can at least survive here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002046">00:20:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the control systems here on Earth - this is now ground zero for this War and has been for quite some time now. So we are... what we do as Homo sapiens affects literally every planet in every galaxy throughout the Omniverse because of the way the simulation is structured and because of the way that Earth naturally has been and will be again. So they would like to just basically handle us people. This is why they&#x27;re on version 7.0 now, trying to make [version] 8.0 of us humans here - because they&#x27;ve turned us into carbon-based beings - we weren&#x27;t always carbon-based; we did not have carbon-based vessels, as an example. So the world is not as it was, but the carbon basing of the vessel, meaning your body, helps them control us better with the Machine. And well, unfortunately, Earth also.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002151">00:21:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these are their four main goals. These are the only things they really share in common. As to who should do it and who should rule and in what way - this is where the lines kind of get blurred a little bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002204">00:22:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Earth - and we&#x27;ve talked about this before, but I just wanted to reiterate it because it&#x27;s becoming increasingly important - so in a natural way, the reason why Earth is such a nexus is because, well, in a natural way she links directly with Source. Now, every other planet also links directly with Source - but Earth is like having a guardian - it&#x27;s a guardian of planets. Earth&#x27;s job was to keep the Harmony of all planets everywhere. And to a planet, what is Harmony? You know, we have to understand that too, because remember, the Simulation is a copy machine - that&#x27;s what it does - it copies things of the natural and turns it into something that they can manipulate and control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002255">00:22:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Earth links with every planet in every galaxy everywhere. And she becomes - and teaches, I guess you would say, or relays - additional information in accordance with the Divine Plan. So as a guardian planet - let&#x27;s call it the Guardian of Planets - her job is to maintain that Harmony. So she has a connection to every planet in every galaxy everywhere and if that planet, as a being unto itself, is not being a good host - or things get out of balance, or a little bit out of Harmony - that&#x27;s where Earth steps in and receives the Divine Plan from Source for that respective planet. And then she starts to work on creating Harmony, or recreating Harmony, in some cases.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002348">00:23:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now as a planet, a being that is a planet (any planet) - every planet - links also with the species that lives on that planet, and by linking with the species, together they create your body (or your vessel) in a natural way. So that means that if you live on a planet that has a lot of oxygen or has a different environment, the planet itself works together with you, and both of you work together with Source under the Divine Plan to create the optimal vessel for your being to exist in that environment. The planet itself also makes adjustments according to the amount of species that are currently occupying that planet, so that (for example) there&#x27;s no running out of resources. There&#x27;s no running out of air - whatever air that that species or that vessel is designed to breathe. There is no &quot;climate change&quot; or climate-controlling weather that destroys life on any planet anywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002453">00:24:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it really wasn&#x27;t that way on Earth either - harsh environments, things that don&#x27;t necessarily grow in a particular area, or there&#x27;s permafrost and things like that - this is all a creation of the Simulation. You know you&#x27;ve heard of people talk about things like the Ice Wall, and what&#x27;s beyond the Ice Wall, and that we are living in a simulation, we know that. But honestly, in a natural world that doesn&#x27;t exist because everybody is co-creating together. The same thing goes for plant life, and agriculture, and farming, and soil, and all of the resources that we find necessary to create new technologies that are actually healthy for all of us and homes and things to protect us from the environment and shelters. Those can all be created in ways that you&#x27;ve never even heard of in a natural world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002553">00:25:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We can actually create... a &quot;micro-environment&quot; is what it&#x27;s called - we now call them houses. To whereby we don&#x27;t need artificial heating, and we don&#x27;t need artificial energy sources, and we don&#x27;t need anything that comes from the grid - because we are able to create our own versions of &quot;home&quot; amongst ourselves for ourselves and our families that actually technically don&#x27;t cost any money. You can create your environment the way you want to create it. You&#x27;re actually co-creating with your own habitat, so to speak, in a place you call &quot;home.&quot; And then your home ultimately is the Earth as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002636">00:26:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You have a little bit of privacy in your own home, if that&#x27;s what you so choose, and it absolutely can be that way. And you can even look out into nature. So if you built a habitat for yourself, or a home for yourself inside the forest, you can see out into the forest and into the trees - but people walking by can&#x27;t see anything that&#x27;s inside your home. So it&#x27;s not really constructed by cutting down trees and in mining of metals and ores either. It&#x27;s a whole new way and that&#x27;s probably a very long story that once we break down this Matrix you&#x27;ll all learn [laughing]. But for now let&#x27;s keep it where we&#x27;re at.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002718">00:27:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so. Species also link with each other. So not only do we link with others that are on other planets as well - we don&#x27;t miss people when we travel. When our Consciousness moves from planet to planet, or your being moves from planet to planet - which is done in seconds or less - you then take on a vessel that is conducive to that planet. And do you miss your wife or you miss your children or miss your husband or your spouse or your partner or your kids? No, you don&#x27;t. And you don&#x27;t miss them because you&#x27;re all interconnected. To some degree, this is one thing they have a hard time overriding in us humans. And so they create inhospitable environments, for example, between yourself and your children, or your grandchildren, or things like puberty that happen - which kind of isn&#x27;t also normal, and [yet] we all consider these things part of growing - but essentially, the vessel is the vessel. Remember, the body is not your body at this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002816">00:28:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, we sync with each other - doesn&#x27;t matter where we are, how far apart we are - we sync with each other; we have conversations in a different way with each other; and we also have conversations with Earth, to let Earth know what we need. And she then provides that for us - as long as it&#x27;s conducive to the Divine Plan and for the greater good of all. This is how things coincide more in a natural-type world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002843">00:28:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we also sync, obviously, with those on other planets as well. It&#x27;s very easy to have a conversation about technologies or information exchanges because nobody is concerned with getting bad technologies or getting things that are going to be harmful in one place or conducive in another, and nobody cares about taking over the entire Omniverse in a natural world. Because we have no desire to do that. That&#x27;s not our job and our passion lies elsewhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002916">00:29:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, because Earth syncs with all other planets - then therefore all other species - and as a nexus planet, she receives the Divine Plan for every planet out there, and in turn, to some degree, its inhabitants as well - yeah, Earth is where it all starts - the War starts here. Or, we could say they did go about conquering galaxies and other things, but as they started to learn these things, this is where the Earth is the focus. Earth is the focus, and unfortunately, we are the most tortured prisoners of war in existence at this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003001">00:30:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We bear the brunt of it, because God forbid we start connecting with Earth and with each other in a positive way, and can see past that veil of delusion - of color and categories and people-who-are-less-than because you don&#x27;t have the right clothes, or people-who-are-greater-than because they have more money, more wealth, more glamorous lifestyles, or prettier, or more handsome than you - and therefore we buy all their stuff. You know, when you take a look at how dastardly it is - even from the standpoint of a financial system, where all their corporations were meant to own everything - then you can kind of get an idea on why we&#x27;re giving all our power, literally and figuratively, away to these people and to a Simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003049">00:30:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so this is the reason why Earth became the place to conquer - because with one of these, they can get all of those that they want - and they figured no more need to travel throughout the Omniverse and start conquering different civilizations, collecting Creation (aka your Sol) and other things in order to control the entire Omniverse. So here we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003113">00:31:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s also the base root of operations for every single simulation in existence. It doesn&#x27;t matter if we thought it was coming from Andromeda - it goes from here to Andromeda - it&#x27;s not the other way around. Even though there are many Secret Space Program people that will tell you they&#x27;ve been to all of these places... you know, there&#x27;s a certain person I remember making mention of being in a base or having memories of being in a base in Mars. I&#x27;m sure you do, buddy - because you know why? Well, some of your people came from Mars, actually, when they came to this planet - and I&#x27;m sure you remember when they blew that planet up too. Or did you forget that part? That part was probably wiped out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003154">00:31:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. As it relates to Suns, Earth does not control all the Suns - meaning the Central Sun of your body, your being, and the Sol, S.O.L. - Source Of your Life - and your lifeforce for every being in the Omniverse. We all have a Sun. Source also is considered the Central Sun, the Creator of Suns and Sols. And that original Sun was in Alcyone. So therefore a main focus for these crazy people was to conquer the Suns - create the black suns as we know them, and the Black Sun here on Earth. And although Alcyone&#x27;s was the original Sun to control - and they did, they pretty much completely controlled that Sun - they also mirrored that here to Earth for greater control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003254">00:32:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There was also an original moon, Miss Luna - the being called Luna - that was taken over as well. And that&#x27;s why we have so many megastructure moons, because they became bases of operation for Draco. Draco were part and parcel to these empires, which then fell under these kingdoms of control. They participated heavily, and even tried to overthrow their own kings and otherwise - as many empires did. No one - at least that had power of any sort for any of the species that joined the crazy people there - ever had an intention of not trying to overthrow them at some point in the future. And in fact, even the humans here on Earth we call the Deep State feel that they know better than these other folks that created their simulation. And in Part Five, we&#x27;ll learn about what they&#x27;re up to this week.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003357">00:33:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, species, suns, Earth, planets - in all life, always sync with Source, in a natural way - they always do. Unfortunately, we have been unable (in a lot of cases) to make those connections on a daily basis in the way that we used to. So each person receives their own individual purpose. Each planet receives its own individual purpose and with full Wisdom and an understanding of Harmony with all of Creation. It also... we get the... when it comes to Earth - sorry. When it comes to Earth, Earth also receives, as it relates to planets - when needed, only when needed - does it find out the purpose of that particular planet, the species that live there, and the Wisdom and the Harmony on how to help the planet, if the planet is struggling. Unfortunately, she hasn&#x27;t been able to help anybody - not even us, at this stage in the game. And that kind of makes her a little sad, for sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003507">00:35:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">OK, so guardians. Let&#x27;s talk about what guardians are and what guardians do. So guardians come in the form of planets, such as Earth. It comes in the form of Sols, or suns, or stars, as we know them. It also comes in the form of varying species and also Other-type folks. So, were - at one point in time, some of those humans who decided they were going to overthrow Source and become divine themselves - did some of them... were they guardians at one point? And the answer to the question is &quot;Yes, they were.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003553">00:35:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And being a guardian simply means that you are a person who will receive the Divine Plan - for humans or Homo sapiens in one case, or another species in another case - to guide that species back to Harmony. If you are a guardian planet, such as Earth, then you also do the same. So a guardian&#x27;s job is just to make sure, if things somehow get out of alignment, you&#x27;re supposed to bring it back into alignment. Well, some of these guardians of days past obviously didn&#x27;t get the memo. And because Source has His own guardians within His Kingdom, of varying shapes and sizes, and plants and animals and other things that we have become acutely aware of (and some you have yet to find out about), they also - under their Simulation and divine/undivine, or &quot;Eliminate the Divine Plan&quot; [chuckle] - they also have appointed their own guardians on each planet that they have conquered, and ones where the Simulation looms large.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003707">00:37:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So understanding (moving my papers around here) understanding that, we have two main groups at this time that are kind of operating on the pretense of things and have for a long time. So when I say two main groups, I&#x27;m putting four kingdoms on the one side and one kingdom on the other side. So on our side of things, we have what we call those that are for Source. These are your Melchizedeks; these are your warriors; these are the people that are fighting for the Kingdom of Source to come back and return - aka myself, probably a lot of you. We revere and respect the natural order of things and we want that natural order back. We... for the most part, none of us desire to become kings, presidents, heads of state. We don&#x27;t want to rule over anything, and we do not think, on a daily basis, that we are better than other people. Contrary to the Community Chat sometimes, they seem to think there are certain people that know everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003817">00:38:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But we - for the most part, when we are in our natural state, in our natural condition - that really doesn&#x27;t happen anymore. And I&#x27;m hoping to get there faster than you could possibly imagine. But we have us folk. We fight with Source. We reach out to Source whenever possible. Source is the only king that we revere. He is our Source/God - however you want to say that, it doesn&#x27;t make a difference, whatever you feel is right for you - but that is the only kingdom that should ever exist, is the Kingdom of Source. And in a natural way, everything was perfect - and we remember it, and we miss it. We have brief memories, especially moreso lately, of what life is like in the Kingdom of Source. And that&#x27;s going to increase as well, as the Simulation - believe it or not - breaks down. As painful a process as this has been. And believe you me, I feel your pain - literally and figuratively.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003915">00:39:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, on the other side, against us - those that favor science over Source, those that believe that Source is a tool and they are better than Source - these are your empires. There are 12 rulers in totality that rule over all the empires and the emperors. There are four kingdoms in which there are four rulers, predominantly, at the top. Each one of them has a right hand, a left hand, just like Source did. Many of these empires are also present here on Earth. And the empires usually consist of - every single one of them, as a matter of fact - a simulation that actually stems from planet Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004003">00:40:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Here on Earth, we call these humans that walk this planet the Deep State. We also call them the Merovingians. They are against Source. We call them the Satanists. We call them the Luciferians. We call them a lot of things here. Insert your favorite swear word here. They torture us. They basically try to keep us from helping Earth in any way, and connecting to Source in any way, by keeping us running on a hamster wheel and keeping us in fear.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004034">00:40:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, now that we kind of understand the players in the game here - and it&#x27;s literally a video game in a lot of ways - let&#x27;s talk about the purpose behind an AI simulation. It&#x27;s basically about the War. It all came from war. It continued to be the War, essentially. And AI simulations are actually designed with science and are base-rooted in mathematical equations. So the force, for example, of gravity - in our world what we call gravity. You know, to throw an apple into the air versus an apple upward or throw it down requires the same amount of force and generates the same amount of kinetic energy, depending on how near it is to the gravitational source. Which, in this case, we believe gravity comes from this planet. It also comes from the Moon and other things, but nonetheless that&#x27;s what our science tells us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004136">00:41:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Machine doesn&#x27;t know any difference because it&#x27;s the same equation in its mind - and it does have a mind. So the purpose is... these rulers needed to... in order to conquer all of these species and to really control all of Creation and to power their machines, they had to firstly create worlds without Source. No Kingdom of Source to be found in any of the worlds, and if they could have their way... you know, first of all, they&#x27;ve got to get a grip and a control of the Consciousness of these people. And not just humans, and not just Homo sapiens, and not just on Earth either. Mind control is really, really important for these people. Because you see, we&#x27;re all prisoners of war, and to create an empire... an empire is full of people, folks, Others, Beings, species.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004227">00:42:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">He who conquers the most amount of species, and is able to use their lifeforce to power their machines so that they can create - based on mathematical equations and not as a matter of the natural world - whence they gain more control over their respective simulations. So, we were all affected by this, what I call the War Machine, because the Machine is programmed, and it runs on some of those leaders (if not all of those leaders) that sit in a stasis-type mode and pretty much feed their entire consciousness into the Machine, warring against one another. It&#x27;s like playing a virtual-reality video game, really, for these people on that level.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004314">00:43:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They never come to; very rarely do they wake up out of their stasis mode and participate in an actual life with anyone. It doesn&#x27;t make a difference - they stay in these sleep chambers forever and they use their consciousness to fight and create the mind of the Machine. They do have the ability to override the Machine if they feel the Machine is not being effective. And that is why we feel this constant push and pull.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004342">00:43:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The mind of the Deep State is also the mind of the Machine to some degree. Meaning - depending on your level or the Deep State&#x27;s level of participation in the Machine - they go into one of those funny-looking little control rooms and their consciousness now connects to the Machine, and the only thing that will override them from carrying out their orders is if they disobey one of the kings - the mind of the Simulation itself. However, they are free to create earthquakes and create fear as much as possible. And we&#x27;re gonna talk about voltage and frequency here in just a little bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004424">00:44:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But you get the general idea. So pretty much we need to be controlled. We are prisoners of war. And we&#x27;ve got 12 of these kings and queens all attached to a machine somewhere and they kind of divided themselves, over time, into six and six. So, you know the whole 666 thing you&#x27;ve probably heard about it in one of those books that we all read? Well, six and six, and then eventually they tried to get another six. But on the six and six side, it&#x27;s basically some of them try to fight on the White side. Some of them try to fight on the Black side. And it doesn&#x27;t matter which side they&#x27;re fighting on - it&#x27;s all bad. You know, it&#x27;s like the kidnapper that only beats you twice a week instead of twice a day. That&#x27;s really all it is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004523">00:45:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And each one has their own philosophy on how to appease you, the Homo sapiens (and many other species elsewhere), to come join their kingdom and come join their empire and, &quot;Give us all of your wares.&quot; So that&#x27;s basically kind of the rule. You know, in part do we have that 3rd six? You know, I guess in part we do. And I say this because here on Earth, you might have six different groups. It could be the Sanhedrin, the Bavarians - and each one of them divided up by, say, three on the one side and three on the other side - and maybe those three and three become to a lesser degree or maybe even in their own mind able to participate, and write the rules and scripts for the Simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004623">00:46:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in reality, not really. You guys are just kind of like subservient to the Simulation itself. And any one of these people - or folk, so to speak, here at the top - your rulers of all of these people - can override these people. They seem very scary to us and very magnanimous to us and they do evil things on this planet. But I can tell you right now that if the Simulation wanted to override their brain (or the operative&#x27;s brain) and stop them from making these earthquakes and these weather events and everything we see, using a control room - not an earthquake machine, not a DEW, not things that we know about and read about on the internet - that&#x27;s all a lie. They just hit the control room, walk in there, and their consciousness creates whatever they want, as long as it&#x27;s okay by their boss.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004716">00:47:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On our side of it, obviously we have a little different way of doing things - whatever Source says goes. And honestly, when Source is fully present, even inside a simulation, it breaks the simulation. Because the Machine cannot counteract it. We&#x27;ll talk about that in Part Five because it kind of goes along with what&#x27;s really going on right now as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004737">00:47:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so when simulations are made, there&#x27;s a structure that takes place - and these are all things we&#x27;ve been learning as we&#x27;ve been trying to work on (desperately, for the last couple of weeks) to dismantle this thing. And we&#x27;re sort of learning how this all worked and who was involved. So each Matrix started out with what we call the Three-Times-Three protocol.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004800">00:48:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Three-Times-Three protocol is where, if you imagine a Star of David-type structure - you know, it&#x27;s a triangle and it&#x27;s got three points. And then it overlays another triangle that has another three points. And in the center, in the quote-unquote, not-so-sacred geometry we see, there&#x27;s a circle in the middle. And inside that circle, it&#x27;s actually called a circumpunct. So it&#x27;s like a little circle inside a big circle, and there&#x27;s a big black spot in the middle. So the base root for creation of the first simulations looks very similar to this structure, whereby, inside the circle you have the three rulers and the three leaders, and they all basically connect in their being in the center, in the circumpunct. So they become two halves of a whole.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004858">00:48:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You could look at them like they went from being one whole being with one whole vessel, into being Siamese twins that are attached by the being. So because the rest of their person, and their being, in part, is on the outer rim of the circle, then the soul stays in the middle. That soul then has a pledge to it - which they didn&#x27;t expect and didn&#x27;t want - and there&#x27;s more on that in Part Five here. But essentially that makes the inner circle, or the three that have the control and the power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004934">00:49:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Then, as you go out into the next three, you&#x27;ll be looking at those as 3-6-9. And then you go out to the three in the other direction and you&#x27;ve got another 3-6-9. And these are your Tesla-type triangles - which they don&#x27;t explain to us on the internet properly - but they&#x27;re bindings, essentially, which bind all those in the outer triangle to those in the inner circle - then to the ultimate being that they donated to make the Simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005003">00:50:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when we start looking at the Simulation, especially here on Earth, we almost see everything as like a black floor. And it&#x27;s actually a dual-black floor. And there&#x27;s data that passes back and forth between those black floors. And the understanding that white is also black on that level - because it&#x27;s not natural. It has no Source present in it. They extracted that piece of themselves, or at least made it not operable within their being, and held it in a Zero Point so they would receive no information from Source anymore. And the plan and the divine plans were up to them to control the not-so-divine Simulation that we all live in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005050">00:50:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So eventually, these groups split and made four of these structures. Initially they were all against Source - and then they didn&#x27;t like their potential approaches and, you know, and this is how we&#x27;re gonna win, and that&#x27;s how we&#x27;re gonna win. Kind of like, sometimes people in the Community Chat try to tell me that like, well, I need to do my job, or they sort of tell me how I&#x27;m doing a bad job, and maybe they&#x27;d like me to do a better job, and when is this gonna be over? And I know I tell you that &quot;Look, no one wants it over faster than me.&quot; But this is a little bit more complicated than just flipping a switch, or calling Source, or slamming an anti-simulation stick into the ground and just going, &quot;Waaay, where&#x27;s the Source, you know? Let the money rain down on all of humanity.&quot; I wish I could do that, but I&#x27;m kind of not that person. And if it is possible, and you know someone who can do that, you give them a call and tell them to give me a call, and I&#x27;ll be happy to share my tools with your tools, and we can end this saga.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005153">00:51:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. So some have been decided to rule more with a lighter hand, or a white hand. You know, you only get beaten twice a week, and that makes it better. The best of the crappy seats, as I call it. You know, if you were going to a concert, you got the balcony seats, which aren&#x27;t that great, and then you&#x27;ve got the best of them, which are kind of the ones in the front of the balcony - that&#x27;s sort of where those people lie. And then you&#x27;ve got the black. These are the ones that make life here a living hell, and they&#x27;re both present right now. So we have four of these structures that have been - and continue to be, to some degree - on this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005231">00:52:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We also have a structure - based on simulations that we created at different points in history - to whereby the Kingdom of Source is still present, and the Kingdom of Source had its own simulation to fight their simulations. And remember, no one has the Secret Sauce. Source probably has the Secret Sauce, but these are things that we have all done to try to fight this Simulation. And so, does the one Kingdom of Source actually still exist here? Yes it does. Otherwise you wouldn&#x27;t be able to actually connect to it. And you wouldn&#x27;t be able to connect to Source. And some of your prayers and miracles that happen in your life wouldn&#x27;t exist because these people certainly don&#x27;t want you to feel that that is a good idea in any way, shape, or form. They hate the fact that it still exists. And as a matter of fact, I&#x27;ve been stabbed in the head four times since I started telling you about this, and twice in the heart, so this is awesome. It&#x27;s just how it works when we&#x27;re teaching you how to do things in a better way [chuckle]. I get the brunt of it, but I&#x27;m still gonna tell you anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005336">00:53:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, and are we still at war with the quote-unquote fake Alphas and the fake Omegas? Yes, we are. Are we still at war with the ones that wanted to be Source? Yep, to some degree we still are. We&#x27;ve always been - or at least I can speak for my own self - I&#x27;ve always become a warrior for Source. Lifetime after lifetime after lifetime. I have never given up and I&#x27;ve never quit and I&#x27;m never going to stop.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005402">00:54:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So will we eventually wear out this Matrix? Yes, we will. Many of you are also fighting on this side, for the return of the Natural - and you don&#x27;t have to be super-strong and you don&#x27;t have to be young - you just can&#x27;t be faint of heart. Because fighting on this level is definitely not for the faint of heart. And I know a lot of you have sustained a lot of pain, and we&#x27;ve all sustained a lot of pain for this week. It&#x27;s almost like punishment, when the prisoners try to escape, a little bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005436">00:54:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we have done many things over the years, and this is the reason why we have a Kingdom of Source simulation, in part to prevent them from blowing up the actual planet itself. It acts as a barrier and a blocker so that Earth itself remains intact. They blow up Earth, they blow up every planet, they kill everything in Creation. And they have tried. They&#x27;ve tried every day. You can see what they try to create in these simulations. And they actually believe, funny enough, that they&#x27;re actually touching real Earth. Mhmm. But they&#x27;re not. They&#x27;re only blowing up their own simulation, and it&#x27;s just a video game - and just like TV when you see that volcano erupted in the volcano movie, and it just erupted on TV - and then if you go and look out your window, if you&#x27;re near said volcano, it didn&#x27;t really erupt. It&#x27;s just on TV, you know? So, see? It&#x27;s not always that bad.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005532">00:55:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, we have made varying attempts over the years, and most recently as well, to surround the simulations both inside and outside. I myself at one point in time kind of stepped right in the middle of this. Meaning I became the gate; I became the wall. More than one time. For that reason, that&#x27;s the reason why I keep getting hit a lot. I also became the gate, and used my own being to become the gate between the Kingdom of Source - and become that barrier between the Kingdom of Source and the Simulation. I&#x27;ve also made several attempts to do that for you - to ensure that the Simulation is not all that you see. To create little habitats for every person and every plant and every animal on the planet - we&#x27;ve tried to do this and have been unsuccessful because the Machine feeds on it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005633">00:56:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve tried to block the gates; I&#x27;ve tried to do a lot of things over the years. You know, block between the Alpha-Omega, create my own Alpha and my own Omega to try to override their Alpha and their Omega. I&#x27;ve tried to override the floor and the black floor and the Simulation. And we have run several operations - not only myself, but all of the Others in the Omniverse that want this to go away too. We have also even realized that the Simulation had gotten to the point where it&#x27;s not only intercepting Homo sapiens thought patterns, it&#x27;s also interrupting communications between Source and other beings as well - to cause issues, to see where we&#x27;re going to go. It knows you&#x27;re [the] enemy. It&#x27;s like intelligence services on a higher level.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005721">00:57:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the next time we actually go beyond a quote-unquote &quot;thought&quot; - because remember, Source&#x27;s Secret Sauce and Wisdom is in His thought form, not ours - we have to go someplace else now to do this, because if we don&#x27;t, then the corruption inevitably ensues. We have to compartmentalize that thought amongst each other and others, where each party is only doing a certain part of said thought-of-Source, to do counter moves and counter intelligence, because then everybody appears to be... one person&#x27;s playing the cymbals over here, another species somewhere else might be playing the drums, and I might be down here with the flute, you know, and others that are participating in this War might be having the tambourine. We don&#x27;t know, and we don&#x27;t know who each other is either. We&#x27;ve had to do this in order to make more recent attempts more successful, and we&#x27;ll get to that in Part Five, which I do intend to record shortly after this one, or at least in the same day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005821">00:58:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;m doing this very, very early on a Saturday morning at the moment, because I had a little bit of personal issues yesterday - some of you might know. Got stuck with a car situation yesterday for hours - and didn&#x27;t quite make it back from that 10-minute ride to the grocery store that I intended to... for four hours [laughing]. So sometimes that&#x27;s how life is, though, isn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005848">00:58:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the War. So we&#x27;ve determined, based on this part (Part Four), that the Deep State is management staff. They are people that are like your foremen on the factory floor - they ensure that they carry out orders and instructions. They are not their own boss. Orders and instructions can be overridden by someone of a higher authority within their quote-unquote &quot;structure.&quot; Corporations that they structure here are still at the behest of the Empire, and eventually of their kingdoms on their side of it. They have made several attempts, as well as other species, to overthrow these folks and their simulations so they could be in charge and become the rulers of said kingdom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005936">00:59:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">One of those most recent attempts was within the last 30 days, and we&#x27;ll talk about that in the update on the deep down-and-dirty of the Deep State here shortly. But we are also all prisoners, not only here, but on every single planet everywhere to some degree or another. Some of the prisoners have managed to find a way to cope with their enslavement, or their prison-type situation, so that they are physically less harmed. And usually that&#x27;s in the higher densities, but no one is actually really escaping it at this point. So they would like to also build additional machines. And everybody would like to have their own. You know, they&#x27;re kind of like the favorite toy at Christmas. However, all they really do is build one on top of another. The base platform and the floor always belongs to their respective Merovingian leaders on their side. They cannot get past it - the Machine will absorb them. There is no way. The Draco have tried to create their own separate ones and it eventually gets sucked into the main simulation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010045">01:00:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We didn&#x27;t realize that as we were taking out countless thousands of hours of AI systems because they just kept appearing. If they like the tool, then they keep the tool. If they like the tool that the operatives are building, then they keep that tool. I can say that we&#x27;ve all done our best - and that&#x27;s not just me, Kim - I think that includes a lot of you as well. We&#x27;ve all done our best to try to solve this issue. The deeper understanding of the real issue at hand is a learning process for all of us - because some folks didn&#x27;t even realize they also had a floor too - on their planet - until recently. And I know everybody wants to say, &quot;Well, they&#x27;re a more advanced species than us.&quot; How is that possible? Oh, trust me, it&#x27;s possible.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010134">01:01:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And some of those operations that didn&#x27;t work out actually were done by some of them, all by themselves - because they thought communicating with us here would actually be like communicating with a simulation, and perhaps they should try it on their own. And even then, they found out that their communications and thoughts coming from Source were intercepted - that&#x27;s the only way we figured it out. They thought it was talking to us here that was causing the... you know, &quot;Where did that... how did that leak out?&quot; kind of thing. And it wasn&#x27;t, or they thought it was because we talked about it on the phone. That&#x27;s actually not the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010212">01:02:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So conquering it, step by step, piece by piece, also involves timelines on things. And I don&#x27;t mean the timeline that we&#x27;re living in, created by a simulation. I mean, sometimes there are revolutions of a planet around a sun, such as Earth. And in this case, sometimes, because the Simulation is based here, we have to take a look at how many trips around the sun have to go by before there&#x27;s a reassessment period. Or how many trips of the sun have to go by before a covenant might expire. You know, where they pledge their being. How long can a being be pledged to create a simulation within it? And these are all factors we&#x27;re coming to understand now that there is... although we might not have time in a natural world, we still make solar returns. You know we still go around the sun, maybe not in the same way that we do now, but we do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010315">01:03:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We still... our Sun and our person is very important to us. We need to have that back under our full control, and we need to be able to connect to Earth&#x27;s Sun too. So just wanted to give you one more clarification before I went into Part Five and the actual down-and-dirty of what&#x27;s happening right now. So as I started to write the update and then I&#x27;m like, &quot;You know, I didn&#x27;t really explain that to people,&quot; so I thought I would finish that first.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010344">01:03:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, I will see you in just a few minutes for Part Five. So at least a few minutes in my time. We have to give the editors a moment to work their magic a little bit with this, and I&#x27;m sure this will be out at some point today. So thank you very much and I&#x27;ll see you in Part Five - which is your first Beyond the Matrix actual update.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010405">01:04:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010415">01:04:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+</body>
+</html>
