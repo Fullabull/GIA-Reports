@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UNN Architecture - Own the Spine, Rent the Limbs</title>
+<style>
+:root{--bg:#0f1320;--fg:#e6e9ef;--muted:#a8b0c0;--accent:#7cc4ff;--accent2:#ffd36e;--good:#74e6a0;--warn:#ffd36e;--bad:#ff8f8f;--card:#161b2b;--line:#2a3248}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial,Helvetica,sans-serif;background:radial-gradient(1200px 800px at 70% -10%,#1b2035 0%,var(--bg) 40%,#0a0d16 100%);color:var(--fg);line-height:1.58}
+.wrap{max-width:1100px;margin:36px auto 60px;padding:0 20px}header{margin-bottom:22px}h1{font-size:2rem;line-height:1.15;margin:0 0 7px}h2{font-size:1.38rem;margin:0 0 12px;color:#fff}h3{font-size:1.05rem;margin:0 0 8px;color:#fff}p{margin:8px 0}.lead{color:var(--muted);margin:0}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0));border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.23);margin:18px 0}.focus{border-left:4px solid var(--accent)}.strategy{border-left:4px solid var(--accent2)}.warning{border-left:4px solid var(--bad)}.good{color:var(--good);font-weight:700}.warn{color:var(--warn);font-weight:700}.bad{color:var(--bad);font-weight:700}.big{font-size:1.08rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.mini{border:1px solid var(--line);border-radius:13px;padding:15px 16px;background:rgba(255,255,255,.018)}
+.flow{background:#0c101b;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce4f3}.verdict{border:1px solid #3a4767;background:rgba(124,196,255,.055);border-radius:13px;padding:14px 16px}.callout{border:1px solid #5f5530;background:rgba(255,211,110,.06);border-radius:13px;padding:14px 16px}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.93rem}th,td{padding:10px 9px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}th{color:#fff;background:rgba(255,255,255,.035)}td:first-child{font-weight:650}ul,ol{margin:8px 0 5px 22px;padding:0}li{margin:5px 0}code{background:#0c101b;border:1px solid var(--line);padding:2px 5px;border-radius:5px;color:#d9e7ff}.small{font-size:.88rem;color:var(--muted)}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 9px;margin:2px 5px 2px 0;background:rgba(255,255,255,.025);color:var(--muted);font-size:.88rem}
+@media(max-width:820px){.wrap{padding:0 12px;margin-top:22px}.grid{grid-template-columns:1fr}table{font-size:.84rem}th,td{padding:8px 6px}h1{font-size:1.65rem}}
+@media print{body{background:#fff;color:#000}.card,.mini,.verdict,.callout{box-shadow:none;border-color:#888;background:#fff}.lead,.small{color:#444}h2,h3{color:#000}th{color:#000;background:#eee}}
+</style>
+</head>
+<body><div class="wrap">
+<header><h1>UNN Architecture: Own the Spine, Rent the Limbs</h1><p class="lead">A vendor-independent starting point for a custom UNN front end and back end</p></header>
+
+<section class="card focus"><h2>The architectural premise</h2><p class="big"><strong>The spine is the set of facts and rules that should remain true about UNN no matter which vendors UNN uses.</strong></p><p>A useful test is:</p><div class="flow">If every vendor account disappeared tomorrow,
+what would UNN need in order to rebuild without losing
+its members, business rules, subscription relationships,
+content identity, and control?</div><p>Those durable facts belong in the UNN-owned spine. Video delivery, email delivery, storage, CDN, search, and other specialized services can then be rented as replaceable limbs.</p></section>
+
+<section class="card strategy"><h2>The durable UNN spine</h2><div class="grid">
+<div class="mini"><h3>1. Identity</h3><p><strong>Who is this person?</strong></p><p>UNN should have its own durable member ID that does not change when a vendor changes.</p></div>
+<div class="mini"><h3>2. Billing relationship</h3><p><strong>What financial relationship belongs to this member?</strong></p><p>UNN should preserve the billing provider and that provider's customer/subscription identifiers.</p></div>
+<div class="mini"><h3>3. Membership state</h3><p><strong>What is this member's current relationship with UNN?</strong></p><p>Free, trialing, paid, past due, canceled, comped, founding member, suspended, etc.</p></div>
+<div class="mini"><h3>4. Entitlement policy</h3><p><strong>What is this member allowed to do right now, and why?</strong></p><p>This logic belongs to UNN, not to a video vendor or CRM.</p></div>
+<div class="mini"><h3>5. Content catalog</h3><p><strong>What content exists?</strong></p><p>UNN owns the content ID, title, publication date, access class, master location, and delivery-provider mappings.</p></div>
+<div class="mini"><h3>6. Audit / business events</h3><p><strong>What important state changes happened?</strong></p><p>Joined, paid, failed payment, canceled, granted access, revoked access, published, suspended, restored.</p></div>
+</div></section>
+
+<section class="card focus"><h2>Entitlement is UNN-owned state plus UNN-owned policy</h2><p>It is tempting to reduce entitlement to a single stored field such as <code>tier = premium</code>. It is also tempting to reduce it to one giant function. Neither is quite right.</p><div class="flow">UNN-owned facts/state
+        +
+UNN-owned policy rules
+        =
+current entitlement decision</div><p>A conceptual policy contract might be:</p><div class="flow">can_access(member, content, now)
+    -> { allowed, reason }</div><p>The function evaluates stored facts such as:</p><p><span class="tag">membership status</span><span class="tag">trial dates</span><span class="tag">billing state</span><span class="tag">content publish date</span><span class="tag">special grants</span><span class="tag">grace periods</span><span class="tag">suspensions</span></p><p class="verdict"><strong>The important point is ownership:</strong> Kim can change the business rule without requiring the video vendor, payment provider, or front end to define what the new rule means.</p></section>
+
+<section class="card"><h2>Examples of rules the spine should be able to express</h2><table><thead><tr><th>Business rule</th><th>What UNN evaluates</th></tr></thead><tbody>
+<tr><td>Paid members see a new report immediately.</td><td>Active paid membership + content published.</td></tr>
+<tr><td>Free members see the same report after 7 days.</td><td>Free membership + published_at is at least 7 days old.</td></tr>
+<tr><td>New members get 30 days of full access.</td><td>Trial state + trial_ends_at has not passed.</td></tr>
+<tr><td>A failed payment gets a 7-day grace period.</td><td>Billing provider reports failure + grace period has not expired.</td></tr>
+<tr><td>A founding member keeps permanent access.</td><td>Special entitlement grant independent of subscription state.</td></tr>
+<tr><td>One recruitment video is public.</td><td>Content-level public override.</td></tr>
+</tbody></table></section>
+
+<section class="card strategy"><h2>Billing-provider independence</h2><p><strong>Do not assume Stripe.</strong> Stripe is a useful example because it is common and API-friendly, but the architecture should remain correct if UNN uses another processor today or changes processors later.</p><p>The billing provider should be treated as the authority for <strong>financial facts</strong>:</p><ul><li>payment succeeded or failed</li><li>subscription started, renewed, changed, or canceled</li><li>current billing period</li><li>amount/currency</li><li>refunds/chargebacks where relevant</li></ul><p>UNN should preserve enough information to reconnect those facts to its own member record:</p><div class="flow">billing_provider
+provider_customer_id
+provider_subscription_id</div><p class="callout"><strong>The billing provider owns payment truth. UNN owns membership truth.</strong><br />A payment failure is a financial fact. Whether that means immediate downgrade, a 7-day grace period, limited free access, or something else is a UNN business rule.</p></section>
+
+<section class="card"><h2>One member can have more than one billing relationship</h2><p>Keeping the provider separate from the member also avoids painting UNN into a corner during migrations or international expansion.</p><div class="flow">UNN member
+   |
+   +-- billing account: Provider A
+   |      +-- subscription 123
+   |
+   +-- billing account: Provider B
+          +-- subscription 456</div><p>The design does not need to assume this will happen. It simply should not make it impossible.</p></section>
+
+<section class="card focus"><h2>The request flow: where "headless" becomes real</h2><div class="flow">1. Viewer clicks content on UNN's own front end.
+
+2. Front end asks UNN's API:
+      GET /api/access/{content_id}
+
+3. UNN API:
+      a. identifies the UNN member
+      b. loads current membership/billing state
+      c. loads the UNN content record
+      d. evaluates UNN entitlement policy
+
+4. If denied:
+      return reason such as:
+      upgrade / wait / past_due / suspended
+
+5. If allowed:
+      choose the current delivery provider
+      mint the provider-specific short-lived playback credential
+      return playback information to the front end
+
+6. The video provider streams bytes.
+   It does not decide what "Premium UNN Member" means.</div><p class="verdict"><strong>The provider adapter is the swap boundary.</strong> Changing video providers should require an infrastructure migration and provider-specific integration work, but it should not require redesigning UNN's member model or business rules.</p></section>
+
+<section class="card warning"><h2>Provider independence does not mean "change one column"</h2><p>A clean abstraction can prevent a vendor change from becoming a redesign of UNN, but the actual migration may still involve:</p><ul><li>moving source assets or creating new delivery copies</li><li>new asset/playback IDs</li><li>captions and thumbnails</li><li>signed-token implementation differences</li><li>live ingest configuration</li><li>analytics integration</li><li>recording behavior</li><li>testing player/device compatibility</li></ul><p><strong>The goal is not to pretend migrations disappear.</strong> The goal is to make them infrastructure migrations rather than business-model migrations.</p></section>
+
+<section class="card"><h2>An illustrative conceptual data model</h2><p class="small">This is a teaching model, not a production schema or implementation estimate.</p><table><thead><tr><th>Concept</th><th>Illustrative contents</th></tr></thead><tbody>
+<tr><td><code>members</code></td><td>UNN member ID, email, name, created date, status.</td></tr>
+<tr><td><code>billing_accounts</code></td><td>Member ID, billing provider, provider customer ID.</td></tr>
+<tr><td><code>subscriptions</code></td><td>Billing account, provider subscription ID, plan, status, trial/current-period dates.</td></tr>
+<tr><td><code>content</code></td><td>UNN content ID, title, type, published date, access class, master location.</td></tr>
+<tr><td><code>delivery_assets</code></td><td>UNN content ID, delivery provider, provider asset ID, playback state.</td></tr>
+<tr><td><code>entitlement_grants</code></td><td>Member, entitlement, granted date, expiration, reason.</td></tr>
+<tr><td><code>events</code></td><td>Append-only business/audit events important enough to reconstruct or explain state changes.</td></tr>
+</tbody></table></section>
+
+<section class="card strategy"><h2>Why special entitlement grants deserve their own concept</h2><p>UNN should not have to invent fake membership tiers every time Kim wants an exception.</p><ul><li>founding-member access</li><li>complimentary access</li><li>temporary event access</li><li>extended grace periods</li><li>staff/moderator privileges</li><li>manual support corrections</li></ul><p>This lets exceptions stay explicit instead of corrupting the underlying subscription record.</p></section>
+
+<section class="card warning"><h2>Community is the genuinely hard limb</h2><p>Video delivery is relatively easy to abstract. Community is not.</p><ul><li>posts and comments</li><li>direct messages</li><li>groups/channels</li><li>moderation history</li><li>member relationships</li><li>notifications</li><li>attachments</li><li>search indexes</li><li>blocks/reports/abuse state</li></ul><p>If UNN rents this layer, that may become its largest remaining source of lock-in. If UNN builds it, it becomes a substantial software product in its own right.</p><p class="verdict"><strong>Community deserves its own architectural decision.</strong> It should not be casually treated as another interchangeable utility.</p></section>
+
+<section class="card warning"><h2>Vendor termination risk belongs in the foundation</h2><p>Exit planning usually asks: <strong>"What if UNN wants to leave?"</strong></p><p>A more severe question is: <strong>"What if the vendor decides UNN has to leave?"</strong></p><p>For every important dependency, UNN should understand:</p><ul><li>whether its intended use is allowed by the vendor's terms</li><li>what data/assets can be exported</li><li>how much notice termination may provide</li><li>whether service can be suspended before export is complete</li><li>whether an alternate provider or recovery path exists</li><li>what must be independently backed up before a problem occurs</li></ul><p>That analysis should apply not only to streaming, but also to billing, email, identity/authentication, hosting, storage, DNS/CDN, app stores, and any rented community layer.</p></section>
+
+<section class="card strategy"><h2>Own the rules; rent the machinery</h2><div class="flow">              UNN-owned spine
+
+ Identity
+ Billing links
+ Membership state
+ Entitlement policy
+ Content catalog
+ Audit/business events
+ Administrative control
+
+          |        |        |
+          v        v        v
+
+        Video    Email   Other services
+       provider provider   / community</div><p>Each rented service should receive only the information it needs to do its job. The service should not become the place where UNN's business meaning lives.</p></section>
+
+<section class="card focus"><h2>Administrative control is part of the spine too</h2><p>UNN staff cannot operate the system by editing database rows or issuing API calls manually.</p><ul><li>find a member</li><li>see why access was allowed or denied</li><li>grant/revoke temporary access</li><li>inspect billing/membership state</li><li>correct support issues safely</li><li>suspend or restore accounts</li><li>view important audit history</li></ul><p>This is part of the real product, not an afterthought.</p></section>
+
+<section class="card warning"><h2>Do not confuse conceptual simplicity with production scope</h2><p>The core idea can be demonstrated with a small proof of concept. A production UNN backend must additionally consider authentication, account recovery, webhook reliability, retries/idempotency, staff permissions, refunds/chargebacks, monitoring, backups, security, privacy/deletion requirements, disaster recovery, and operational support.</p><p class="callout"><strong>No implementation-time estimate belongs in this architecture brief.</strong> The production scope should be estimated by the technical team responsible for building and operating it.</p></section>
+
+<section class="card focus"><h2>The requirements document Kim can actually correct</h2><p>Before choosing more vendors, write Kim's business rules in plain English.</p><table><thead><tr><th>Question</th><th>Kim's rule</th></tr></thead><tbody>
+<tr><td>What does a brand-new member get?</td><td>To be defined.</td></tr>
+<tr><td>Is payment information required before any access?</td><td>To be defined.</td></tr>
+<tr><td>Does a free/trial member ever see everything?</td><td>To be defined.</td></tr>
+<tr><td>When does premium content become available to non-paying members?</td><td>To be defined.</td></tr>
+<tr><td>What happens after a failed payment?</td><td>To be defined.</td></tr>
+<tr><td>Can staff grant special access independent of billing?</td><td>To be defined.</td></tr>
+<tr><td>What should remain accessible after cancellation?</td><td>To be defined.</td></tr>
+</tbody></table><p class="verdict"><strong>Every answer becomes a test case for the entitlement model.</strong> If the architecture can express Kim's rules cleanly without changing vendors, the spine is doing its job.</p></section>
+
+<section class="card"><h2>Where the streaming comparison now belongs</h2><p>Cloudflare Stream, Mux, Amazon IVS, Bunny/Nimble and other delivery options are still important. They are simply a <strong>downstream infrastructure decision</strong> once the UNN-owned spine is defined.</p><p>The streaming comparison should therefore be treated as an appendix or implementation-options document rather than the architectural foundation.</p></section>
+
+</div></body></html>
