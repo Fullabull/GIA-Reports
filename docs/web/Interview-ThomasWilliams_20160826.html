@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2016-Aug-26</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2016-Aug-26 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Interview Thomas Williams
+        <br>2016-Aug-26
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        In this three-hour special of the Truth, Honor and Integrity show, Thomas Williams is joined by Kim, M, A, and the Universal Council to discuss humanity’s origins, spiritual evolution, secret histories, and the effort to liberate Earth from long-standing control systems. They touch on extraterrestrial influences, the Draco, Atlantis and Lemuria, the concept of ascension, the role of religion, and suppressed technologies. The tone is deeply spiritual, urgent, and collaborative, focused on healing, rebuilding, and embracing Source connection.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li>Kim confirms she&#x27;s safe and active, contrary to online rumors.</li>
+<li>Discussion of the Draco&#x27;s role in human history and motivations for domination.</li>
+<li>Introduction of the term &#x27;Source-AI&#x27; and its misuse by negative factions.</li>
+<li>Explanation of &#x27;the loop&#x27;—Earth&#x27;s recurring timeline cycles—and the role of &#x27;Ascension Specialists.&#x27;</li>
+<li>Clarification on the destruction of Maldek (also called Tiamat) and its AI collapse.</li>
+<li>The Moon is described as natural, but inhabited by mixed-intention beings.</li>
+<li>Breakaway civilizations exist—some escaped prior to previous resets.</li>
+<li>Karma and balance are explained as natural forces, not religious constructs.</li>
+<li>Religion is described as originally polytheistic but distorted for control.</li>
+<li>Reaffirmation of direct personal access to Source by every human being.</li>
+<li>Earth’s transition to a higher dimension is underway and measurable.</li>
+<li>Council confirms the removal of the &#x27;son&#x27;—a major Draco influencer.</li>
+<li>Atlantis and Lemuria are real; survivors helped seed other civilizations.</li>
+<li>Revolutionary technologies are ready but must be released with care.</li>
+<li>The Council supports the Foundation as a platform for helping the innocent.</li>
+<li>Humanity&#x27;s awakening process is emphasized as a shared, global journey.</li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">****************************************************************************************</div>
+<div class="line">* Title: Must Listen Series_ part 4_TH&amp;I Welcomes the Universal Protection Unit (UPU)</div>
+<div class="line">* Desc: Thomas Williams interviews members of The Universal Council and UPU</div>
+<div class="line">* Link: https://www.youtube.com/watch?v=nENT__gI2g8</div>
+<div class="line">* Originally Recorded: 2016-AUG-26</div>
+<div class="line">****************************************************************************************</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi all and welcome to the Truth, Honor and Integrity show. This is going to be quite an extraordinary show in so many ways. We&#x27;ve kind of pushed the boundaries out over the last few weeks in May and some of you thought the last two shows were kind of mind-blowing and in many ways they were, but this show has the potential to send you all into orbit, pardon the pun. You all had a first hearing of the Universal Protection Unit and the Council two weeks ago on our show and also along with the kangaroo skin photo that was posted on the page and many of you liked the information that was being proffered but like everything else we all like further proof as to who and what this is and what it entails and tonight&#x27;s show will kind of deliver on that in more ways than one. The alternative community has kind of been burnt out on the promises, the deceivers, the charlatans and so naturally people will be sceptical, and that is healthy in many ways but I&#x27;m hoping that tonight&#x27;s, after tonight&#x27;s show the sceptics in us all will be calmed and we end the show refocused with a clear and defined path forward for all of humanity.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000145">00:01:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Nothing can or will be fixed overnight, there is so much wrong with things going on on our planet currently - and elsewhere I might add - that it takes us all to fix it and the will of the people to do so. This planet is not what we wanted, the way we wanted it or what we desired or deserved. All humanity needs is a little hand up, not a hand out, and then I believe we will all get to see and experience a better world for the all and not just the few.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000230">00:02:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So tonight we will have three people, very human voices, who will be speaking. And in the background are the Council people, which you will hear but not understand their language. That language will then be translated into what we would understand in English. So I&#x27;ll be referring to the people I&#x27;ll be speaking to as M, who will do some of the translating, A, who also will partially translate and speak and K. So they&#x27;ll be the three people who will be answering most of the questions and giving us some insight of what&#x27;s going on.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But you will likely also hear the beings and people in the background of the Council. So we welcome them to the Truth, Honor and Integrity Show. It&#x27;s a great honor for us all and hopefully we have got them all online and we can start off.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000345">00:03:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M,A,K:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi. Good evening. Hello.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I&#x27;ll start with &quot;K&quot; (Kim) first, if you don&#x27;t mind. We first heard on the show a couple of weeks ago, this Universal Protection Unit. Who and what are they? And what is their composition of the Universal Protection Unit itself?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, the UPU has been here for a very long time. They were the enforcers of the treaty. So before, about two or three weeks ago, they were enforcing the Marshall Treaty, which had been signed around 16,500 years ago. At the signing of the new Peace Treaty, with the blessing and the approval of the Council, they are now enforcing the Peace Treaty, what we&#x27;re referring to as the Peace Treaty. This Peace Treaty relates to Earth and all its inhabitants, including nature.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000501">00:05:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s what the UPU is actually doing at the moment. As part of that, they are doing a lot of cleanup, not only of persons violating the treaty, but they&#x27;re also doing a bit of cleanup as it relates to our water and our air. That&#x27;s been the primary focus at the moment so that nature can thrive. They are predominantly made up of about five different species from different areas of the Universe. You have to remember, most of the areas of the Universe are, there&#x27;s a lot of travel that goes on back and forth.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So you&#x27;ll probably find that, I don&#x27;t know if you want to call it like a pure species - you know, even humanity is not a pure species. So they do not look like us. You know, there&#x27;s one group that does look a little bit like we do. But if you saw this party walking down the street, it wouldn&#x27;t be like something you wouldn&#x27;t notice. It would look like an anomaly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000613">00:06:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So you mentioned it&#x27;s made up of five or six races, and if memory serves me correctly, those names are not familiar to most on the Internet is that correct in my understanding?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No. I&#x27;m not a big internet surfer person, but no I&#x27;ve never seen anything remotely that could be identified by something they would recognize. No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000642">00:06:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, we&#x27;ve had this before. Names, names, names. Of course, Shane, we have Shane the Ruiner, he used to get a bit annoyed when he started mentioning names. He says that they don&#x27;t compare or they&#x27;re not comparative to what&#x27;s out there. And this is a kind of the same thing really.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, what is the general purpose or the directives of the Council?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000714">00:07:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You&#x27;d like me to answer the directives of the Council, the Universal Council?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, whichever person wants to answer, that&#x27;s fine.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ll let the Council answer that one.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sorry, one moment.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000818">00:08:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, they said, &quot;Hello again, brother. We are a governing board of the Universe comprised of members from various dimensions enforcing Universal Law.&quot; They describe themselves kind of like, so the UPU would be like their enforcement agency where the Council is more of like maybe like the Supreme Court justices and they&#x27;re comprised of members from various dimensions; they&#x27;re not all from the same dimension.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. So what brought them here? What is their mission here? Both on and for Earth currently?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000937">00:09:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, the Earth is an interesting place that has been governed until recently by the Galactics and so the Universal stepped in not that long ago and it had to do with the state of affairs here. There was a negotiation, a treaty to return the planet to its rightful rulers a few years ago, and that didn&#x27;t happen. And so the Universal Council sat back for a long time and again it has to do with the fact that they their sense of time and urgency is a little different than you know what we experience here in the linear and so things were getting a little bit out of control and we&#x27;re getting closer to a point of planetary destruction.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001020">00:10:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are a number of reasons why people are, I always say people, but beings in the Universe are interested in this planet. It has to do with the people here. They&#x27;re interested in our range of human emotions and in the physical experience. But more so, people are interested in the resources that we have on this planet. We actually supply water to other surrounding planets. There are planets, they&#x27;ve told me, that are just outside of our Photon Belt. I don&#x27;t really even know what that is, that have experienced issues with radiation, and who can&#x27;t grow food, so there are elements here that most of the off-planet beings are interested in.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Universal Council does however support the human life on the planet, whereas a lot of other beings out there could care less whether or not we survive, and they&#x27;re interested in the survival of our host planet. So...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001123">00:11:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">May I just add one more thing to that? (TW: Yes go ahead.) Before, under the old treaty as it existed, we had a, basically a dictatorship here in the Galaxy. So, this has existed a long time. We were not the only planet with life back at this time. So we did have a Galactic Council. And the Galactic Council would have been our mediator directly to the Universal Council. So the UPU did exist here as an enforcement unit, basically enforcing the treaty, and they would take direction from the Galactic Council. The Galactic Council, although it was supposed to be a little bit more democratic, where all forms of life of the Galaxy were represented; it was not. It was represented predominantly and dominated by the Draco until the Universal Council stepped in I think Thomas I remember listening to one of your shows and Shane mentioned something about everybody going to court.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams: Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001243">00:12:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So when the Draco went to court, they went to court in front of the Universal Council for violations. And that&#x27;s when their role was supposed to change, and this is what Megan was talking about when she was talking about the translation of - they did step in a couple of years ago - and that was that point when Court came in. So I just wanted to give that clarification. We currently do not have a Galactic Council. We have the three of us. There are others that are kind of stepping in as the liaison for humanity at the moment. There was supposed to be a lot more of us, so right now each one of us wears several hats. So although I am UPU Command, I&#x27;m also several other things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001339">00:13:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. Well that leads nicely into the next question. It has been said there will be human representatives on the Council and as I understand this will be a first. Is that the case and why have humanity not been represented in the past?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that little pause we&#x27;re going through right now as we&#x27;re continuing is that there&#x27;s still a thread that comes even when I stop. So that&#x27;s that little down time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, just so everyone knows. So, continue.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001455">00:14:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so you as a people agreed to be removed from your divinity when you incarnated on this planet. It&#x27;s part of the simulation that we are going through. So, you go through this process where you forget, like some refer to this as like the great forgetting. When you come here and you don&#x27;t remember where you came from or your connection to the Universe. It has to do with the duality experiment and free will. So it&#x27;s not that we&#x27;ve not had contact or representation or a voice with them, it&#x27;s that we made a choice to sacrifice that like our some of our rights as universal citizens when we incarnated on on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001542">00:15:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So basically humanity - it wasn&#x27;t forced upon them, as perhaps as suggested by others, that the Draco kind of interfered and we lost our memory so to speak. It was a conscious choice is what you&#x27;re saying, is that correct?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, it is a conscious choice when you come here to be removed from your memory; it&#x27;s not enforced by the Draco. It has to do with having a human incarnation, a human experience. Okay, they&#x27;re just saying like your souls are not exclusively human.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, they&#x27;re just saying like your souls are not exclusively human.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, I got that. Right. Where are we gonna go next? I presume then the Council addresses not just humans and Earth as such, and they are universal? Or is it like is the Council split up in like galaxy sections or solar system sections or is it all one council and do they address all the issues in the Universe?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001802">00:18:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. There is but one Universal Council. Each galaxy has its own council with one or two representatives from the Universal Headquarters that are a liaison between them and the Universal Council.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. It appears from humanity&#x27;s perspective they haven&#x27;t had full transparency on any decision-making that&#x27;s gone on. Will that change going forward? Will the Council be, or the people that represent the Council, be more interactive with the people going forward and how?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001942">00:19:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. They said, &quot;Yes, as your planet shifts back to Natural Law, you assume your rightful position as creator beings.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Ah. As I understand it, we&#x27;re 87% - or we were, the last report I had - we were up to 87% unnatural. What sort of time scale, per time scale, I know it&#x27;s different out there, are we looking at before it fully returns to the natural, and will the people be able to discern the difference?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002051">00:20:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, they&#x27;re saying it&#x27;s not possible to give an accurate time frame for this transition, because it&#x27;s both personal and planetary. Whereas some beings are a little bit more progressed in working in the frequency and learning to manipulate and control it and manifest and create things. So they&#x27;re going to be more apt to doing that once the blocks are removed. So the planet is going through this and so are the individuals on the planet. So they can&#x27;t really give you an accurate time frame, but just let you know that it&#x27;s moving forward.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And if you&#x27;re in tune, you can feel this. Like some of you might have felt some of this happening where you&#x27;re getting like an instant return, an instant manifestation on your thoughts and the things that you&#x27;re putting out where it&#x27;s happening rapidly and time seems to be less solid. It&#x27;s more fragile. It&#x27;s more malleable. And so if you&#x27;re in tune with that you can see and feel the changes occurring.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But it will have a different pace for everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002204">00:22:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">May I add something to that, M? (M: Yes, please.) Okay, part of my responsibility is to oversee the AI that is here, that is based here, in cooperation with the main Source AI, which is now in the possession of the Universal Council. So we started in, I would say, probably about January, February of this year, converting. We were almost at 90% to 97% artificial at that time, meaning the AI had a lot of influence over our thought patterns, our movements, the planet&#x27;s movements, the planet&#x27;s patterns of nature.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And over a period of time - as you can see, it&#x27;s been a few months - we are now at a natural state of somewhere at about 92 percent, and we&#x27;ve kind of been holding in that position. Eventually, we&#x27;re going to convert from this system to another system, but for now we&#x27;re holding at that percentage. So I just wanted to interject and let you know as far as the local AI that everybody is concerned about, that&#x27;s kind of where it&#x27;s at. We actually took full control over the AI in November, December of last year. [2015] So we&#x27;ve come a long way in a short period of time, but we also have to wait for everyone here to catch up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002346">00:23:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. The AI question is later on, but I can whilst we&#x27;re on the subject of AI: Is every system, or does every system, or is it every planet or every solar system or every galaxy that have an AI? Or is it something that&#x27;s deliberately placed there to control as such?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Would you like me to answer part of that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A/M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Please. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002421">00:24:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Most planets that have life have some version of an AI. Depending on the situation on that planet in the past. It has been used to control the planet. It is so strong that it can actually create a pole shift or draw in another planet that may be close enough within the orbit. It can use magnetic fields to create all kinds of unnatural disasters. And depending on who was in control of the local AI, which happened to be the Galactic Council - which predominantly was the Draco until the end of last year - you can kind of see how it was used in the past and how things have been changing rapidly over the last seven or eight months. But it did control an awful lot - everything from brainwaves to the financial system to intelligence agency systems. It had a hand in almost any base binary system on planet Earth to include, but not limited to, your cell phone, your Skype. It would retain and map information to give probable outcomes of attack for the Draco.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This is how it worked for a very long period of time. Now that is no longer the case here. It is, 90% of its capacity is no longer being used. It is used in some protection cases. And of course, the backside financial system is also contained in here, the base collateral.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that being said, it is being used for that purpose; to make transfers until we can have a system that is uncorrupted, a normal banking system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002629">00:26:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. Is the AI itself - if the people retained or regained their memory, the humans here, and realized who and what they are - is AI actually necessary if they are able to create and manifest as such?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No. Right now the way it is being used in technical terms, it&#x27;s called a mapping system. What it&#x27;s doing, it&#x27;s collecting data, and it reports that data back to the Source AI. So it&#x27;s no longer interfering with the development of humanity in any way, shape, or form. And the AI will not interfere with that progress. The Universal Council would soon have shut it down before they allowed that to continue. And it has been predominantly shut down. So right now it&#x27;s a data collecting machine, in combination with holding some you know the back collateral based system for the financial system. What I think you call collateral accounts or global accounts or I&#x27;ve heard that term before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002755">00:27:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. So seeing as you mentioned that, do they actually exist? [laughing] We&#x27;ve heard much about it and many promises from so many different people. Does it actually exist?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, they do exist. The base collateral is a compilation of assets from all over the planet, which had been, I guess, what you would call predominantly the spoils of war, or coercion. There were some odd, in the past, there were some odd 173 nations with several bunkers in each nation which consisted of base metals such as platinum, gold, diamonds, rhodium, and a number of other precious metals, along with a lot of artifacts, were held in some of these bunkers. The UPU over the last two or three years has moved a lot of what was in the old bunkers into a safe location in which they monitor and protect. And it will remain there until it is safe for that to be moved back to its respective locations.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as the actual cash aspect, there are over 45,000 accounts. Each account has been tied to a different area of the world. Obviously, some have more than others. For example, in the past, England had a lot. Obviously, the United States has a lot of USD, as it was used as a predominant trading currency. But there are many other currencies held within the system as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And this is the base collateral for the financial system, which used to be under full control of the Draco. And then many, many layers down you have your public names that you see a lot, like Rothschild, Rockefeller, and such. But the Draco had control even over all of their money, as they had control over the AI.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003013">00:30:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. Talking about... Will the Council... Have they been involved and will they be involved in removing any negative beings, or the people we know as the Cabal, on the surface and below, now, or in the future?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. They said, &quot;We have been involved, as well as the women you are speaking with today. There was a major roundup that occurred last week. The ones who remain, will until early next year.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But they will not be an issue? Or it&#x27;s just a case of biding time until they are removed? Or they agreed to step down as such now?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay so there&#x27;s a specific reason and it&#x27;s this transitionary period is you know like ripping off the band-aid right? So there&#x27;s gonna be some pain there&#x27;s gonna be some backlash but we want to minimize the amount of chaos experienced by the people on this planet. So they can&#x27;t all just disappear at once. Because they&#x27;re heavily woven into the leadership of this country, there&#x27;s a reason why they have to remain in place until a certain date so that we can have a seamless changing of the guards. So they&#x27;ve been left - some have been left behind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003237">00:32:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s a case, what I&#x27;m getting is, these are kind of like intertwined with some of the leaders or known people in the United States. Almost like a walk-in. Is that how you would describe it?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Some are walking in human skin. I wouldn&#x27;t necessarily call it a walk-in. There might be a different, more proper term for that. But it&#x27;s important to note that the opposition has been backed into a corner. So they&#x27;re not fighting at full force. The resources and their abilities to cause chaos have dwindled because of the recent round up that occurred. And because of being removed from the system, removed from money, resources. There&#x27;s a lot of fighting going on, infighting and opposition, so it&#x27;s not really a united front.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Are all the threats gone? Absolutely not, but we&#x27;re definitely standing on solid ground and we are, you know, the scales are tipping in our favor at the moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003426">00:34:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Absolutely. Absolutely. We have covered this, the factions, we did a big show in November of last year and explained all the factions of the Earth, and how the infighting between them is increasing. The fighting over titles and all kinds of other stuff, and it was described as they were the Cabal were trimming the fat, but I think it&#x27;s much more than that. I think it will lead to the end of their reign, and humanity will start to rebuild.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, well then... go ahead if you want to add something.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That was good.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, that was good. Their reign has been over for a long time. What we&#x27;re experiencing is a death rattle, the longest death rattle in human history. They refuse to let go. But the scales have been tipped in our favor for quite some time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And 99% of that is my day for the last, since 2012. So I can personally attest to the fact that that is definitely the case. I have actually tried to negotiate with a number of these people and semi-people. There&#x27;s absolutely... they&#x27;re almost like in a drone state. They start to realize what you&#x27;re saying may be true, but then within minutes, they go right back to their old mentality.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, to answer your question, the financial system is under the protection of the UPU currently. So if anybody makes an attempt to make a transfer that is unauthorized on behalf of the Cabal, Chinese elders, or European elders, or the Divine, other names they call themselves.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Dragon groups.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Dragon Families - the reason why they&#x27;re called the Dragon Families, if you&#x27;ve ever seen a Draco - that would probably be your category of &quot;dragon&quot; if you were to see it in your head. That is the reason they&#x27;re called Dragon Families. I have yet to actually convert any member of any of these groups to our side. However, we have had some successes in what I call the worker groups.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the decision-making section of the Dragon Families, no. Definitely not. Different groups that may have worked for them in the past, names like the Jesuits or people from the Vatican or people from the intelligence agencies or different areas of the world, absolutely. They all know something is wrong and they&#x27;re trying to find a way to work for humanity and for themselves and for the planet.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So not all, but a significant amount have joined with us as best as they can without endangering themselves or their families. Now with the UPU&#x27;s protection under the Peace Treaty for the last few weeks, we&#x27;re seeing a lot more. So it is a positive movement. I just wanted to clarify that issue.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003805">00:38:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, then I&#x27;m going to go into the next part which is the treaty itself and the conditions before, during and after. So the first part is - if it can be answered - what were the conditions on Earth preceding the treaty? And was it harmonious?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the treaty that was previously in place was akin to a plea bargain. The state of this planet was in disarray and we agreed to go into this simulation as a population on the planet in order to get back to our rightful place in the Universe, in the correct dimension. I mean, as people know, people may be aware of, this planet hasn&#x27;t always existed in third dimension. It&#x27;s moved back and forth from third, fourth, fifth. There was a time when our planet was below the third dimension.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We had a lot of problems here. And in order to save our planet, we accepted terms that weren&#x27;t really in our favor. We had an opportunity to, let&#x27;s say, return to what some would refer to as Christ consciousness on our own in a shortened experiment in duality and not have to set the reset on the whole planet. So that&#x27;s what we&#x27;ve been attempting and we were relieved from that experiment because it had gone awry as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004037">00:40:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Wow. So conditions were not good. Is that anything to do with the, was that just to do, the conditions to do with being some outside of Earth that were causing the issues? Or with humanity? or was it a mixture of both where humanity was kind of messing up with technology or various other things?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, at the time of the treaty, there was a mixed population on this planet that sought refuge here and were not in a happy union. So there were beings from let&#x27;s say like three or 4 different places all living here, maybe three, and they were not existing in harmony with each other. They have very different ideas about how the planet should be. And it was the fighting between them that caused the problem where the the original treaty was was proposed.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Who were the peoples that signed the treaty?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, there were representatives from each of the groups living on the surface and below.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004319">00:43:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Wow. So was it the case - we&#x27;ll describe them as the &quot;tribal people&quot; that signed the treaty - were they at the time of signing the treaty working as one tribe? Or a number of individual tribes all working together? Or were they the kind of fractured due to distance around the Earth as such?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, there were multiple tribes that operated autonomously from one another, but a rich oral history allowed them to hold on to their roots. So there were tribes spread throughout the Earth that weren&#x27;t operating as one unit. However, their oral tradition and their history, they knew that they all originally came from one place. So they all were centered in one location on the planet, and headed out in different directions from that location. But because they had the tradition of telling their story through generation and generation, they all were aware of their history on this planet where they came from.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004518">00:45:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right there was a picture sent to myself which I posted to the group, and it was a kangaroo skin. What is the significance of it and can you tell us any details about it?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;re not familiar with the kangaroo skin. No, they don&#x27;t. They&#x27;re not familiar with it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004627">00:46:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ll send it to you. It was passed down and used by one of the tribes, and I did try to reach the tribal leader from that area. And it looks like he&#x27;ll be able to do a different show for you, so he can explain it from their historical view and how that was passed down from generation to generation. But it just...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Is there a script on it? (Kim: Yes.) Okay. That&#x27;s okay. So I can see it. But they&#x27;re saying...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It was given to me from the tribal leader.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, so they&#x27;re saying that it&#x27;s part of a human tradition on the planet. But that&#x27;s basically what they were showing, you know, but they&#x27;re not claiming ownership over this skin.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004725">00:47:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This was basically a written history for them as to when the agreements would expire, what the timeline was. They have already stated, both the Council and the tribes have stated that we are late, we are running behind. They are the ones that found the loophole on how to circumvent the old and to start anew. So this was actually their work in cooperation with some other areas which held other bits and pieces of the agreement. But this was held internally amongst the tribe for their own records as to what had happened.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As they explained it to me, their part, for their part at the time, the treaty was done by song and dance. So this was just a written record of what had concluded at that time. The song and dance ritual that took place at that time is what you are referring to as the ceremony, or the celebration, in which the new treaty will actually officially go into force. We have been enforcing the Peace Treaty by signature at this moment, but the actual reversal of that will be done by song and dance. So this is actually just a written reminder for them of what was happening at that time in their corner of the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004854">00:48:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This will probably be the last question before we have a music break. You mentioned that the tribal people found a loophole to end this treaty. But did the actual treaty itself have a precise end date and just expire? or was it ended for other purposes?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Would you like me to answer that one, or does the Council?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, we&#x27;re going to let you take that one, Kim.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The agreement does have an end date. It has an end date every time we go through the loop. So, this loop ended December 23, 2012, officially, which had a trickle-down effect because there were other agreements between the Families of the Council, or what you call the Illuminati people or the Dragon people. They had agreements amongst themselves with different groups, different places, different countries. And so the predominant amount of agreements, I guess, started expiring around June 15, 2011, and continued on until the end of 2012.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The enforcement of that agreement is what has begun recently, because the tribes or humanity wasn&#x27;t stepping forward to actually say, &quot;Okay, we don&#x27;t want that agreement to start over again, we want a new agreement.&quot; Because the old group felt that they were so powerful that it would just be business as usual and we don&#x27;t care what you say. So that&#x27;s what had been happening since the end of 2012. You know, from every aspect, banking all the way up to continuing on trying to implement martial law, not only in all the nations, but continuing on with their one world under the Draco. So, it&#x27;s only been a few weeks now where humanity actually stood up and said no, no more.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, that is the treaty that is now being enforced by the UPU and by the Council.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005128">00:51:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, that&#x27;s been an absolutely fantastic first hour. We&#x27;re going to have a couple of songs and a music break and we&#x27;ll be back with more questions and more answers in the second hour right, and let&#x27;s go with this one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005158">00:51:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi all and welcome back to the second hour this evening of the Truth, Honor and Integrity show. After that first hour I have to say, it&#x27;s kind of extraordinary in many ways. It&#x27;ll probably take us all days to sink in. Except we&#x27;ve got another show tomorrow, that will be kind of ground-breaking as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we will push on with more questions and get more details from the Council and also the representatives you&#x27;ve heard in the first hour. So I hope you&#x27;re all enjoying it. Looking at some of the comments on the page, I think it&#x27;s blowing people away. Well, I&#x27;m kind of blown away too. But in a good way. So it&#x27;s kind of confirmed much of the stuff we&#x27;ve been putting out.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And hopefully we&#x27;ll get some more interesting answers in the second and maybe a portion of the third hour to see how time goes. Right, are we ready again?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A,M,Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh yeah, everybody&#x27;s here. Ready here. Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005319">00:53:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, we are still covering bits of the treaty questions. And the treaty was signed. Was there a period, as it&#x27;s commonly believed, that the Draco looked after us for a bit and then decided to go against us and then started using their programs on us. Is that the truth or did they always have negative motives?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, they&#x27;re saying, &quot;You have to understand - they&#x27;ve never valued your lives.&quot; In their minds, we&#x27;re not equal to them. We&#x27;re like, you know, might as well be a chicken or an ant. We were their playthings. And there&#x27;s a couple reasons why they&#x27;re interested in us. It&#x27;s because it&#x27;s entertaining to them, and also because they feed off of us and our soul energy. So no, they&#x27;ve never considered us their equals or valued our lives as much as their own.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005500">00:55:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, in my experience with negotiating with the few who took it upon themselves to be in charge. They have said things like they have no regard for humans, they don&#x27;t need humans&#x27; input. They seem to - one thing they always seem to be doing, which I found quite interesting, they seem to be wanting to harness, create or recreate what I call the Fifth Element, or the God Particle, or the source of energy/source of life of all of the Universe. They seem to be wanting to somehow take control over this, which is something they have not been able to do anywhere, let alone here. We seem to be a great source of that here on this planet. Perhaps that is the reason for their somewhat jealousy and for them being here or trying to take so much control. Maybe the Council has a little more insight in that, but that is definitely the crutch of almost all of their experiments, at least in my experience.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Can you repeat the question?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005648">00:56:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It was to do with the Draco, do they, have they always treated humanity bad?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[A/M/K: short but distorted discussion]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah. It&#x27;s kind of my understanding with the Draco as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, you know, to be fair, not all Draco are bad people. No. Just like not all white people are bad people or all black people are not bad people. You can&#x27;t say humanity is all good or all bad. There are many others [Draco] that are not here.  We just happen to end up with, I don&#x27;t know if you want to say, a specific personality type. There are some here that don&#x27;t feel that way, that have come and gone throughout time. But I would say that not all have all of the same intention, but the ones that are here are all under a dictatorship. So whatever the dictator had said is what happened. And they do follow a very much military-type structure and a very linear type thought process.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So almost like a pre-programmed general as is the army. And if you know how they use the AI system, then you could probably fathom that they used it for their own people as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005832">00:58:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, I am... My path to the Draco... I was asked to do a range of questions that were going to go back to the king of their home world and a meeting was arranged and certain questions were relayed at the time. And one of the questions was, &quot;Do you see in the future, after an apology to humanity and due process, a chance for the two species to work together as equals and as partners in peace, nothing more in peace.&quot; And the answer I got back was absolutely. So I don&#x27;t know whether that&#x27;s a change of directive or whether the Council would agree with that or whether it&#x27;s just false promises again. I&#x27;m hoping it&#x27;s not. Hopefully the Council will be able to chime in on that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, they are saying the Universe when acting in its true function, puts everything in balance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010020">01:00:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, you know, and it&#x27;s also when you&#x27;re not in this situation where we&#x27;re, like, here on Earth and we&#x27;re removed from our divinity and that unconditional love that people describe when they cross over, it&#x27;s a very forgiving energy. And so, as humans, it&#x27;s not our job to punish or judge - the Universe will take care of that - and when things are restored to balance absolutely there&#x27;s an opportunity for everyone to work in harmony.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010056">01:00:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That is kind of my understanding. I recall certain meetings that were said the same. There was lots of blame going around. &quot;Well you did this and you did that. No that was that group and that was this group,&quot; you know, and the consensus was at the end: it doesn&#x27;t matter what was done, it&#x27;s a case of correcting it, making good, and let&#x27;s move forward in peace.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, the Universe or large part of it has been at war for many many millions of years maybe even a lot longer and this tirade of going through systems and galaxies and collecting resources for the few - I&#x27;m led to believe that&#x27;s largely a Draco issue, but not solely - really needs to stop. There&#x27;s enough room for everyone in the Universe, there&#x27;s enough room for everyone on this planet even.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But as long as the balance is retained between the light and dark, between, you know, you&#x27;ve got to have both represented to see the opposite. And I, the portions I got from the meetings was there was a will by certain groups to move forward in peace and try to correct things. Yes, there were elements who are not interested in that and I&#x27;m pleased that the Council are now dealing with those beings or people. So hopefully that will push things along.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010236">01:02:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Also the son that was here, which had been left in charge, is very different from the father. They have also learned a lot from us in their time here, as much as we, you know, I guess, potentially have learned from them, too, I guess, in some positive and some negative ways. But the son that was left here is very much of the mindset of he intended on being the king of this world. So he was doing anything and everything he could to achieve that goal, including to, but not limited to, using a lot of the system, the AI system, and the Dragon Families or Illuminati, which was his personal creation, to achieve that goal. Yes, also involving our militaries and trying to figure out a way to put the center of the world under one area of the world consistently.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It went from, you know, times of Caesar, the United Kingdom, the United States, and now there was another intention to move it to another area of the world, which is rapidly failing. So these, just to be clear, my experience I&#x27;ve had with trying to negotiate with the son, is much of like talking to a spoiled child, almost. Very charming spoiled child, but a spoiled child in actions nonetheless. So that just, I just wanted to interject that part to give you an idea of the difference.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010430">01:04:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah. There&#x27;s another thing that they just would like to add in, and that&#x27;s that just like on this planet, we&#x27;re all one and we all come from the same Source. Everything in the Universe comes from the same Source. So even when your child misbehaves and you have to correct their actions, it doesn&#x27;t mean that you stop loving them. So yeah, people have made mistakes in the Universe and their actions need to be corrected but there is always love.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010458">01:04:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, well that&#x27;s one of the things I&#x27;ve called on people to do on our shows is, you know, there&#x27;s going to be a lot of disclosure. And there&#x27;s this &quot;disclosure&quot; with a small d which is the fraud and the corruption and all the other stuff that&#x27;s being perpetrated against humanity. And then there&#x27;s &quot;Disclosure&quot; with a capital D, which is the ET reality.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now a lot of the things that have taken place against us, what I would like to see, is with disclosure comes disclaimer. I mean all move on. I would hate to see humanity descend into a raft of, and plethora of, lawsuits, class action lawsuits for this crime or this crime and that crime and that crime when we could be, our time could be better spent improving the planet improving our lives and improving everyone.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s something I would like to see implemented: with disclosure comes disclaimer. Like you say we&#x27;ve all made mistakes in life, and it&#x27;s time to move on. It&#x27;s bad what&#x27;s happened, no one&#x27;s making light of that, but I don&#x27;t see the point or the purpose of going through the law to achieve some sort of compensation which never pays back in reality of what took place anyway.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010636">01:06:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, I think we can all agree we have a lot of work to do. We have a very small percentage of our land mass which is actually developed and what actually is developed is not necessarily in accordance with nature. So I mean I would hope at least it is our intention to build the planet properly in accordance with nature so that both can flourish in harmony. And that is going to take an enormous amount of work on behalf of ourselves, yourselves, and all those listening, and all those not listening to actually make that happen, and to understand there&#x27;s a different way to move forward. You know, we were all hurt, all of us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010734">01:07:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It has to do, you know, even holding on to things in anger or rage or anything like that is just preventing us from vibrating at the frequency that we hope to. The things you carry just make you heavier and stand between you and Source. So if you hold on to that anger instead of focusing on the positive - which is that we&#x27;re free and that we can create our own reality - you&#x27;re really just punishing yourself and not enjoying the fruits of your labor.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010808">01:08:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. We&#x27;ve covered this on our show many times. We started it roughly two years back. We did a range of documents, with my partner Chloe, I&#x27;ve called &quot;The Shadow Side,&quot; dealing with your shadow side, letting go of anger and trauma and trying to release it and move on.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That way as you said you are you become lighter and you are more able to access the beneficial frequencies required to make the transition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010845">01:08:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, when we&#x27;re out of the illusion of lack and into the mindset of abundance, we have a much more pleasurable experience anywhere in the Universe.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good. It is said that there will be a ceremony of sorts. Are there any dates for that? And who will be represented at the ceremony?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011006">01:10:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;d like to refrain from offering specific dates because we are at the mercy of free will. What we will say is there will be a point where things have shifted, where there is cause for celebration, and there&#x27;s a distinct end and beginning of something. I mean it&#x27;s a transition, yeah, but there will be a specific turning point. But they don&#x27;t want to offer a date.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because they&#x27;re dealing, you know, you&#x27;re dealing with free will. So, there are a lot of moving parts in this revolution. And we have an approximate timeline that we&#x27;re working within, but things change and there are always unforeseen things. And people on the ground are dealing with ego. They&#x27;re dealing with their free will and manipulation from others who don&#x27;t want them to complete their mission.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And also it sets up things for disappointment. And a lot of us are, you know, waiting. And so you get the feeling of, is this ever going to happen? So, yeah, it just, we want to alleviate the potentiality of feeling anymore letdown, it&#x27;s time for celebration and it is coming soon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011135">01:11:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah do you think there&#x27;s a possibility it will be televised globally?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, as we spoke before, change occurs constantly. There will be certain indicators, but not a specific event. The way they explained it to me a long time ago is, you know that a rock becomes sand even though you don&#x27;t see it happening. And so what we&#x27;re seeing are markers in our society that things are changing. You&#x27;re seeing people using different verbiage, talking about consciousness and frequency, energy, all of these things.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And you&#x27;re also seeing a lot of progression socially where, you know, you&#x27;re getting in the message of acceptance and empowering of both genders on this planet. And so these are all things that are evidence that things are shifting. Like, for instance, this week, you know, the U.S. announced that it&#x27;s moving away from private prisons. That&#x27;s a victory for the revolution. So we have to measure it by these little things, these little victories that are happening along the way. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011320">01:13:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s always about the ascension and the increased awareness. So as the veils are lifted, as the people awaken, then they are going to come into a reality where they actually see more of what&#x27;s happening. So as the energies are shuttled into the planet, there&#x27;s just a creative, you&#x27;re just seeing more all over the place. So I&#x27;m noticing it just within conversations of people who speak to me who have never said the things that they&#x27;re saying. So those are the markers little by little that we&#x27;re noticing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011428">01:14:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. They said, you will continue to see a progression though. Things have been known to change overnight. By that they&#x27;re referring to these like reality shifts. The change in the life fabric of the Universe, the change in our reality. So it could be a situation where you like wake up one day and the reality that we&#x27;re living in no longer exists. It&#x27;s just a new reality and you accept that as your reality. Let&#x27;s say for instance like the Mandela effect.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011459">01:14:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes there&#x27;s many people been noticing time shifts, and things completely out of place people driving down the road and what used to be there is not there and they go back and it&#x27;s we&#x27;ve had quite a bit of that in our group and I&#x27;ve experienced some of it myself some quite extraordinary things. </div>
+<div class="blank">&nbsp;</div>
+<div class="line">So yes, there is evidence and it&#x27;s getting the people, people often say well nothing&#x27;s happening - well actually everything&#x27;s happening. That&#x27;s different, It&#x27;s just that everything has, in my perspective, everything has sped up. The information levels have sped up, the conscious levels have sped up, and people&#x27;s experience in what would be termed strange and are passing it off as a coincidence, when they really need to take a step back and have a look. But with things happening so quickly at the moment on so many different levels, I think a lot of people are struggling to process it and see it for what it is. You know there&#x27;s...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And that&#x27;s why I feel like it&#x27;s so important because people need somewhere to go to when they&#x27;re experiencing these grand shifts, these huge changes and shifts in reality. And where do they go? Where can they go to meet other people that are experiencing the same thing and not feel as if they&#x27;re going crazy?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that&#x27;s why we&#x27;re very excited to be here today. It&#x27;s one of many.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011636">01:16:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, well this is the group, this is a new group, but we did have, we&#x27;ve got a lot of members from the previous group. Andone of the things that I encouraged was, along with my partner, is people to private message me if they were struggling with paranormal events. And so we could give them the confidence to, and trust, to come forward to us that we wouldn&#x27;t betray that trust and eventually give them the confidence to go out onto the page and tell their story. As more people tell their story, not as many people will feel lonely and feel like they&#x27;re going nuts or you know losing their mind and so this is kind of the hidden worth of our particular group and the previous group we were attached to. A lot of people are experiencing these things and are now have got the gain of trust within the group and within themselves which is more important to now relay their story to people and without fear of being ridiculed or you know and so that&#x27;s the work we&#x27;re doing with our group and everyone&#x27;s supporting each other and hopefully once we get the Foundation up and running we can expand that out into the rest of America which should be good getting the people all working together again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011805">01:18:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Absolutely, once a few things are in place, I know that two of us sitting here are going to be coming front and center, absolutely, with many many things. But yes it is important to step forward; to step outside of fear on every level at all times. And when you&#x27;re able to do that, then you can come forward and not have to private message anymore. And because no matter what you say, anyway, someone will say something regardless. So yes so as we merge together we find each other we empower each other and then we step forward together. And that&#x27;s my intention.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Our intention.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean yeah I used to make a joke about it like five years ago, that I was coming out of the spiritual closet.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m just going to start talking about weird stuff and I don&#x27;t care!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, so it is weird, but it&#x27;s not. We&#x27;re multidimensional beings. And we&#x27;re all here, and we&#x27;re here to set it off. We&#x27;re doing this.  So...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011932">01:19:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They said, fear not, the truth always prevails no matter how many times it&#x27;s pushed back down.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, absolutely. Right, where are we going next? I think we&#x27;ve kind of covered this but it&#x27;s what was one of the questions. Will there actually be in the future a possibility of an earth liberation day set up for the future to recognize the end of tyranny for the people and the other living beings on the planet.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Things change within 24 hours.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012039">01:20:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They said, we don&#x27;t have a date in mind. In fact, the next portion of this process will happen very quietly.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Alright, that&#x27;s covered pretty much to do with the treaty. A few questions, I think we&#x27;ve already answered some of them, on the Draco in particular. Were they actually here on this planet before humanity as such?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012135">01:21:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, the Draco made their first appearance here in the time of Lemuria. They&#x27;ve been on and off planet for most of that time, for most of the time in between.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, okay. Is it the case one of them returns every seven years, or is that another myth?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[laughter from several]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012224">01:22:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A/M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They can be kind of funny.  So they&#x27;re saying that would be [unclear].  They don&#x27;t really know where all this comes from.  And they don&#x27;t understand the fascination with them either.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right okay. Okay there&#x27;s a lot of people trying to find out the wherewithal of the Draco. But yes I think once they start finding out some of the truths of the Draco they wish they hadn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012251">01:22:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well the other thing is as well, is that they have an indication, every so often - it&#x27;s my understanding, supposedly it&#x27;s every 2,000 years - but every so often, certain groups of people have come. So not only here, but in other locations as well. Meaning this time here, these people or these souls are appearing as human. So every time these souls appear, they have a record of these particular souls and the specific DNA types required for these souls to come here on Earth. They know that their plans, or plans of Others - because it&#x27;s not just the Draco at all. There are Others as well that have eyes on our planet. And not for our benefit, or regard us as an easy target, I should say.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So every time these particular souls appear, everything that they&#x27;re doing is disrupted. They know that these souls are the ones that come to basically assist different civilizations - not only here but other places - in order to make that transition. So these people are here now. There were many, and then there&#x27;s few, and then as certain positions... everybody is supposed to do a certain aspect of this. Hopefully everybody works together; sometimes they don&#x27;t. Sometimes people go back to the humanness of themselves and ingrain themselves in a different way. And they don&#x27;t end up participating in the process, and then someone else pops up or some wear multiple hats or have multiple jobs as a result of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012459">01:24:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the process ends up taking care of itself over time. But to say that they come every 7 years? I would say that they closely monitor specific persons for that reason. So, some people might have experienced them from a very young age. And they were continuously disrupting their lives from a very young age, specifically for that reason. They want to keep those souls off balance, off target, off task, specifically for their own purposes. Because they want that loop to continue. They want us to go back to zero so that they can do their, you know, clean up, start up, control mechanism.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They make mistakes too, so they try different experiments, whether that&#x27;s different types of government or different types of religions that they implement, to try to figure out a way to make one universal or one planetary control mechanism to which allows them to be the ultimate dictator or the ultimate control point. At least that&#x27;s the viewpoint of specific types of races that have come here. So to say they come back every 7 years like clockwork, some may have experienced them looking in on them every 7 years. Some may have experienced them every single day for many years and then not hear from them again. Usually once the soul - or that particular person or that particular party - does not see them as a threat or does not fear them anymore, and has become completely, I guess, divergent, to quote the movie, then they tend to not show up in their peripheral quite as much anymore.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, does that, if that kind of helps you any?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012659">01:26:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Do we have a full confirm on the removal of the son?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes we do.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Confirmed kill.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh yes, I definitely am sure of that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Fantastic... [hearty witch-like laughter from A/M/K] ... He was warned.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, we were all there for the entire operation on that day.(A/M:Yep. Yes.) There were a total of about 150 on that day, confirmed kills, which is a word I hate, you know, in regards to humanity or any species for that matter, but yes it was by order of the Council and it had to be done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012755">01:27:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right okay. Change, hopefully it&#x27;s a change. This is for the benefit of some of the listeners. Who and what were the Lemurians? And who and what were the Atlanteans?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh, I can answer that one. So, there have been beings on this planet for a very, very long time. And the Lemurian continent was located in the Pacific where the islands of Hawaii would have been the highlands of Lemuria, and connecting, bridging over to, you know, the west coast of the United States. They were a group of people existing in harmony on this planet. I guess not people, they&#x27;re not exactly human. Some of them were very tall beings. Some of them still exist on this planet. And so they inhabited that region of the world before the polar shift that sunk their continent, when Atlantis popped up. A lot of Lemurians migrated over to Atlantis before the sinking of the continent.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012921">01:29:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Some migrated to the underground network. They took up residence in the city of Telos, which is part of the Agartha network, that you would find entry in Mount Shasta. And the rest migrated over to Atlantis, which popped up over in the Atlantic Ocean, where a portion of that would be where the Bermuda Triangle now exists. They&#x27;re actually finding, they&#x27;ve been finding ruins of Atlantis, which they&#x27;ve never found before. And this has something to do with the fact that our planet&#x27;s now vibrating at a higher frequency. So we&#x27;re moving up into a dimension where those things can be seen.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Atlantis was inhabited by more than the Lemurians. They were joined there by the Hebrew race and also also by some Martians who left their planet in quite a hurry when things got not so great over there. And the Atlanteans, they lived here for quite some time on that continent. And then an asteroid, I guess, or a comet hit the earth causing us to go through quite some turmoil and after that is when the civilization that remained in Atlantis spread across the US. So different groups went in different directions, some to South America, some over to Egypt, some you know in the Asian continent, all over. They spread in different directions and restarted their civilizations and you can see the pyramids are a good indicator of where where those people went.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013115">01:31:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. Some of the art or some of the things that have been found, or allegedly is now being seen, are crystal pyramids in the Atlantic it would that be remnants of their...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That would be remnants of Atlantis. Atlantis was a crystalline society so you know their power source was - it was heavily used - crystals were heavily used in their society and they provided all of the energy for them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. Let&#x27;s see where we are for time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013157">01:31:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">At that point in time also, you know, like the tribes had mentioned, that the reuniting of Father, which is what we call Source, or Source Energy, with Mother, or Mother Earth, comes in as well, because that is the reason for all of the crystals, because they were - the pyramids as well - they were all designed as conductors for Source or Source Energy or what they&#x27;re calling the Father. So we had a lot more Source Energy present here at that time, than we have had for the last several thousand years. The reason for the crystals was for that reason. Everything functioned a lot differently. And you&#x27;ll find that now that is being restored as well. Started about a few weeks ago. So we should see those changes coming, and new uses for the crystals, and why some people feel something from them and some people don&#x27;t, or hadn&#x27;t, and they may feel a little bit different now than they did prior to all of the changes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013321">01:33:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Alright, we&#x27;re going to go some general questions now and get rid of some of the myths and legends and bring some clarity to some things which would be good. The first one and don&#x27;t laugh, well I hope not anyway, is the earth flat or is it round? Would have a little bit chubby in the middle?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013356">01:33:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They said the earth is very much round.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, so that ends that myth. Thank you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Although some have tried to flatten it, but no, they were not successful. [Laughter]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Too many. I don&#x27;t know whether you can actually answer this particular question, for security reasons. But how many, roughly how many other races are here on Earth currently, and what will happen to them in the future.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013506">01:35:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">OK, there are at least 3 on the surface and a couple that have resided below. We also have a lot of friendlies up in the sky just outside of our atmosphere. So, they come and go, but there have been at least 3 present on the surface of the earth and a couple underneath throughout our existence. There are also beings that come from other dimensions, other worlds that pop in and out who have the ability to travel here, but they&#x27;re not exactly residing here with us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013544">01:35:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, as I understand, I know the popular term for them would be ET or extraterrestrial, but as I understand it, some of them, or quite a number of them, of specific groups, were actually born here. Is that your understanding?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013614">01:36:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s not really any race, even human, that were born like what we&#x27;ve evolved into as humans. Because of all the seeding from other races that have come here. Yeah, the human in its form has never existed anywhere else, but nobody is really native to this planet. There were people here, there were beings here, before the Lemurians even, and a lot of the Lemurian population was made up from refugees from the planet Maldek that exploded. So we&#x27;ve always had a kind of combined population here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013659">01:36:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, and by the same token, we were born here - meaning most of the people on the phone - were born here. So, I mean, I guess, you know, they didn&#x27;t, the ones that are here most of the time, I&#x27;m sure that they continue to exist as a race. So when we say that they were born here, it doesn&#x27;t mean the race was birthed out of Earth. It just means that they probably have continued to breed also, in their way, and so some were born here. Doesn&#x27;t mean they look like us, but they were born here as well. So this is as much their home as it is ours.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, and the other beings that live on this planet have a much longer lifespan than humans. So there are not as many births from them as there are, you know, humans.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013802">01:38:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Is it correct that the original human life form on a 3D planet was 900 to 1500 years?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013833">01:38:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, the lifespans have changed throughout history, but humans in their current form have not reached those long life spans. You know, when, before we were the humans that we are today. Like even the Lemurians are not human. They&#x27;re a different human form. I mean they were, some of them between 10 and 12 feet tall. And they lived for thousands of years. Yeah. But the humans here now, not since the loop started, no.  There haven&#x27;t been people that lived that long.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Where did the Lyrans fit into the Earth history?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m sorry, the what?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The group known as the Lyrans.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013959">01:39:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sirius A or B - Lyrans. Or Lyrians.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kay, something you wanted to share?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, I was just kind of assisting with the translation. I don&#x27;t think it was real clear to the council, what the question was.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No. They just, yeah, they said they, I mean, that&#x27;s a term we haven&#x27;t heard for quite some time, is what they said, but they didn&#x27;t finish their thought.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014059">01:40:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They said that there have been beings from there that have either incarnated as humans on this planet, or visited here and affected our history, but they didn&#x27;t really elaborate on them.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s fine. Right we&#x27;re at the top of the second hour we&#x27;re gonna have another music break and then we&#x27;ll be coming back for some more questions if you still have the time.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A/M/K:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Okay. Thank you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Let me see.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah I&#x27;m good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014140">01:41:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi all and welcome back to the final hour of the Truth Honor and Integrity show. What is a fairly groundbreaking show. I&#x27;m sure you&#x27;re all blown away by the first two hours. We&#x27;ve got more for you in the in the final hour. I think it&#x27;ll take a while, and I know one or two, particularly one of our admins, will be replaying this all next week. So I don&#x27;t know, I&#x27;m going to get bombarded with questions. So we may do a show tomorrow, but we&#x27;ll wait and see on that. We need a few more confirms on certain things.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, are we ready with some more questions and we will see if we can rapid fire some of these and see where we go with it. You mentioned Maldek just before the last hour or before the music break. Some of us will call that Tiamat. Why is there a difference in name and if so what can you tell us about that particular planet or the incident leading up to its destruction?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014258">01:42:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay so Maldek is just the first name that it was introduced to me as. I don&#x27;t suppose it matters what you call it. It was a planet similar to ours in our solar system. It was another planet that had an AI system that ran most of it. The people there had a very easy life. It was mostly automated, mechanized. There wasn&#x27;t a lot of work going on. There was a small group of people there that became interested in power and had very logic-dominated brains and so their thirst for power and gaining it allowed them to create an unstable situation on that planet and because most of the population was pretty lazy because of, they were just existing in peace and letting the computer take care of the rest, it went out of control pretty quickly and the planet exploded. And before it did, they were able to make safe passage here and join; there were people living, there were beings living in Lumeria at the time and they agreed to hand over the planet to this population and give them another try.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014431">01:44:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, okay. An often asked question and I would like all your input on it. The moon, is it natural or is it a hollowed-out craft? And if it is, who did it? And when did it arrive here? Or has it always been here?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014545">01:45:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So - per the Council [this qualification is important] - the moon is natural and has been here as long as life has. There have been many speculations as to what goes on there. We will confirm that there is life on the moon.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. And is it an issue - the life on the moon? Or has that been dealt with? Or has it always been neutral?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014700">01:47:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The inhabitants have been mixed, some with cruel intentions, some who peacefully exist just outside of our line of sight.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, the dark - the far side of the moon, as we say. Right. There&#x27;s been a lot of talk on the internet about a certain - some of them human - called secret breakaway groups. One of them mentioned is the SSP. I don&#x27;t know whether the Council is familiar with them or if it&#x27;s another fabrication, I&#x27;m unsure. But has there been a previous human civilization that&#x27;s broke away and is living on other planets in this system?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014814">01:48:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Long before this current situation on your planet took place the interplanetary travel was permitted. Since then only the opposition has been had the pleasure.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Do we know how far back that goes? Or is this part of the looped game?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014914">01:49:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And they&#x27;re asking me to just interject again while Megan, while M continues. There is the space in between what we&#x27;re doing. And I know that if you&#x27;ve not been tuned in to the whole show, then you may, if you&#x27;re coming in, it may seem like a little bit of a lag, but there&#x27;s a lot of information coming through. And so we&#x27;re just getting into the group you will say you know be able to express everything because it&#x27;s more than just words there&#x27;s visuals and things like that for the explanation.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No that&#x27;s fine.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the freedom to travel came before the loop, though there have been two groups to successfully jump off the planet before the reset. So let&#x27;s say we&#x27;ve done this 6 times.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. This is our understanding.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We&#x27;ve lived this timeline 6 times. So those of us who are here, who come every time for the reset, those of us, the souls of us who are aware of this and come here to try and stop it, a group of us have made it off planet before the next reset began. The last two times. So these are the groups that they&#x27;re referring to; these breakaway groups. So they left before the loop started again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015041">01:50:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thanks for that, that&#x27;s interesting. There&#x27;s been a lot of trauma, be it by programming, mind control, wars, famine, damage not only to humans but to the ecosystem experienced here by all living things. Will that be addressed in the near future to end the particularly in the program and in the mind control and how will it be addressed?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015150">01:51:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">OK, so the technology to solve all of the problems you&#x27;re experiencing environmentally are ready, already exist, and have been suppressed by the opposition. So everything that we need to clean this place up is already out there, and once the techocracy is diminished, those disruptive technologies, which is what they&#x27;re referred to, will be able to be released, and we can see an immediate shift in our climate. As far as the mind control, that has to do with the system, and the system has been taken down. As far as the frequency and all of that goes. Now the leftover stuff that comes from our culture and our media, that will be taken care of. That is part of the next phase of the plan. We are reclaiming the media and changing the messaging that&#x27;s going out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015252">01:52:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Fantastic. It&#x27;s about time that we had a truthful media. In my opinion those people who are narrating the so-called news, are just as guilty as the ones who pass them the messages they&#x27;ve kind of given.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A/M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Absolutely. Willful ignorance is a crime. It is.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, absolutely. Yes. Is karma a natural thing or is it part of the religious construct?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015359">01:53:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Karma is a part of the balance that keeps everything in its place. There is balance in all creation. So yes, it is. It&#x27;s like action-reaction. And cause and effect - you put something out, it comes back to you and it you know we&#x27;ve been really removed from our sense of balance and the fact that we&#x27;ve been living in a false patriarch reality. Everything in the universe is in balance; there is a mother and a father; there is a daughter and a son. It&#x27;s all created in divine balance, and even each divine being that has come before has been a twin. It&#x27;s been a male/female or a, a male/male and they both kind of depict a different aspect of a duality. So light and dark, even if they&#x27;re equally good, it&#x27;s just that it&#x27;s this whole balance of the universe. So karma, yes, is a part of that. And it is real, and it does exist. So everything has a frequency, your words, music, even the table sitting in front of me has a frequency, and so karma, when removed from the dogmatic, is really just about everything in balance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015540">01:55:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Probably one of the most difficult questions for a lot of people to handle: Is religion, was it designed to take us away from our Christ consciousness or source as such?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015642">01:56:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. The religions on your planet are tools for oppression, though they have not always been. They are not in their complete form. Some of the things that you hear are truths. A lot of the stories have to do with our universal history. But they have been edited and audited by men, to remove us from our Christ consciousness and our ethereal knowledge that belongs to us. They basically put themselves between us and Source to disconnect us from our true rights as creator beings. This is another reason for the patriarch. I don&#x27;t know people&#x27;s background in theology, but even the salvation religions that are on this planet today were originally polytheistic. Even Christianity is a polytheistic religion. You have the Father, the Son, and the Holy Spirit; there&#x27;s 3 deities there. So you know, this planet was originally dominated by polytheism, and the move into monotheism was done to control. It was done to control us and shut us down.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015807">01:58:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;d like to add a couple of things to that. How do I say this? God, Source, Creator - I don&#x27;t want to be offensive to anyone - does bring us gifts and clues as we move along through life. What others have done is they&#x27;ve actually taken that gift, that message, that clue on how to progress humanity and how we should all live amongst each other into a control mechanism which would help them further their goals.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So Is there a God, a Creator, a Source? Absolutely, 100%. Can every person walking the planet contact God, Creator, or Source all on your own? Yes, Absolutely. Sometimes it comes in a flash or what you would call your instinct or your, you know, sometimes when danger is approaching you feel the hair on the back of your neck stand up. Sometimes for some they experience it that way. Others experience it almost as a direct communication, like a telephone conversation. Others see it in visuals or in dreams: messages come to you like, don&#x27;t do this, or there&#x27;s a child coming, however it affects you personally. It&#x27;s your personal relationship with Source Creator, which is also Source Creator is a part of you, and you are a part of Source. So that being said, the records contained within the Source Energy which exists in all of us, in all living things, including plants, animals, and humans, is accessible by you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020002">02:00:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This is what they refer to as the Akashic Records, because that Source Energy that exists in your soul is a part of you, and you only need to teach yourself in whatever way you do that to access that information. As any father does or mother does with their children, you love your children unconditionally, as Source or God loves us. And the messages have come through certain people throughout the course of history, but somehow they&#x27;ve always managed to convert it or suppress the actual real information. And it&#x27;s become so controversial that nobody knows which way to go. Do I believe personally that religions or churches are a bad thing? Well, if you&#x27;re gathering a whole bunch of people together in a building and they&#x27;re all praying to God or asking God for help or for forgiveness or thanking God or Source or Creator, that creates a positive vibration, and it creates a positive frequency. And it allows more Source Energy not only into that person but to all the people present and also onto the planet.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The books, the way the books are written, I think that over time there&#x27;ll be more and more, I guess what you would call &quot;disclosure,&quot; or there&#x27;ll be revisions to these. So they&#x27;ll return back to maybe the original messages, I think, over time. But I think, by the same token, a whole bunch of people gathering to worship spirit, if you&#x27;re Native American or God or Source, Creator, we all recognize the fact that that exists. So the Buddhists believe in one thing, everybody else believes in another thing. Science even cannot explain how to create or where this God particle, so to speak, actually comes from, and why they cannot harness it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s something, it is an unknown. So we have to recognize the fact that that does exist, that there is Creator love, love for all of the creations of the Creator. And yes, I do believe we&#x27;ve been misled a little bit, or a lot in some cases, by religion. And the messages of the people or persons that Source sends here to kind of change things does become convoluted, suppressed. These, obviously, these people sometimes have been killed before they could get the information out to others. So we have had a lot of little helping hands, not only by the Council, but also by Source itself, because there are anomalies that we just can&#x27;t explain, but by the same token, yes, absolutely, I see it being distorted and being utilized for others&#x27; purposes.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But I do absolutely know for sure that there is such a thing as a God, Source or Creator. That&#x27;s a fact.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020319">02:03:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. It was mentioned earlier about beings or people, in whatever form, come back at the time of the Reset. Would this explain the term &quot;incarnate,&quot; or is that something completely different?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020410">02:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. We&#x27;d like to address this group of people. The people that arrived during the Reset. First we&#x27;re going to talk about the word &quot;incarnate.&quot; As a term it&#x27;s simply referring to you know a life like a birth, an incarnation. So it&#x27;s not, I think the term that might closely more accurately depict this is &quot;embodiment.&quot; So there are a group of individuals who have shown up throughout history, over and over again every... It doesn&#x27;t mean that they haven&#x27;t been here in between, but they all come together every few thousand years, every couple thousand years, to try and shift the planet into a level of Christ consciousness that allows us to exit the Matrix. So these individuals have been identified, most of - they&#x27;ve been identified, and they are embodied now.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020553">02:05:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so these are Ascension Specialists. And I&#x27;d like to talk a little bit about what that really means, ascension. It is not about going off planet, going into the light, or dying. Ascension is simply raising your frequency, raising your vibration. And so what we&#x27;ve been trapped in is this salvation myth. And so everybody gives away their personal power to ascend; to rise to a higher vibration. And that simply means that you have... you&#x27;re operating at a higher frequency and the ability to manipulate time, space, and matter. So there are a group - this group, they&#x27;re ascension specialists - and when a planet is going through an ascension process, and it&#x27;s coming to an end, these people show up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020652">02:06:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right, thank you for that. I think a lot of people will find that very, very interesting. Right, some questions on Earth. It is known that the Earth is a planetary being. Are the Council working with the planetary being, and if so in what capacity?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020752">02:07:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s true Earth is a living organism. We are here to offer relief to this planet that has been ravaged by an experiment gone awry. So the Earth is actually vibrating and going up into, it&#x27;s, you know, raising up into a higher dimension on its own, and we&#x27;re basically along for the ride as inhabitants of the planet. And this is measurable scientifically. So no matter what your belief system is, the Earth has a vibration and its vibration has increased tremendously in the last 4 years.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Earth itself is raising up into a second dimension and we get to go along for the ride - to another dimension not second dimension.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020839">02:08:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. So was Earth originally a learning planet? Or was it designed as a prison planet, or something different?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020921">02:09:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, the Earth was originally a garden planet, or a garden slash water planet, that became a prison planet. So before the last geographical changes that happened on this Earth, it was mostly a tropical climate, that was a fruitful garden for all its inhabitants. And it was turned into a prison planet - but it wasn&#x27;t originally that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020956">02:09:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. So the movie Avatar, is that a representation of Earth in the past? Or is that a representation of somewhere else?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021033">02:10:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Avatar does resemble what Earth originally looked like. It resonated with humans because it&#x27;s an invasion story. It&#x27;s something, you know, our planet&#x27;s been invaded, different regions of this world have been invaded. So that&#x27;s why it has such a strong resonation with people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, I think there was quite a phenomena - male and female, I might add. There were reports coming from all around the world of people crying and being physically upset during that movie. I think it was a case of perhaps past life memory and it&#x27;s quite a phenomenon that went right around the world. So many people resonated with that particular movie.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021125">02:11:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Absolutely, and that&#x27;s the gift of the tool, is to help people remember, awaken them or whatever. You know, whatever resonates with them, yes, in the memory. So that&#x27;s why movies are so incredibly important and can be impactful.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. Now on previous shows of ours, there&#x27;s lots of people wanting various things like free energy and health machines, which are all very valid. But will the Council be able to - in the future once it&#x27;s released - assess the technology going forward, and the dangers of certain technology getting out of hand are all too apparent, and possibly leading to transhumanism and all the other fun and games that technology can bring.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021302">02:13:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. They just said technology is not to be feared. There are currently so many harmful elements on this planet, there is nothing in the future that could be worse than your current situation. It&#x27;s also that the technology that&#x27;s available on this planet today is 50 years ahead of what&#x27;s on the market. So you know, those harmful technologies, the technologies that are harmful to humans, have already been used. And it&#x27;s really, it&#x27;s mostly about the operator and not the technology. And so, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021338">02:13:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, the other thing as well is, there has to be a balance as old antiquated technologies phase out, and new ones come in. There are companies, there are decent countries, there are people that are reliant, and families that are reliant on the income that comes from the old technology. So there has to be a new way of phasing all of these into society without putting hundreds of thousands of people out of work. I think the main focus right now is - at least from the UPU standpoint - they are trying to deflect some of the effects of this spraying, and things that they&#x27;re putting in our food, and cleaning up our oceans, which are actually critical to our oxygen level. They&#x27;re actually working on cleaning up the soil, cleaning up the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021433">02:14:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;re doing some of those things on their own and trying to mitigate any further harm to us whenever possible from the, I would say the Cabal people or Family people or whatever you call them. So they&#x27;re still doing their deeds. However, they&#x27;re coming in and they&#x27;re trying to navigate us through that and trying to prevent any further damage from taking place as we go through this process. So, the most important things are restoration of nature, and some of these things will phase out naturally. There will be an introduction of a lot of new technologies. And probably most notably are anything that affects life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021520">02:15:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, for example, the pharmaceutical industry, the way that the materials that we&#x27;re using to develop our planet, the things that provide us with energy - cell phones are even harmful to us. So there are other ways. There are other new technologies that are already in existence which have not been permitted, under the old Cabal system, to be utilized. So we&#x27;re living literally thousands of years behind, because these people have preferred their profitability in their companies and their corporations over what benefits the planet or even humanity. Some of these things are even backfiring on them in a major way. So yes, there are things that are very, very harmful to us that are being at least mitigated somewhat as we go through the transition.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021616">02:16:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The main focus as far as new technologies and things coming out will be in anything that is harmful to life and promoting life on the planet. And then, as time goes on, you&#x27;ll see other new technologies come out, new things that aren&#x27;t necessary for life. For example, we have video calling and things like that now, and eventually we may have 3D holographic calling or, you know, but that&#x27;s not essential to life. So the focus is on restoring nature, and that includes the well-being of humanity, which has been suppressed to say the least.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;d like to see technology assessed on the basis, does it make me more human or less? And on that basis it should be assessed in that manner going forward. Well hopefully that will be the case, as you mentioned earlier about Maldek going too far down the technology rise. It&#x27;s dangerous like you go too far down any road it&#x27;s dangerous; it&#x27;s all about the balance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021736">02:17:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Just one quick clarification. We&#x27;re not protecting the wrongdoers. In other words, the system that the Draco put in place, or I guess I shouldn&#x27;t say Draco as a whole, just the Sun and all of their Family people, we&#x27;re not protecting their profitability. But what we have to look at is you have, for example, take a company like Johnson &amp; Johnson. Yes, they put out many, many products that are harmful or they have ingredients and hidden ingredients in there which are very harmful to humanity that we all use every single day. But by the same token, you have millions of employees worldwide that would be affected immediately if that company were to shut down. So then we&#x27;re making millions of homeless people, or millions of people that need a job.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021828">02:18:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we have to create a place for those people to work and those people to go before we can say, &quot;Ok, enough Johnson and Johnson - you&#x27;ve got to take all of these ingredients out of your stuff or you&#x27;re not going to exist anymore.&quot; So that&#x27;s what I meant by protecting the people. It&#x27;s about - our society runs on money. It&#x27;s maybe wrong. It may be having been an incorrect thing. But if you were to take it all the way tomorrow, we would have mass chaos. So, again, it&#x27;s just a tool.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Everything&#x27;s got to be phased in and phased out. We&#x27;ve spoken about it on the shows about providing platforms. You know people say, &quot;Well, we&#x27;ll just do this and just put a new banking system in,&quot; but you can&#x27;t just change things like that overnight. If there was announcements of free energy machines, are people going to expect that they&#x27;re going to be installed in their home next week or next month?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021928">02:19:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh absolutely. And this talk about like the stock market crashing, and the Cabal is going to lose all their money, or that all the banks are going to shut down, and I hope you have supplies. Well, even just take it from America&#x27;s standpoint: 95% of American citizens are currently living paycheck to paycheck. Nobody can afford at this day, or very few can actually afford to stock up on 2 months or 3 months worth of groceries, especially for larger families. That&#x27;s almost nearly impossible to be done. Not only that, there&#x27;s very few people listening to the alternative media, when you look at all of the people that are all over the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022020">02:20:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, is the banking system corrupt? Absolutely. Absolutely. It is sucking the life out of all of us. Not only us, governments everywhere, the banks have in the past controlled the world. Would I love to say, &quot;Okay, well, that&#x27;s not working and let&#x27;s just get rid of them all and start over.&quot; But you have to look at the chaos that it creates in the average husband, wife, or single parent family, and how it&#x27;s going to affect those children. We don&#x27;t want to see, we want to see as little chaos as possible for the innocents. They wouldn&#x27;t even know to stock up, even if they could actually afford it. And how is that going to affect these people?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is what the Council is saying by, you know, that&#x27;s why we didn&#x27;t wipe out all of the Cabal in America who are tied to this group. Because if we did, what is that going to do to the innocents? You know, the children, the single parents that are struggling, working 2 or 3 jobs. How is this going to affect them if all of this were to shut down overnight? There will be a lot of changes that will take place based on the events of last week.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But try to have a little bit of patience and understanding for all of those that we are trying - we&#x27;re all here on this call today trying to help the innocents and our children have a better world, and our grandchildren and great-grandchildren have a better place to be and a better place to live. So why would we want to hurt all of these people in the process if we didn&#x27;t have to? So we&#x27;re relying on people like yourself and the Foundation that you&#x27;re doing, to hopefully - should things become chaotic - or should there be...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022218">02:22:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean, we&#x27;re already in a terrible state. So if that foundation helps a few people, and helps some families, or gives some people a car to get to work, or helps them find a job or a new skill, or helps the veterans coming back from all the wars - that is so traumatic to a human to sustain and to have seen all of that they&#x27;ve seen at such a young age. I mean, some of these young men and women that are fighting in these wars have been doing this since they were 18 years old. And if you remember how impressionable you were and ready to take on the world at 18 and all the mistakes that you&#x27;ve made in between, you realize how much life has changed since that time. But to form your whole adulthood after spending time seeing all of these children hit by bombs, and all of the things that you&#x27;ve seen - not to mention the local people that were involved in all of this and still are involved in all of this every single day. There has to be something in place and a place where people can go to get some help.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022333">02:23:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Foundation is one of the ways that we can actually do that. Part of the reason why the Council approached you, Thomas, for the Foundation, was because of your show, the way that you have approached people. You do your best not to propagate any of the negative things that are going on on the Internet, and how we want to kill all of these people and make them pay. It&#x27;s more of like, okay, well, we&#x27;re all humanity and we want to move forward. So we actually found you through that method, which was wonderful, but it was because of your view on, okay, everybody, this is horrible, it was very bad that all of this happened, but we need to move forward and we need to start helping each other. And how can we get involved with helping other races or understanding ETs if we can&#x27;t understand each other?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thank you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I hope that answers your question.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022439">02:24:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This is probably going to be the last question and I&#x27;d like to give everyone a final say. Is it true that Earth is an integrable part to liberate? And that it will have a resonant effect on the rest of the universe by liberating this planet?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Council: [unintelligible speech]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022545">02:25:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They just said, this has been the most difficult ascension process ever attempted in the Universe, and after this one, no more are scheduled.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. I think that brings us near the end of the show. M, I&#x27;d like to give you a platform to say what you&#x27;d like to say and finish up and then I&#x27;ll go on to A and K[Kim].</div>
+<div class="blank">&nbsp;</div>
+<div class="line">M:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This is actually from me and the Council: So we hope the answers we provided for you today give you some peace and hope, but we&#x27;d like to stress the lack of importance in the details. As humans, you have a choice to be in service to self or service to others, and that&#x27;s really the only thing you need to focus on. So knowing the details of the hierarchy of the Universe are not going to make a difference to you in your spiritual acumen and in your ascension process - whatever that is to you. It&#x27;s very, very simple, and it&#x27;s just choosing to be in service to others instead of service to yourself. And that&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That is it. It&#x27;s as simple as that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022708">02:27:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, I&#x27;d like to... you know, be gentle with each other. We are all going through a process. We all know something is wrong; we all know something is right. And we need to be able to share that with each other, and in a way that is going to be helpful towards each other. And not everybody is all correct, and not everybody is all incorrect. Even the Council has their experience, and they&#x27;ve been around a lot longer, and they&#x27;ve seen a lot of things which we&#x27;re all questioning and want a better understanding of, and that&#x27;s okay. But humanity is all going through this together, and believe it or not, if it wasn&#x27;t for all of you, all of us couldn&#x27;t do anything to help either. So as humanity, this time around, this loop around, we&#x27;ve actually done it. And you should all be congratulating each other.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We are changing our vibration. We are changing the Earth. We are changing nature, and we&#x27;re changing our relationship with one another. And it may not seem like that every day, but with the help of, you know, coming out of the magnetic time-space continuum, moving into a more natural way of things, you&#x27;ve probably noticed people are being, are a little bit different than they were before. Everybody&#x27;s not quite so angry all of the time, although we are going through many changes, but just try to help each other through all of this.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I think that&#x27;s the most important thing, just to realize that nobody is better than anyone else. I know some people, I see so much talk about like the &quot;chosen ones,&quot; and how these people that are half from another planet or half from this, and we need to be in control - it&#x27;s not true. We&#x27;re all from somewhere else. Source is from somewhere else. Source resides here, and it resides everywhere else, and it resides in every being. We&#x27;re all the same.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It doesn&#x27;t matter where we come from or which country we happen to be in or which landmass we&#x27;re from. Just have a little bit of an understanding that we&#x27;ve all been manipulated, and we&#x27;ve all been lied to. Even the Draco were lied to. So just try to help each other, and have a little bit of understanding, even if something doesn&#x27;t resonate with you, and even if you disagree. Just realize everybody&#x27;s going through the same process, and nobody knows who to believe. But the one thing you can count on is yourself. It is very difficult for you to lie to yourself.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. It is simple in that aspect. Ever look outside of yourself - if it feels uncomfortable, doesn&#x27;t resonate, as Kim was saying. You just ask yourself - the answers are within. And it&#x27;s so empowering to step into that. And I&#x27;m so grateful that we got to join today and meet all of you and speak and have a voice and connect - because it is about connection. It is no longer about separation and this and that and the details. It&#x27;s about loving each other, coming together, supporting each other every single day.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I&#x27;m so grateful that you gave us this platform and this opportunity to speak to you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thank you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And thank you Thomas we appreciate you as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-023052">02:30:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right. We&#x27;ve reached the end of quite an epic show in so many ways. I&#x27;d like to thank K, A and M for giving us their time. I know they&#x27;re rather busy and also to the Council also, for giving us a range of answers that will make us think, and hopefully inspire. I&#x27;d like to leave you with some words of my own: If you lead life in love and care, you will prevail. If you lead life in fear and anger, you will fail. Feel free to be the person you wish to be, not the person who conforms to what others want them to be. You are a multi-dimensional being operating simultaneously on many levels. You are not here to conform. You are not here to be stifled. You are not here to be enslaved. You are not here to be abused, or to compete with your family or your neighbours.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>

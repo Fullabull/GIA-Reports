@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jan-01</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jan-01 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Wsr Special Report
+        <br>2024-Jan-01
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim explains the circumstances that led to the separation from the prior United Network organization, outlines the history of the partnership from its origins through the end of 2023, describes concerns regarding company ownership, finances, and operational control, and details the steps taken to launch a new organization, website, and application. She explains the status of UNN branding, discusses the transition to a new corporate structure, addresses recordings and statements made following the separation, and outlines plans for future growth, community features, sponsorship opportunities, and continued news broadcasts.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000043">00:00:43 - Kim explains that the concept for United Network originated from a Source-directed initiative to create a news channel driven by everyday people reporting the news.</a></li>
+<li><a href="#t-000205">00:02:05 - Kim recounts her early relationship with Tank and the origins of the Lifeforce organization.</a></li>
+<li><a href="#t-000508">00:05:08 - Kim reviews organizational changes and growing disagreements among leadership beginning in late 2021.</a></li>
+<li><a href="#t-000725">00:07:25 - Kim explains discussions regarding company ownership and plans for an employee-owned structure.</a></li>
+<li><a href="#t-000921">00:09:21 - Kim describes concerns about transparency, workflow management, marketing, and access to company information.</a></li>
+<li><a href="#t-001022">00:10:22 - Kim discusses ongoing conflicts regarding expenditures, staffing, and financial oversight.</a></li>
+<li><a href="#t-001327">00:13:27 - Kim explains efforts to move the company forward and difficulties operating without visibility into finances.</a></li>
+<li><a href="#t-001434">00:14:34 - Kim outlines a proposed separation agreement, including division of assets, assumption of debt, and continued support for former partners.</a></li>
+<li><a href="#t-001702">00:17:02 - Kim describes the loss of access to company systems, websites, cloud storage, and application infrastructure.</a></li>
+<li><a href="#t-001855">00:18:55 - Kim addresses references to recorded calls and explains the purpose of those discussions and the individuals involved.</a></li>
+<li><a href="#t-002015">00:20:15 - Kim describes the support team that assisted with investigations and operational work during recent years.</a></li>
+<li><a href="#t-002437">00:24:37 - Kim explains the Vimeo subscription agreement and refund policies affecting subscribers.</a></li>
+<li><a href="#t-002557">00:25:57 - Kim discusses plans to address subscriber concerns and continue operations independently.</a></li>
+<li><a href="#t-002639">00:26:39 - Kim confirms that UNN branding and logos are being assigned to a newly formed corporation.</a></li>
+<li><a href="#t-002755">00:27:55 - Kim announces plans for a new application and expanded platform features.</a></li>
+<li><a href="#t-002923">00:29:23 - Kim outlines future expansion of CARE divisions and community participation.</a></li>
+<li><a href="#t-003055">00:30:55 - Kim introduces plans for a sponsorship-based community page and future marketplace features.</a></li>
+<li><a href="#t-003224">00:32:24 - Kim expresses optimism about future growth, creative freedom, and expansion.</a></li>
+<li><a href="#t-003342">00:33:42 - Kim thanks the production team, Sunny, volunteers, employees, and supporters for helping maintain operations during the transition.</a></li>
+<li><a href="#t-003445">00:34:45 - Kim concludes by stating this will be her only public statement on the matter and expresses her intention to move forward positively.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Good afternoon, everyone. I have been asked by many of you to make a public statement about the recent events that happened last week with the United Network app. And there have been a lot of questions regarding what exactly happened, what transpired. And many of you have been following me for a long time, have seen me go from different partners, I would say media partners, social media partners, although I&#x27;ve been doing this job for a very long time. So I started this job somewhere around 2007, 2008, in my travels around the world.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Those of you that are on Telegram have seen me posting some evidence of those travels and funding governments in the past. So there&#x27;s some evidence of that there. If you do have government contacts, you will know that those documents are real and the government survived for 10 years based on that information. Now, let&#x27;s talk about the company. So United Network, which did not have a name at the time, was actually a download, I call it a download from source, in which I was given parameters to start a news channel.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In order to start this news channel, I was specifically told key things had to be within that channel. Number 1, average everyday persons reporting the news. That means you, our field messengers, now that you have a name. I was also told that if we could manage to do this worldwide, that we would change the face of media in the way that people receive their news and that there would be no way to continue with media narratives which we&#x27;re all very frustrated with. Now I had met Tank, actually I had reached out to Tank in 2017 and we began to have conversations about why I thought and knew that the RV was not going to happen.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So far 6 years down the road everything I told him has still been true and there still has been no revaluation of currency, at least not in the internet version of that. So I did not meet any of his other team members at that time and I&#x27;m pretty sure that Lisa Thomas had not been a member of the team even at that time. He was doing some conference calls and talking about information that he would receive from military personnel and a bunch of other people. So I gave him a lot of information and then he formed For the Speak Project, which was his project at the time. And he would occasionally call me and ask me about specific situations that have been going on, intelligence information, that type of thing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I would answer him back and forth. And predominantly from that point on, our relationship was pretty much just by text over the phone, WhatsApp. I attended a couple of his conference calls, people ask some questions. And then due to some other involvements that I had at the time, I really didn&#x27;t want too much of a public presence. I had appeared once or twice on Thomas Williams&#x27; show.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I appeared once on Cosmic Voice, but I really didn&#x27;t have an internet presence, nor did I really want 1. So the news of, you&#x27;re supposed to create this news channel, I&#x27;m like, oh dear, now I&#x27;m going to have to do this. I&#x27;m going to have to do camera. I&#x27;m going to have to do all these different things. And I don&#x27;t know anything about starting a news channel or how a news channel works.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But I can always trust that if a source says do something and I go with my intuition, that it will happen. So, I then reached out to Thomas Williams at the time and I told him about what happened and that I&#x27;m supposed to start a news channel. He said, no, you&#x27;re going to talk and give all the intel to me and then I&#x27;m going to give it to all my viewers. That didn&#x27;t really work out. Then I called Tank and I asked him because I knew he had a YouTube channel and a platform.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I really didn&#x27;t watch much of things. I didn&#x27;t have time to watch much of things at the time. But he then agreed to do this with me. Then I was introduced at that time to all the other team members. At the time, there was a few other people, names some of you might know if you&#x27;ve been around for a long time, and Lisa and Biro.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I got to know them on a daily call that would happen from Monday through Friday, and they had formed a company based on a name that we all came up collectively with, which was Lifeforce. That company was with Lisa and Stephan Rau, or Tank as you know him, and that existed for quite a long time until things between the team became rocky back in 2022. Sorry, I apologize. Towards the end of 2021 through to, I would say, it was probably the end of 2021 is when things got really, really rocky. So by this point, it became evident that Stephen Routler Tank was not going to be a part of all of this for a lot of reasons.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There were some inner workings between personnel and assemblies and Kelly and some differing of opinions of how the global organization that was going to replace the United Nations would work in an entirely new way, essentially. By the end of 2022, it became apparent that TENG didn&#x27;t wanna do news anymore. Our news wasn&#x27;t flourishing, we weren&#x27;t doing very well, and I received a call from Lisa and Vera regarding the possibility of doing this on our own. I said, okay, I&#x27;m sorry, at the end of 2021, the possibility of doing this on our own. We were looking for, at the time, another person to present the news because I&#x27;m quite busy and I can&#x27;t put that much time and effort into writing scripts, and I&#x27;m not very good at it anyway, let&#x27;s be honest.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve learned a lot from Sunny, and I&#x27;m grateful. By the beginning of 2022, there was a leave. In other words, Tank had left by March. Just before that, Lisa Vera and I had a conversation about the fact that Lisa had a company, which was all on her own, called Divina Feminina, which is the 1 that you&#x27;ll see on your app if you were a subscriber to the old unitednetwork.tv. And she said at that time that she was going to add both Vera and I to the company, and that we were going to be business partners, 1 third, 1 third, 1 third.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I explained to her at the time that UNN was supposed to become an employee-owned company, and I told her that we were going to do that when the larger funding would come in to build a larger channel. And that way, all of the shares would go to all of you. At the time, that was agreeable. Very high conversations took place with us opening additional bank accounts, possibly being able to be on the bank accounts. I don&#x27;t have a whole lot of choices here in this town as to a bank that would be in all 3 locations.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I made suggestions on different ways we could do that. That never took place. By the end of 2022, Vera also asked again when we were all going to be put on the company and bank accounts and we were told that we would be ASAP, which never actually took place. By the beginning of February of 2023, the app began to grow and began to function as a company, which it needed to, which means that we had field messengers by then coming in droves, and all of them understood the concept of what we were doing. And the production team, pretty much with a little bit of guidance from me, but predominantly the execution of all of the production of everything you see on United Network was done by Mike Schneider, and Natalie and a few other members of the team, some of which you may or may not know. I explained I would like to make all our Telegram channels public so we are searchable somewhere. I explained some different concepts for marketing and none of them came to fruition.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I also requested some kind of a workflow program such as Trello or there are many others out there that would be accessible by me in relation to the GHWC and that was also not never done. I gave a 60-day period in which I wanted to see that, and it never happened. Tensions really started getting higher towards the end of, I would say, the end of the summer this year, where I was not permitted ever. Actually, not once, not ever was I permitted to see an actual bank balance, maybe once in the very beginning, but that was about it. I did have access to see the amount of income that the app was making, but no access to utilize it in any way.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Of course, everything had to go through Lisa, who remained the only owner on the bank accounts and the only signatory on the bank accounts and the only owner of the company. Again, there were some conflicts over the last couple of months as to, you know, can we pay for this? Can we pay for that? I would like to hire this person. I would like to hire a social media manager as an example.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I was told no. There have, I have no idea. There have been requests from a certain person, as an example, an integrate member of our team who had fallen on hard times and her husband was out of work. And she asked if there was a way we could assist her a couple months in a row. I asked at that time, I said, well, how much does this person need?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As an amount was given to me. And I said, OK, can we afford it? And I was told, well, yeah, we can afford it. And I said, well, how much do we have? And I still didn&#x27;t get any answers.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this just got worse and worse. There was a conflict about giving hats to the production team. There was a conflict over And most of all the conflicts related to money. I did receive an amount equal to my rent, I do not own a home, to pay for my rent. And I received an additional $1, 500 US.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Initially, it started at $1, 000, and then we were able to do more. And then the rising price in groceries and those types of things that happened. So It increased to $1, 500 a month, with which to pay most all my utilities and food for the month, which was perfectly fine by me. Because at the time, I always knew that if I, at least, I thought if I needed anything extra, I could have it in the past prior to the rising tensions. I was always able to do that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it would be nominal amounts. Someone was coming to town. I needed to buy somebody dinner or something like that, which would have been out of my budget based on the living expenses and this is where I live. So the conflict of not wanting to, for example, buy hats for the production team was when I kind of really lost it. I value all our field messengers.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I value our production team. I value all of the hard work that goes in in producing what you see as UNN and our various other shows. So I could not continue on with the partnership at that time. And I made an offer. And this happened, I think it was about Tuesday or Wednesday of last week.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Based on the fact I had been reaching out for over 10 days and I got absolutely 0 response until I threatened to cut the news off and then Vera called me. I had a very interesting conversation with Vera about how I wanted to move the company forward and it doesn&#x27;t appear that anybody else wanted to do that. I could not possibly structure a marketing campaign or, you know, how to spread the word in social media or anything like that without knowing how much money we have. I mean, that makes sense. You can&#x27;t run a business when you don&#x27;t know what you&#x27;re doing, maybe what you have.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I explained this to her. Apparently, this fell on deaf ears and things got worse from there and not any better. So I made an offer the following day and the offer went like this. I explained that we all agreed verbally to put all 3 of us on the company. I explained that we would split what was in the accounts, all of the accounts.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The FL was provided with 6 months bank statements to show that there were no significant withdrawals or anything out of the ordinary that we would consider to be things we did not agree upon. In other words, like large withdrawals into a bank account to hide money, as an example. Now, I made the offer that I would take 1 third of what was there. I would also retain the debt, which is the $42, 000 we owe for the second year for the app, even though I am not a party to that debt, nor did I sign the contract. I also offered to pay both of their salaries and rent as it currently was until funding came through, meaning the larger amounts that we&#x27;re all waiting for.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I got 0 response. In exchange for providing all of these things, which I thought was more than fair, because I do care about these people, it&#x27;s not like I wanted to cause them any harm, at least not from my side. And I wanted to make sure everybody was okay and felt safe and secure that they&#x27;re not going to get ousted to the side or anything. I also explained to them that I was going to form a company on my own, which would be a C-Corp, which could then be morphed into an employee-owned corporation where everybody would have shares. And in exchange for the offer, I asked them for the app.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I explained to them that I also owned personally all of the UNN logos, they&#x27;re licensed to me, as well as the CARE logos, and not GHWC, that was license creation. And I explained to them that I also owned, personally, all of the UNN logos. They&#x27;re licensed to me, as well as the CARE logos. And not GHWC. That was license creation. And I explained to them that I would have all the passwords turned over to me for all of our Dropbox accounts, our cloud accounts, our websites, our website, the app, and all of our Shutterstock accounts and our graphics accounts and pretty much everything I was aware of that the company had been paying for on a consistent basis. I would have been amenable to looking at Zoom and stuff.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I didn&#x27;t even think about that. But we could have avoided the situation. 0 response from anybody. And then about Thursday afternoon is when all of the passwords to things, access to things, started disappearing rapidly. They did allow us to utilize our casting software, which is what you&#x27;re seeing me record in right now, for, we did actually have that to record the news on Friday morning.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Then the second we were done with the recording, I guess they must have seen us log out or something because everything went away. Rundown Creator went away, which is our teleprompter software. We lost all our Dropboxes, a lot of graphics were lost, our websites were pulled, we could no longer post current news on the website, we no longer could post anything to the app, and that was when we had to rapidly form the Rumble. Then I went on Telegram, I was actually working after the news on my regular work, and somebody told me about all of the slanderous statements that were made. So it was obviously that the offer was not something they wanted in any way, which is fine, it&#x27;s no problem.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we were, I&#x27;m assuming probably the bank account was closed because people were paid out of a different account than they are normally paid from. So I assumed that that had all taken place as well by Friday, which is fine. So there you have it. We don&#x27;t have any access to this app. Apparently, there&#x27;s a statement that&#x27;s been made about some phone calls, and I have hours and hours of recording with the statement and, and the phone calls that they&#x27;re referring to are with, and I put this information on Telegram, but in case you&#x27;re not on Telegram, you may want to hear it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We have a team of myself and 3 other folks, 3 other people. Occasionally there&#x27;s another 1 that pops in and at the time in the very beginning, Lisa and Vera. We said we are maintained being on those calls and maintained recording those calls with little to no participation whatsoever. What are the calls for, we have 1 person on there. That is an ambassador to the Council of 5 that I refer to.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Council of 5 has been around for a long, long time. They, under the Universal Council, were given guardianship over this sector of the multiverse during the Dark Age so that they could prevent a full infiltration above the fifth density. And they have been a great help in teaching us an awful lot. We also have another party on the phone that has been 4 years a computer expert. So when we started getting down into the non-quantum section, so this is your NSA things and those types of things, she was very helpful, she&#x27;s a very spiritual, very intuitive person as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we all work together at locating some of the things that have destroyed humanity, destroyed earth, and destroyed multiverse. We have another person on there that gauges through the frequencies and helps us locate problems and issues and those types of things. We&#x27;re a pretty good team together. It has helped me greatly and conserved a lot more of my energy so I can run longer and harder than I already was by myself in order to get this process done faster. I&#x27;m sure you&#x27;re anxious to see that happen.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">All of these people have chosen to remain anonymous. Therefore, I have not mentioned them by name on the news. You&#x27;ll hear me mention the Council of 5 occasionally. You&#x27;ll hear me mention various things that they do, but you don&#x27;t hear me mention them by name for a reason. They have chosen not to be public whatsoever.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">These calls sometimes in the very beginning would extend, They could go 8 hours, 10 hours, 12 hours, 14 hours, when we were really in the thick of things. And most recently those calls have now gone down to about 6 to 8 hours a day, maybe. And the rest of the time I work pretty much on my own. I have a lot of other things I do. And then of course there&#x27;s the coordinating with other members of the GIA around the world that we exchange intel information and whatnot back and forth.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">1 of those people being the 1 that gave us the tip about the different cities that, you know, probably saved the lives of millions of people on New Year&#x27;s Eve this year. So, where do we go from here? I would hope that people would be a little understanding and respectful of the people that chose to remain anonymous. I can&#x27;t guarantee that, unfortunately. All of the girls have not signed any kind of waiver to have information received publicly.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The laws in the United States here only relate to court cases and releasing admissible evidence into a court of law without that party&#x27;s authorization, as long as both parties are aware. In some states, and in some states, only 1 party needs to be aware that the call was actually being recorded. We were all told that they were recording the calls not to potentially expose us talking about our kids or anything during processing times. I was told that they were recording it so that at 1 point we could do the real history series. We also have someone on call that takes all the notes.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we do have all our notes. We have no recordings whatsoever, and nor do I intend to pursue to try to get them. I am pretty sure there&#x27;s nothing I said in those calls. I greatly respect all of these ladies, and of course, all of you. And there&#x27;s nothing I said in any of those calls that, you know, unless they slice and dice my voice up and try to make something out of something or take somebody else&#x27;s voice out and it&#x27;s out of context, but there should be nothing in there.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We work, we&#x27;re not interested in talking badly about people or viewers or making up things. We don&#x27;t, That&#x27;s not who we are and it&#x27;s not what we do. We&#x27;re very matter of fact and to the point. Now, as far as what is going to happen from here, I have reviewed, re-reviewed our contract that Lisa had signed with Vimeo, which was our app provider at the time. There&#x27;s nothing in there at all whatsoever about asking for a refund.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You can ask for a refund and it&#x27;s subject to the business owner after 10 days on an annual subscription and 3 days, I think, it is on a monthly subscription, it is then up to the business owner as to whether or not they choose to refund you. That is right in the contract. If any of you want to see a Vimeo contract, I don&#x27;t want to put this information out there online, but I&#x27;m sure you can call Vimeo directly and you can ask for a copy of their OTT platform contract so that you can have your legal team review it or something. And you can see that none of that information is in there. Now for the first 10 days on an annual subscription, Vimeo will do it automatically for you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And you don&#x27;t have to ask for the, they don&#x27;t have to ask the owner. Now, after that point in time, they have to ask the owner of the company, which is obviously not me, never has been me, for the refund. So if they are still refusing to give you refunds, because I feel that predominantly the app pretty much is based on our news, which is our production team and myself. That we will definitely work something out in the very near future because I think what they did is wrong. You know, the fact that there, I saw some posts about we have to pay for the app and the debt.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That is actually not the case because I made them a substantial offer to not have that happen with a substantial payout and continuous salaries, which apparently is something they didn&#x27;t want. So where is UNN today? I own all our logo logos. I have the right to brand them any way I&#x27;d like and assign them to any company I like and that will now be assigned to our new corporation, which we started on the evening of the 28th. So there was no planned escape other than I planned to end the relationship, at least as far as her having singular control over, you know, all of the, all of the people&#x27;s money.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And so our production team is intact. Everybody is super excited about all of the changes that we&#x27;re going to have here at UNN and that we&#x27;re going to have expense money available to do marketing and some other things so that we can actually get the word out and grow. Once we fund, that&#x27;s going to be critical because we will need to be everywhere all the time and a social media manager needs to be in place. As far as the field messengers, we did retain the field messenger reports. We did retain, I think, most of the questions.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ll have to ask on that, but I&#x27;m pretty sure we did. We, like I said, lost a lot of R scripting archives and those types of things. Apparently they think they&#x27;re, they needed them. I don&#x27;t know. So, but we do intend on launching a new app ourselves.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We have been looking at a couple of different providers. Bear in mind this happened on a holiday weekend, so reaching out for pricing and contract rates and those types of things will happen probably tomorrow and through this week. Once we&#x27;re contracted, the web portion of the app should be able to be up fairly quickly. There is some design work that has to happen, but it&#x27;s usually fairly minimal. We also are looking at apps that have more features than ours currently does, such as a community where you can have discussions Very similar to like an Instagram kind of type thing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And not have to be on Telegram. I know a lot of people hate Telegram. So we are also looking to incorporate the store into the app, which we can do, which will not just sell merchandise, it will sell other products too, now that we have a little more free hands, as far as health and wellness things and so on and so forth. We also intend to launch the rest of the departments of care. You&#x27;ll probably see them first on Telegram, probably eventually in our community as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So you can start pulling together in the respective division that you feel resonates with you. This is Sources Project. I&#x27;ve always considered it Sources Project. I do get a lot of information about when to do what and things to do. Sorry that not everybody agreed with that and that&#x27;s fine.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But we will still continue the project and move forward. Our regular written news website, where we can broadcast as well, should be up and running, I believe, hopefully within the next few days. Once that is launched, we did manage to get some of our pieces of that together. They didn&#x27;t get everything. They just took the domain name and the website.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we did manage to get some of those pieces, and I know our team is working really hard to get that relaunched as quickly as possible. Once that is relaunched, you will see a new page there called the Community page. Now, the Community page initially will be reserved for people who would wish to sponsor United Network. What that means is it&#x27;s not an actual commercial in the news, but you would be given a certain amount of space. You can advertise your website, your products, your services, whatever it is you want to do for whatever you feel is an appropriate amount of support.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It could be $1. It can be $100. And additionally, when the new app is actually launched, which should take no longer than about 4 to 6 weeks, we should be able to transfer those sponsorships into several months for you depending on the amount of the subscription. So you won&#x27;t be losing that either. And this is a way that we can give back to you, to all of you that have supported us over the last couple of years as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Rather than just take something as a donation, I&#x27;d rather be able to at least give back what we can give back at this moment in time because you&#x27;ve given us so much and we appreciate you. So I hope you like that part of it. In the future, it will morph into more of an advertising, so to speak, a community for lack of a better term. They are not necessarily products or services that we would endorse 1 way or the other, but it allows for a marketplace for you to share yours. And so this will hopefully help all of you grow, get the word out about special products and services that you offer as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And perhaps people would like to take a part in those. It&#x27;s not for us really in any way, but just as a thank you thing, a thank you to you. And I think that pretty much wraps up. I&#x27;m pretty excited about the way forward. I feel that we will have more creative hands to bring you an even better news channel and to grow faster.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We maybe hit a little bump in the road or something like that, but you know, it&#x27;s okay. These things happen and the world is a changing place right now and not everybody wants to change with it. You know, I know this happens at the right time and in sources time. And, you know, even said it had to be this way, you know, as frustrating as it has been for the last couple of days, I do want to give a big shout out and a thank you to the entire production team, which by the way, consists of probably somewhere around 50 to 60 people, some of which are volunteers and some of which are paid employees. I just wanted to say thank you so much for really stepping up to the plate.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">This also includes Sunny. As soon as she came back from her trip, she was right on things, recreating scripts and rundowns and all of that so we could get the news out to you today. I just wanted to say thank you so much to the entire team for all of your support. We couldn&#x27;t have done this without you and we would not be up and running as quickly as we are without all of you. Thank you so much for all the work that you did throughout the year last year and on our previous app.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It did look wonderful. And our next one&#x27;s gonna be even better. So I&#x27;m happy about that. Thank you to everyone that stepped up on our side. I appreciate very much the majority of you that have wished us well and have shown your support for both myself and our entire team.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We thank you for that. And we are looking forward to building a new world with all of you. So this will be the only statement I&#x27;m going to make. I&#x27;ve made enough on Telegram. And I just choose to move forward.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I need to live in a positive environment. I want to live in a peace in my life. I don&#x27;t do drama. If she releases those, great. I don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">If she wants to cut and paste it like Team Bubba does, cut and paste away. There&#x27;s much better use for my time than to pay attention to any of that. As the old saying goes, mind over matter. And if I don&#x27;t mind, they don&#x27;t mind. And I&#x27;m going to keep it this way.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So that being said, that is your public statement from me. I wish you all a happy new year. And I look forward to seeing you on Rumble and YouTube for now until things are back up and running. So I wish you all a wonderful day, and we&#x27;ll see you real soon.</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>

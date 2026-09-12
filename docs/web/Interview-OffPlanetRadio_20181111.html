@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2018-Nov-11</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2018-Nov-11 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Interview Off Planet Radio
+        <br>2018-Nov-11
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        In this in-depth interview, Randy Maugans hosts Thomas Williams and Kim Goguen to expose the origins, structure, and decline of the global control system, including the Manna World Holding Trust, the Dragon Families, and the covert systems behind planetary governance. They outline the transition from global martial law to a new era of human sovereignty, the significance of trust-held assets, the infiltration of world militaries, and the alternative paths forward for humanity.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li>Kim Goguen explains how the Manna World Holding Trust was built over thousands of years from global assets and how she came into her trustee role.</li>
+<li>The trust historically operated under a rigid hierarchy including Parents, Covens, and Dragon Families, all originally serving the interests of a singular global dictator referred to as &#x27;M.&#x27;</li>
+<li>In 2016, a peace treaty replaced global martial law, ending 16,500 years of control by off-world and hybrid rulers.</li>
+<li>Kim and Thomas expose the bankruptcy of powerful factions, including Rothschild and Dragon Family interests, who no longer hold financial power.</li>
+<li>Discussion of Project Looking Glass and how Kim&#x27;s appearance in future timelines positioned her for the role she now holds.</li>
+<li>The military-industrial complex continues to work against the U.S., with elements taking orders from globalist actors such as John von Wright and the Chinese Elders.</li>
+<li>Kim outlines how all banks and countries are technically sub-sovereigns of the trust due to legacy legal and financial architecture.</li>
+<li>Massive cyber-cleanups and financial block removals are underway to enable direct funding of governments and people, bypassing corrupted institutions.</li>
+<li>The IRS and &#x27;Treasury of USA&#x27; are revealed as private Dragon Family entities used for global taxation and control.</li>
+<li>The speakers urge people to take personal and collective responsibility instead of relying on corrupted figures or false messiahs.</li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">****************************************************************************************</div>
+<div class="line">* Title: Deep Sixing The Deep State</div>
+<div class="line">* Desc: OffPlanet Radio Live: w/Thomas Williams and Kim of Manna World Trust</div>
+<div class="line">* Link: https://www.youtube.com/watch?v=tghI36mzXyA</div>
+<div class="line">* Originally Recorded: 2018-NOV-11</div>
+<div class="line">****************************************************************************************</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You are listening to OffPlanet Radio at offplanetradio.com. Welcome to another dimension. A dimension of insight. A dimension of understanding. We&#x27;re entering a place where reality collides with truth. There are no limits. There are no boundaries. This is OffPlanet Radio.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000055">00:00:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Welcome everybody, this is OffPlanet Radio Live. I&#x27;m Randy Maugans. It is Sunday, 11-11-2018, and it&#x27;s 100 years since &quot;the war that ends all wars&quot; reached an armistice. It&#x27;s kind of ironic that the power elites chose 11-11 as Veterans Day. They always encode their intentions in the numbers and the symbols around us.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I think to paraphrase the great old quote by a sage, if history teaches us anything, it&#x27;s taught us nothing at all, and hopefully that&#x27;s not true anymore. The race towards extinction by humanity in this last century and the century we&#x27;re in now has been an astronomical toll on the psyche of human beings throughout centuries. It repeats and recurs constantly into our psyches collectively, and we need to end this. So wherever you are today, we wish you the best, and we hope that those who have gone before us, their efforts are finally rewarded by genuine peace on planet Earth.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So it is 11-11-11; do the gematria on that, and you&#x27;ll find out that the 2 the 1 and the 8 give us the triple 11, and we didn&#x27;t think about that when we planned this show, but it&#x27;s not lost on me that apparently destiny or fate or something tapped us on the shoulder and told us to converge, and to that end today we&#x27;ve kind of named this show &quot;Deep Sixing the Deep State&quot; because that&#x27;s really what this is about. It&#x27;s about a consciousness rising and the efforts to muster those among us who sense the awakening and truly want to end the stranglehold on humanity, which has been a stranglehold on our collective consciousness for many, many, many thousands of years, probably hundreds of thousands of years.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And with me today is Thomas Williams from Truth, Honor, and Integrity. We&#x27;re kind of old friends who have hung out together. And we also have on the line with us Kim, who is with the Manna World Holding Trust, and we&#x27;re going to discuss the efforts that have been brought forth in terms of again kind of a reclamation project for America and for the world because this is a global project, and so that&#x27;s where we&#x27;re going to go today. We&#x27;re going to discuss the efforts that are being made by people of good intention. And Thomas, we welcome you to the show.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000411">00:04:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hi. It&#x27;s good to be on, and hopefully we have a good show for it and everyone will get a lot out of it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I hope so, and we also have Kim, and she&#x27;s known as Kim Possible; she is the trustee of the Manna World Holding Trust, and Kim, welcome to OffPlanet Radio.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thank you for having me, Randy.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So as we go forward today, hopefully we&#x27;re going to also bring out some new information. The historical background of what you brought forth, both you and Thomas, Kim, goes back I guess a number of years, and what we&#x27;re given to understand was an effort made to... Hold on a minute. Sorry, my phone&#x27;s ringing. How embarrassing! I can&#x27;t find my phone. There we go. Okay.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s live; it&#x27;s live radio, folks. It&#x27;s been a long time since I&#x27;ve done live radio. I just looked and realized it&#x27;s been like three years since I used Spreaker. I had to upgrade my account and everything. So, yep, that&#x27;s live radio for you. Phones ring, dogs bark, garbage pails fall over, and the windows crash in. So, going forward, I kind of want to refer back to the update that you did, Thomas, on June 24th in 2018, right? (Yeah. Yeah.) Yeah.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And some of the points that were brought forth - maybe what we can do first, rather than spin into this - is that you and Kim, however you want to do this, can give us the background of the Manna World Holding Trust and what that exactly constitutes, and that will give us a place to diverge then.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, I think Kim would be better with that, where the trust all started, how long it&#x27;s been going, etc. Kim?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000621">00:06:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, I&#x27;ll just give you kind of a brief overview, I guess. The assets contained within the trust started to be compiled thousands of years ago. This isn&#x27;t something that&#x27;s new. It&#x27;s very old. A lot of people say, well, there&#x27;s only been so many metric tons of gold mined in the world, and they didn&#x27;t really start calculating that until the &#x27;60s. That being said, we have thousands and thousands of years of human history. So where did the assets come from? The answer is everywhere.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There isn&#x27;t a country on Earth that did not contribute assets, whether it&#x27;s in ground assets, above ground assets, gold, platinum, diamonds, iridium, opals, or any other types of precious metals into the trust. It was always run by three people at the top, and then you went on into the Parents, as some of your listeners probably know. And then after the Parents, underneath the Parents are the Covens. Underneath the Covens you have the Coven leaders, and then each Coven party has maybe one or two members that are the top. And then after that, you start talking about your Illuminati, your Order, your Dragon Families, however you reference them. They were designed to compile assets into the trust, and then they were eventually given fiat currency or worthless papers in exchange for contributing assets into the trust. The party that sat in the position before me that I&#x27;m at, which is where the three were at the top - now it&#x27;s just me - they were intending on collecting all the metals for trade.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Not necessarily trade among people, but for their type of trade and other technologies that they needed these metals for. So they gave the - he developed or he didn&#x27;t actually develop - the person before me - the two groups that developed the quantum systems. One group contributed the technology based on the fact that they were going to split the spoils of the war amongst the groups. The system is not new; it is old. It is very, very old. It is new to people, but it is old. It has existed for a very long period of time and exists in other places, not just here. The system does a very good job of mapping virtually all the resources and then compiling all of the resources. So the reason why the Dragon Families were formulated [was that] they were collection agencies, I guess you would say, or head slaves or slave masters. So they got power; they got control over people, but in actuality they were just collectors.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, there really is something to the story that&#x27;s told about the seven deadly sins, where most people will pick one, and that&#x27;s their button. And for these people, it was obviously power and greed. And it worked for in excess of a thousand years, this group. So once I figured out how to use the system - I guess I took my position on the 12th of September - my predecessor had given them a five-year extension to do the right thing, to do the disbursement. This is your Dragon Family. To do the disbursement to all the people. They refused, and that option was up on the end of 2017.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001033">00:10:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I started learning to work the system in 2015, the end of 2015, and I sorted through all of the assets. I moved everything around. I did try negotiating with the Dragon Family, the Rothschilds, and all of these people. Not so many nice words back. I didn&#x27;t really care. You know, they said I was disrupting their way of life, and there&#x27;s been many other comments since then. So that&#x27;s kind of how the trust came to be. The assets are still here, still in the trust, and they are ready to be dispersed back to the people. So that&#x27;s, I guess, a brief history on the trust.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001124">00:11:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Can I chip in?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. And by the way, I do have the chat up, and people are saying the volume is low. I&#x27;ve pushed every volume control on this console and on my computer so that we&#x27;re trying to get maximum volume up, and I understand the guest side seems to be a little low. So guys, just do whatever you can to project.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Hopefully it&#x27;s the problem of the desktop speaker. We&#x27;ll see how it goes. The other thing I feel needs to be mentioned is people are saying, &quot;Well, how can the trust own all these assets, and why can the trust declare sovereignty, etc.? What was happening in the past, and Kim can say more on this. Is all the collection of the assets, and they were just given bits of paper out, but all the collection of the assets was being leveraged time and time again, and they were not paying the dues back to the trust, which they&#x27;re supposed to do, and so subsequently all the assets, whether it&#x27;s in ground resources, whether it&#x27;s the whole of Washington, DC, or the whole of the Crown of England, all became assets of the trust - which they thought they were always going to control. It&#x27;s not the case now, and those assets have liens on them because they haven&#x27;t paid their dues - the interest payments on them. And so subsequently those assets become property of the trust, which is what Kim&#x27;s now striving to get back to the people. So there&#x27;s that element as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001319">00:13:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Kim, I need to ask you this because it&#x27;s been asked before. How is it that you came into a position where you were in contact with the trust, and came into the position that you&#x27;re in now?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, there&#x27;s been many stories told to me, and I&#x27;ll only discuss the things that I actually know to be a fact. How&#x27;s that? Project Looking Glass; they had access to Project Looking Glass until 2012. If you don&#x27;t know what Project Looking Glass is - I know you do and so does Thomas - but Project Looking Glass was, they used a specific element to look into the future. So in the future it gave possible outcomes of their order of the world, of world events, all of these types of things. And it doesn&#x27;t give you a specific time and date. So it won&#x27;t say on December 19th, this will happen. But what it will do is it will give you events that will lead up to something happening or something changing. So in other words, if X person wasn&#x27;t president then or didn&#x27;t run for president and wasn&#x27;t elected president, then most likely this won&#x27;t happen or this will happen. It&#x27;s a timeline.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001444">00:14:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in, oh... I think it was 1979, is when I appeared in Project Looking Glass - not the only one, as one of several. And it basically described all of the things that I was going to do in this video that these people saw. And if you know who used to run Project Looking Glass, one group ran it and another group were the actual seers, I guess you would say. And so there were 12 women; these were the original 12 women from the Thule Society, T-H-U-L-E. And if all 12 actually saw the same thing, then it was 99% certain that it would come to pass.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001534">00:15:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in the late 70s/early 80s, the CIA and a number of other groups saw all of these people that were going to make this change in these videos. I call them the &quot;File People.&quot; So there are people that are supposed to do certain things, and then there are duplicates. So, in other words, there are additional people that can perform that same function. During the late 70s and early 80s, the CIA ran a DNA program throughout the world looking for these people. They were identified by face and by DNA. And I happened to be one of those people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001624">00:16:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I popped up on the radar - the first time in 1998 - and then everything kind of died off a little bit, and it wasn&#x27;t time yet. So according to the timeline, there were events that had not yet taken place, plus I wasn&#x27;t old enough, according to the timeline, for things to start changing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">In 2010, I went on a trip to actually get gold for the United States. The economy had just, you know, the market had just crashed at the end of 2008, and I found what I thought was a trustee of this trust with lots of money. It was a lady out of Thailand.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I traveled all around Europe, all around Eastern Europe, and we were going to trigger the system at that time, in order to transfer gold to the U.S. That was my goal; that was the only reason why I was there, and everybody called me. I had some friends that were from the U.S., and then also people I had met on this trip, and they said, &quot;Oh, you&#x27;re the new trustee.&quot; I go, &quot;What do you mean I&#x27;m the new trustee?&quot; I was just there trying to get gold and make a little fee for doing a good job. And the Russian government came - because I was in Russia at the time - the Russian government came and basically told me that all of the votes were unanimous, and I was the trustee.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So I thought, &quot;Well, gee, I can do some really great humanitarian things.&quot; Little did I know that it was going to lead me down this journey to where we are today. I had so much to learn. I didn&#x27;t know much of anything. I mean, I had been in banking for most of my whole life, so probably at that time about 18 years. So I mean, I definitely knew a lot about macro- and microeconomics, but I had no idea that it was going to turn out to be what it is today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001824">00:18:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. That&#x27;s interesting that you have a banking background. I&#x27;m not sure I knew that. Yes. So, I want to back up a little bit in the historical narrative you gave us, because one of my biggest problems has been how the Earth dwellers, as I call them - the people like me that walk the Earth, that are mortal, that appear in this plane as carnal human beings and live our lives in this life cycle - wound up being essentially slaves to a system hierarchy that includes off-world beings and covens and &quot;Families,&quot; &quot;Parents,&quot; all of these different groups. And how the organic human being was basically enslaved, which goes back, I understand, in ancient narratives.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, the question becomes this: who has the title deed to the Earth? Who is the dominant sovereign?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001941">00:19:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As it stands now, we do. Following the August 2016 Peace Treaty. We were not the controllers of this planet. We haven&#x27;t been for sixteen and a half thousand years. That was the D-group. And their slaves. You&#x27;ve got to remember, it&#x27;s not just humans that are slaves here; a lot of the beings underground were also slaves. They were brought here for different reasons; some came here for trade, but they were brought here to enforce the martial law. This is going back sixteen and a half thousand years.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And a lot of them have interfered badly; they took advantage of our lack of knowledge, our lack of spiritual awareness, and our general forgetfulness as such. And so that&#x27;s why you&#x27;ve heard all these stories about abductions and night visits and all this stuff. Now what you&#x27;ll have noticed or people may not have noticed - not many people observe things the way we kind of do - is in the last two years there&#x27;s hardly been any stories about ETs, and the reason is they&#x27;re not interfering anymore. They&#x27;re here now to enforce the peace treaty, not enforce martial law. And that changed everything. You know, people ask for, keep asking for when&#x27;s the event happening? Well, it already has, you know; there&#x27;s been a list of about 33 events over the last five years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002130">00:21:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In essence, in 2012, they were doomed - their contract was up. Yes, they got an extension, but in essence they were doomed, and it was humanity&#x27;s time. So humanity is now in sole control of this planet, as of August 2016. And it&#x27;s up to us. It&#x27;s no guarantee that we&#x27;re going to run it any better than the clowns have or the others. But we have to make steps to ensure we have sufficient people acting in integrity and pushing our way forward for us all, not service to self and greed and all that stuff. We have to work together, forget countries, forget religions, and all that nonsense, which is all divide and conquer, and actually work together. This is why Kim has contacted what we call the clowns - Rothschilds and all the others - because they&#x27;ve been lied to as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002236">00:22:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">People think, &quot;Oh, these Illuminati.&quot; You know we both know people who were born into the Illuminati family, and we&#x27;ve both read and done [?? -&gt;] &quot;thus-far-lee&quot; [&lt;- ??] show and that work. They get tortured from children [sic - childhood]. So it may seem great to a lot of people that they&#x27;ve got all this money and all this wealth, but they&#x27;re not happy, are they? They&#x27;ve lost the plot. And the key to what Kim&#x27;s been doing and the team&#x27;s been doing is going around the world speaking to presidents and prime ministers and heads of state and agencies and families - you name it, Kim&#x27;s spoken to all of them. And teaching them that they were - you&#x27;ve all been lied to; it&#x27;s a different world now - we&#x27;re on a different timeline. We have been since January 1st, 2013, and nothing they do will ever work again. Because it&#x27;s not their time, it&#x27;s the people&#x27;s time - and it&#x27;s time the people stood up for themselves and looked after each other. That&#x27;s what we&#x27;ve done with THI. We&#x27;ve got people all over the world, most of whom have never met each other, all caring and sharing for each other, not dog-eat-dog.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So to bring you back, humanity - for the first time in 16 and a half thousand years, and maybe even further back than that - is in sole control of this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002410">00:24:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So, humanity collectively, in terms of how we operate through these offices of governments? Or humanity as a defined collective consciousness? Because from my perspective, there are many, many beings who walk about on the Earth on two legs that I don&#x27;t consider to be human, that I know aren&#x27;t human.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You are probably right.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I think we&#x27;re in this interesting space now because there&#x27;s so much distortion and convolution. Thomas and Kim and I talked about this before we went on air tonight about the level of distortions that occur inside of this so-called alt-media atmosphere and what&#x27;s going on there right now with just the silliness of people parading their ignorance. So we&#x27;re in this position now where nobody knows who the leaders are. There doesn&#x27;t seem to be a definable paradigm for transition because every step forward looks to be counter-moved by another step sideways, which is exactly how they&#x27;ve worked us always. I mean, they don&#x27;t necessarily push you back; they just push you off the line.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So going into this, how do we begin to recalibrate our understanding of how the world structures are formed and working? Hope that wasn&#x27;t too wordy a question.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Can I start with this one?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, absolutely. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002554">00:25:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. This is the issue right here. Everybody thinks, &quot;Who are the leaders?&quot; and what you have to understand is that a leader is always at the bottom. A real leader is at the bottom of the totem pole. A boss or a dictator, which is what our former leader was, is always at the top. And he considers a boss or a dictator would consider everyone else inferior to them. Which is the reason why the Dragon Families, I guess you would call them, or the Order, considers everyone in every government an inferior party, or an inferior being to them. We have to stop looking for a leader; we have to become that leader ourselves.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Nature will dictate that you have alpha males, you have beta males, you have alpha females, you have beta females, and then there are varying degrees in between. If nature takes its course, alphas - females or males, whichever it is; it doesn&#x27;t matter which one - will become the leaders because that is nature, and betas will always follow. That is the natural course of things. And that is what our predecessors, or my predecessor, I should say, tried very much to disrupt. You know, you have different movements that will tell you that that whole process has been disrupted. And we have to go back to the natural order of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002731">00:27:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, there are leaders in this world. You do not need to be a president to be a leader. You do not need to have billions of dollars to be a leader. It just happens to be that that&#x27;s what everybody looks towards. And everybody needs to stop looking towards the richest guy in the room or the president in the room or to be that leader. You know, Thomas is a leader amongst his group of people. There are thousands of people that listen to Thomas. There are thousands of people that listen to you, Randy. You are a leader. You&#x27;ve been a leader long before the chickens and the Corey Goods and the Shanes and all the people popped up on the alternative media.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You were actually educating and leading the people into something better. And this is what is necessary. If people are looking for leaders, you&#x27;ve got to look for the doers. So you don&#x27;t - it could be anybody - it could be the person driving the bus every single day in your local area. It doesn&#x27;t matter who you are; you&#x27;re not defined by your job; you&#x27;re defined by your willingness to make that change and to help lead the people into something better and something different.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That is who the leaders are. And we&#x27;re looking for those people to emerge.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002854">00:28:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">One of the things that I said on my very first THI show was, &quot;We have to think and act differently.&quot; It was one thing we can&#x27;t do with this new human-based platform is copy their role model. When the Draco left and when there was only the &quot;M guy&quot; left, people who we perceived as leaders - be it presidents be it military generals, you name it - were all puppets in the game. Much to their chagrin. They thought they were important, and the thing is, it&#x27;s more important to do important work than to be important because being important is just the ego.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now we&#x27;ve all seen extraordinary changes over the last five years in various ways; we asked for the truth, and we&#x27;re getting the truth. Things have been disclosed, and things have been revealed we never thought possible. But the problem, when I remember the first conversation I had with Kim, and Kim was saying we&#x27;re talking to these people and talking to those people, I said to her at the time, &quot;You&#x27;re probably wasting your time, but you never know you&#x27;ve always got to try,&quot; because all these people that we think are important around the planet, be it Kissingers, be it Putin, be it Trump, or whatever, are all pawns in the game. They&#x27;re not leaders; they&#x27;re followers. And be it the Covens, be it the Parents, everyone had a level, and they were all following orders from the one above. And all the orders at the top, which is Marduk - he didn&#x27;t tell them the full picture.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So they don&#x27;t know how the banking system works; they don&#x27;t know how governments work; they don&#x27;t know how life works - nothing. And this is a big problem that we&#x27;re going to have to quickly address: is the lack of knowledge of all walks of life, be it science, be it banking, be it government, you name it. You&#x27;ve got people at the top of Wells Fargo who don&#x27;t understand micro- or macroeconomics. How can you get a position like that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, that was the old system. And that&#x27;s how it worked. Well, it didn&#x27;t work, but it worked for the top Order. That&#x27;s the way they designed it. It wasn&#x27;t designed to work; it was designed to fail. It was a harvesting program of the whole planet, of all living beings and the resources.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That timeline, that program has now failed. And it&#x27;s up to us to create a new one. We have to take the steps, and everyone is important in it. Yes, some people will play more important roles because they have different skill sets or different abilities. Everyone has to participate and not look to President Trump to fix things or Putin to fix things. They are learning themselves. Trump&#x27;s learned extraordinary things in the last 18 months he didn&#x27;t think possible, and people think because he&#x27;s the president he knows everything. No, he doesn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because you come into that compartmentalization again, where President Trump is Level 23 on the Security Level, and you&#x27;ve got people in the military who are on 49 Cosmic Level. And Trump doesn&#x27;t have access to those 26 layers of knowledge - because he doesn&#x27;t have the need to know. And what we have to change is, that those levels of the 26 above the president have to be lowered with an executive order down to Level 23, which can then be disseminated to the public. You&#x27;re never going to get disclosure with those 26 layers. They&#x27;re your Deep State, those 26 layers. Everything is compartmentalized on a massive scale, and nobody knows all the pieces.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim does, because Kim&#x27;s been in the system and also has the structure of the whole Order. And this is what is going to be required going forward: a lot of education or teaching.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003350">00:33:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right now we occupy a substratum of a very tiny sliver of what you would call media. People are going to ask, exactly how is it that this tiny little show called Truth, Honor, Integrity, anchored by this gentleman from Liverpool, an expat and Brit, winds up exposing the global order and the unraveling of said global order? Why wasn&#x27;t this on CNN, MSNBC, and all the other alphabet agency frequencies that are out there? But this isn&#x27;t the way things are supposed to work in the world.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, no. Because you think in the old way - it doesn&#x27;t work in the old way; it works in the new way. You know, this is what the Cabal doesn&#x27;t understand. You know, you&#x27;ve heard my show and members love it when I say, &quot;They tried this and it failed. They tried this, and it failed.&quot; And it&#x27;s a completely different paradigm as of January 1st, 2013. Everything changed. People at the time in the alt media were all complaining because of David Wilcock and his - he was transitioning 10 days earlier and nobody else was; nobody did.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Damn it! Bastards!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003524">00:35:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, we could have transitioned Wilcock, Corey, and all the blue chickens off the planet, and we could have gotten on with things. But as you mentioned earlier, since then everything has stuck in a time loop. I&#x27;ve discussed this on my own show.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, yes, I agree.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And the difference between what gets taught in our two shows and the rest is market, because they seem to be stuck in that same time period of 2012, 2013, 2014, NESARA/GESARA, the travel to 5D, and all this nonsense. And all they&#x27;re doing is distracting and delaying. They can&#x27;t stop it. It&#x27;s like blocking the funds being released into America because America is under the financial assassination program. But eventually they&#x27;re going to run out of blocks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003628">00:36:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, you just walked through something that I want to get into with you and Kim. These funds. Now, a lot of people have asked me, my own wife has asked me, exactly what is the purpose of these funds? What will they accomplish? And how does it ultimately get to the place where it betters the life of the average person, rather than the harvesting that&#x27;s gone on through the banking system so far?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So let me parse that. First off, the release of assets into the United States would have to benefit the most immediate needs of the average person rather than continuing to enrich the military-industrial-intelligence-agency complex. How do we get there?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003722">00:37:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, this is what we&#x27;re working on right now.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The issue that we have is, yes, we have a government. And the government - well, not always, but most recently, the Federal Reserve agreement to print currency on behalf of the government has expired. So it&#x27;s sort of like the elephant in the room right now. The president is aware of it. Most of the agencies are aware of it. And the Fed is trying to cling to that right, and the government is trying to clean out the Deep State so they can then take over that right to print currency again. There&#x27;s a lot more detail that could go into that, but that&#x27;s a general overview.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So when you look at the average everyday person right now and the way that the world works, the average everyday person needs cash - fiat or otherwise. You can&#x27;t go down to the store with your bar of gold and exchange it at Walmart for some groceries, right? You have to go down with dollar bills. So the system runs on - yes, there is cash on pallets and whatnot, and yes, we&#x27;re working on a plan for those types of things - but the average everyday person pretty much functions in today&#x27;s society on digital cash. So the cash has to come from the system and it has to get to you. Now how do you do that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Because they&#x27;ve had a thousand years and since the global electronic banking system was implemented in 1978, they&#x27;ve had almost 50 years now to implement all of these cyber hacks into the banking system, which work to their benefit. So I have to get cash from our system to you at some banking institution or credit union somewhere, right?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">What people don&#x27;t understand is that since the agreement expired, which was at the end of 2017, so it&#x27;s not even been quite a year since we&#x27;ve been actively pushing through all of these blocks. Any bank using an IBM computer, as an example, had a backdoor to IBM. IBM was data collecting on behalf of the Cabal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003956">00:39:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The security certificates, the SSLs, anything required - you know, the banks have their own firewalls and all these systems which they purchase from a third-party entity. The government also had the same thing. So to get from here to there, so far we&#x27;ve cleaned up hundreds of thousands of cyberhacks which were implemented over that 40 to 50 year period - just to stop you personally and all of the you&#x27;s out there listening to the call - from receiving one dollar from the trust. Because they know the second the people receive one dollar and spend it, it&#x27;s over for them. Because their control mechanisms are completely obsolete.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I have figured out how to transfer funds out of the system by SWIFT, by wire, by EFT, by direct port-to-port transactions, and multiple different methods, and then I get blocked at the bank level, or I was getting blocked at somewhere in between. So every time I send funds from our institution, in the way it&#x27;s registered, to your institution, Randy, I find something new. So I send them out every day or every other week or whatever it is, you know, based on the timeline of what&#x27;s going on, until I can finally hit that destination. Right now we have probably about eight or 10 pending transfers that look like they&#x27;re actually going to clear probably Tuesday because I think today is a banking holiday in the U.S.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The ultimate aim and the ultimate goal is to transfer just as much in funds to the people as is being transferred to the government. That has been the structure that worked on a macro and micro level, which means that the government received on the 17th of March $1.8 trillion to cover the budget. I used a loophole so Wachow couldn&#x27;t steal it through an agreement from 1976 that was never executed upon. That left me with 1.8 trillion dollars for private persons and projects in the United States.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004207">00:42:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So where am I going to land it? I have to land it in a private banking institution. We have gotten to the point where even for some of the major projects, the Treasury Department is allowing certain projects to be funded through the Treasury Department, meaning we can deposit money there just like we deposited the budget there. But it&#x27;s a work in progress. We&#x27;ve gotten presidential orders, as an example, for disaster cleanup in Florida. We&#x27;ve been fighting for six weeks now to get the people out of the way of the Treasury Department in order to deposit those funds there for that disaster cleanup.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">FEMA&#x27;s blocking that. FEMA&#x27;s been a cash cow for Rothschild and the Deep State for many, many years now. Nothing actually gets done that they do, ever, and they keep buying this equipment at 10 times the price, and nothing ever gets to the people. I mean, if you actually, there&#x27;s there right now they are sweeping the Internet for anyone posting a Twitter, a Facebook, a YouTube, or any type of video on the Internet that actually shows the real state of affairs in Florida, Alabama, and Georgia, and the Carolinas. They&#x27;re trying to avoid that from getting out there every way possible. And meanwhile, I called FEMA actually on the first day, and I - per the president&#x27;s request - told them this money is available; are you ready? And they refused, and they said they had funding from other sources, which they told me was Rothschild.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So everybody has been waiting for this global reset to happen, so then Rothschild will have the money to then give to FEMA, so then FEMA could then go down to Florida and do probably next to nothing anyway. But it&#x27;s something; it&#x27;s better than nothing, right? And where, you know, it&#x27;s six weeks have passed and we&#x27;re all still in the same position. So to answer your question, Randy, I agree with you 150%. The people should have just as much financial backing as the government has, and they should be equal. Not one group, not one percent, not, you know, 99% this time. And then it&#x27;s almost somewhat irrelevant; all of this midterming and so on and so forth is going on. Nobody&#x27;s going to care.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004439">00:44:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No. Well, the structure basically dictates that you&#x27;re just voting for one of two wings on the same bird. That&#x27;s the whole joke behind the bipartisan system. You&#x27;ve got two choices.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, what essentially is going to happen, like Kim said, is that 1.8 trillion went to the government, which is to run the government, and then 1.8 trillion goes to the people. So, I mean, we then have to take our own responsibility of how we spend it. So in essence we become, the people in essence, become like a mini-government. We make decisions that are going to improve people&#x27;s lives, whether it be let&#x27;s fix everyone&#x27;s teeth, let&#x27;s fix everyone&#x27;s health, let&#x27;s remove people from credit card debt, or let&#x27;s make loans where people are not losing their homes. There&#x27;s many many ideas: let&#x27;s clean, let&#x27;s provide water in low-level regions, let&#x27;s provide funding to clean up this piece of land or that piece of land, or let&#x27;s purchase this piece of land and do some agriculture with a little, you know? So then the people become self-responsible, which is what we&#x27;ve lost as a humanity; everything gets handed over to the government. The government must fix it, but the government has no control, none whatsoever. None whatsoever. You heard me mention about the 26 levels above the president; that tells you that those are the people that run the government, not President Trump or not Obama, although Bush Jr. was involved, as we know, because of that family. But, you know, this is an opportunity, and that&#x27;s all it is, and we have to take it by the scruff of the neck and not fight over this and fight over that and be distracted by elections and all kinds of other rubbish on the mainstream media and all work together to fix the relevant countries. And it&#x27;s not just in America. It&#x27;s every single country, and people have to step up and stand in their own personal responsibility and take actions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004711">00:47:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Wait - back this up for a minute. We have... 1.8 trillion dollars given to fund the operations of the United States government. That is a fraction of the money that has disappeared from the military budget, repeated times over the years as we know. My question to you, Kim, in the course of funding the government through the process of these funds, is there any hope that we&#x27;re going to get forensic accounting and that we&#x27;re ever going to see where the money actually has been disappeared to and ultimately, I think the people...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I can tell you where it&#x27;s been disappeared to; give me the date and the time, and I&#x27;ll tell you exactly where it disappeared to.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we know that much in granular detail. Why are we not going after these people, much as you would in a bankruptcy proceeding, where debtors basically have to pay back that which they owe, or at least under bankruptcy some fraction of it? If we were able to reclaim the funds that have been disbursed through illegal activities on every level of the government. How much money are we looking at sitting on? We&#x27;d have a surplus.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004838">00:48:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">$24 trillion.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah. Asinine. I mean, if you&#x27;re just speaking at the military specifically, Rothschild et al., because they believe they have power of attorney over all financial affairs, and all of the citizens, and all of the money that the citizens own. This is what they told me. And I could read you the statement I got back from them, if you&#x27;d like, but this is what they told me. They told me that they own 50% to 80% of every single corporation in America; every citizen in America; the government; anything the government has or earns or receives as it relates to the United States. And they pretty much feel this way about the entire world. Now, does Rothschild have the money right now to pay us back - meaning us the people, not us the trust - to pay us back the hundreds of quadrillions of dollars that&#x27;s been stolen in their 500-year tenure? And this also goes for the Chinese elders and the other Dragon Families as well. Dragons are not all Chinese, as you know. British is the Blue Dragon, which is Rothschild. The Black Dragon is a combination between the American Deep State and China - the Kuomintang.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005006">00:50:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you&#x27;re asking, &quot;Where did the money go?&quot; This is your answer. It either goes to them or one of the corporations that they use the trust money to control. They also built everything they have off of all of the funds and assets that came out of the trust. During their tenure - until 2007, when they were completely cut off - you had to put something into the trust in order to get something out. So they would have to pledge a country&#x27;s in-ground resources, as an example, or they would have to pledge a human soul, aka your birth certificate, or something else, into the trust to get anything out. Because the person that sat in the chair before me was looking to own everything. By 2007, he pretty much did. Every parcel of land, every drop of oil, every diamond in the ground - basically he owned the entire planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005108">00:51:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And then in 2007, he cut them all off. All of the Dragon Families were cut off. Why? Because he didn&#x27;t care if they expired. Their system, he knew, was flawed. He had acquired every rock of mineral of worth of any importance on this planet, and every human in it, by that point.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">He didn&#x27;t care if they existed anymore; he just considered them slaves. So you know, he had gotten everything he wanted, and then therefore he cut them off from their paper, worthless paper that he created as having value. So that they would take their power and their paper and their greed, and he didn&#x27;t care because it was worthless in the Universe. It&#x27;s only worth something to us humans. It means nothing in the rest of the world or in the Universe and it has no value.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005202">00:52:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he was giving them something he deemed as worthless, which really is, in exchange for valuable minerals that worked for technologies and all kinds of things. So the funds, the worthless papers, that were stolen from the government by the other people who like to have control over the worthless papers, we know that they disappeared. They were spent on creating wars and false flags and diseases, and the SSP was funded this way as well. All of the money that came out to fund the military also came out. Everybody says, &quot;Well, where did the trillion dollars go?&quot; That&#x27;s on the Internet; everybody sees it a lot - it went to fund the SSP. Because the SSP does not exist. But it exists - very much so.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005251">00:52:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You just stepped into a quagmire with that. So you&#x27;re telling me on one level that Catherine Austin Fitts is absolutely correct?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I don&#x27;t know who that is.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes. The SSP does exist - it&#x27;s the Nazi breakaway group. It&#x27;s been going on since the 40s.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">100 percent.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Same people. The same Paperclip troop. But practically, along with the Zionists, they are running the American country, or have done - not for much longer they won&#x27;t. You know, the SSP are controlling out of Norfolk, Virginia; they&#x27;re in Wright-Patterson, below Wright-Patterson, not as far down as...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005338">00:53:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Not anymore!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Not as far down as they used to be able to go! [laughing] Because we kind of dealt with that situation. But you know, the SSP were the ones that fired the missile at Trump from Whidbey Island. It&#x27;s all a big game to them, when you just use different groups at different times, but it&#x27;s the same mask. And the SSP does exist. What Trump&#x27;s trying to do is counteract the old SSP and create a new one, because eventually when the knowledge and reality of what real life is now - not then - kicks in, we&#x27;re going to need our own protection force for the planet - not to fight in Syria or Afghanistan or any other country that is playing magic war games, which is just a money-generating scheme. And it gets rid of history, and a load of souls die; that&#x27;s how it works. But we&#x27;re going to need a global Space Force - because we have to learn how to protect ourselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005503">00:55:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because what happened 16,500 years ago when the Draco came in, they came in as the saviors. We&#x27;ll save you from the wars that were going on then. And it didn&#x27;t turn out too well. So on that level we&#x27;re going to need, not an American Space Force, a global Space Force, where all the countries are working together. And going forward, not only do we have to share technology and space, we have to share/learn to share resources as well. So just because there&#x27;s oil in North Dakota doesn&#x27;t mean it belongs to America or Americans; it belongs to everybody; all in-ground resources belong to every single person on the planet.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Agreed agreed agreed.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we have to get - we have to start being adult in our decisions. Not childlike. This &quot;Now that&#x27;s my ball - you&#x27;re not having it,&quot; yeah, that&#x27;s childlike. We have to become adults, and we have to set up a new version of the UN where every country is involved, and it&#x27;s all about sharing resources and sharing technology, sharing ideas, and planning for a global Space Force where we, humanity, can protect ourselves from outside issues. We&#x27;re going to need it. You know we can&#x27;t expect the Galactic Councils of babysitters for thousands of years like the Parents and the Draco and the Covens have. We have to be more clever.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005643">00:56:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, we&#x27;re bumping up on almost the end of the first hour. I want to honor the people that are in the chat room. There&#x27;s a few of you out there and good comments. One question has come up. This may actually be a key question because it&#x27;s one that I&#x27;ve had as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim, where is the bank that handles the trust transactions? Is it a sovereign bank? A Swiss bank?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005709">00:57:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, let me give you the brief structure, because you said we&#x27;re coming up at the end of the hour here. The trust has its own country code. Every central bank in the world has its own country code. So the trust is a bank unto itself, and technically, for financial purposes, is a country unto itself. The assets held within the trust are held within that jurisdiction. So they&#x27;re held underneath that country code. Does it have a flag? Is it a flag-flying country? Does it have plots of land? Well, it owns all the land because the establishment of the then kingdoms, and now governments, was all established underneath that country code.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005755">00:57:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Therefore, every central bank is a subsidiary of the trust right now, and every country is a sub-sovereign of the trust. The only true sovereign is the trust. This is what we&#x27;re trying to unwind. As an example, the Queen of England is a sub-sovereign of the trust. The Holy See is a sub-sovereign of the trust. The Vatican is a sub-sovereign of a sub-sovereign of the trust. The Rothschilds and the Dragon Families call themselves sovereigns and whatnot because they were trustees for the trust. So the fact that they were the only remaining quote-unquote sovereigns, not yet enslaved by the system, is over now, because their sovereignty no longer exists - because they are no longer part of the trust. So them and the thousands of Dragon Family members worldwide, promising global immunity and sovereignty. The UN is no longer a sovereign entity unto itself. The Bank for International Settlements is no longer a sovereignty unto itself, as it was a sub-sovereign of the trust.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005906">00:59:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As the main sovereign, the trust can revoke anyone&#x27;s sovereignty who is not adhering to the rules and regulations of sovereignty. Which is, you can defend yourself and the life of an innocent. You cannot be an aggressor or an attacker in any way shape or form, so not just physically but also financially. There are many different things that you cannot do as a sovereign person, taking responsibility for your own self and your own actions.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We are working to unwind this system of control. The U.S. is a sub-sovereign of a sub-sovereign of the trust, meaning the U.S. right now is registered as a sub-sovereign of Crown, which is Rothschild, not the Queen of England. It is the reason why every president goes over and goes through a second inauguration underneath the Queen. Because she was the sovereign granting Crown sovereignty as a sub-sovereign of the trust. So all of these things have to be unwound, but to answer your question, the banks that you see with these people running around with these assets saying, &quot;Oh, they&#x27;re at UBS,&quot; or &quot;Oh, they&#x27;re at this bank or that bank.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010021">01:00:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, yes and no. The way banks are structured are, the holding company is actually held within the trust. The bank itself, so UBS of Switzerland or UBS in the United States as an example, are only corporations formed under the holding company, which owns all the banks, which is within the country code listed under the trust. They are all owned by the trust. You have to put something in to get something out. So when J.P. Morgan wanted to form J.P. Morgan Chase Bank, all of the stock of the holding company went to the trust. So yes, there may be an owner and shares being sold of J.P. Morgan, N.A., North America, but the real holding company is in the trust. They&#x27;re just not recognizing that as that fact at this moment, because the people who are running it want their trusteeship back, and they think that they should have ownership. Which is what, in today&#x27;s, if anybody&#x27;s been watching the Internet, which is what Anna von Reitz wrote today. Give the trustees, give the old trustees back their rights.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010133">01:01:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, we&#x27;ll go into that in the second hour, because there&#x27;s so much you could/we could say about Anna von Reitz. I don&#x27;t want to go there right now. But thanks, that was a pretty condensed answer, and it covered a lot of the material in the document that Thomas had shared with me from back in June, which we&#x27;ll post up with this show on the website or YouTube or wherever this winds up.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;re going to take about a six-minute music break here; give everybody a chance to just breathe and absorb. And then we&#x27;re going to come back. And I want to go into this global martial law, because I think this is where we can kind of pop the top off of some things. So we&#x27;ll do all that on the other side of OffPlanet Radio. I am Randy Maugans, and we&#x27;ll be right back.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010410">01:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And we&#x27;re back to hour number two of OffPlanet Radio on Spreaker.com, oddly enough. And it&#x27;s 1 11, 1 11-11-11. The numbers just keep lining up, so I don&#x27;t know. I mean, I kind of tend to get to a place where I go, &quot;You know, this shit means something.&quot; And it&#x27;s been a good ride so far. How y&#x27;all doing out there? It&#x27;s nice to be live again. Wow. This is actually kind of fun for me because I don&#x27;t have to worry about video, and I don&#x27;t have to worry about the echo chamber of YouTube and all the distractions. And yet at the same time we get to plant our feet down and kind of interact with people in a live venue, which is kind of fun. The energy is there. And you&#x27;re all part of that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I need to say thanks to a group of people who are very special to me, and that is our people who support us on Patreon. And this is not an ad; it&#x27;s not asking you to go join or anything. I just want to say thanks to them because they make it possible for us - me and Emily - to do public-side things like this that are important. That&#x27;s part of what support does: we give them back certain proprietary material, but in exchange we&#x27;re allowed to operate in the public venue for the greater good of getting information out to humanity.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s up to you to decide if it&#x27;s valuable or not. It&#x27;s up to you to discern the truth of what you hear, and it&#x27;s up to you to decide if it&#x27;s valuable or not. It&#x27;s up to you to discern the truth of what you hear, and it&#x27;s up to you to then take the information that you get and step out and do something positive, because that&#x27;s what this is really all about. And with that, I welcome back Thomas Williams and Kim. Guys, we&#x27;re ready for round two.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, we are.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010605">01:06:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We are indeed. And so, we kind of left this dangling in the air, but there is obviously a fair amount of distortion out there in the echo chamber. And you brought up Anna von Reitz. And I don&#x27;t know if you want to reprise that statement or just let it stand for what it is.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, you know, she&#x27;s a very knowledgeable person.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, she is.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">As it relates to all of the legal things that have happened here in the States, how we got here from there, and for the education that she&#x27;s given to all of the people in the world that follow her, I have the deepest amount of respect for her. Why this woman talks to me on the Internet blog for the whole world to see and hear in a way that is... less than savory, especially with someone with her level of knowledge and experience, is beyond me. She just keeps doing it over and over. I mean, I&#x27;ve asked her to please just leave me out of your things and go back to your legal things; you&#x27;re educating the people, and I think that&#x27;s great. And she just keeps going on and on and on.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I don&#x27;t know what else to say.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010728">01:07:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The problem with her is that someone else is pulling her strings. I think regular listeners to THI know exactly who&#x27;s pulling her strings and feeding her scripts and telling her to disrupt. And, you know, she has, as Kim said, so much to offer. We did, or Kim did, reach out to Anna von Reitz at least twice, and unfortunately, Anna von Reitz, or her puppet masters, decided that they wanted one third of America&#x27;s in-ground resources to hand to the Vatican and subsequently Chinese elders. So she&#x27;s not interested in helping the people, as she portrays. And yet she does help the people with her history and legal stuff. But we would love nothing better than for Anna von Reitz to drop the puppet masters we know she&#x27;s working for and come and help the people. She has much to offer. That&#x27;s why Kim reached out to her.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010838">01:08:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Both sets of calls were for money for non-existent tribes or Chinese elders or the Vatican, which is a private secretary to the Pope. Well, I think we&#x27;ve all had enough of the Vatican&#x27;s control and heinous methods and experimentation programs called religion. And we need to move past that and move forward. So we would love for Anna von Reitz to step forward with us. We would love David Wilcock to come and help us and not work for Covens and Gaia TV. You know, even Drake, even Keenan. You know, we&#x27;re all in it. And all of them are being used by higher elements. Where they can&#x27;t operate. Step out of it and come back and join the people, not look after the self. This is going to be the key going forward. It&#x27;s not going to be about service to the self; it&#x27;s about service to others. That&#x27;s why me and Kim are in these positions, because we&#x27;re all about service to others. You can&#x27;t do this job being service to yourself; it&#x27;s too easy to walk away. You know, with goons, with guns, threatening the enemy, trying to abduct you, and all kinds of other stuff. It&#x27;s easier to walk away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011003">01:10:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if Anna von Reitz wants to quit her puppet masters and come and work with us, we would welcome her. But she can forget about the old trustees coming back into this. They did nothing for humanity. The Chinese elders, as they&#x27;re called, have been part trustees for the last 500 years. How much did they give to the people for humanitarian projects then? Zero. And they&#x27;re always going to give zero. This time it&#x27;s going to be different.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011038">01:10:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The humanitarian projects were conducted, and we mentioned FEMA. That&#x27;s largely just a ring of funneling assets in and out. As you pointed out in your own show, Thomas, how they were basically ordering materials and then shipping them back later, while the payments remain on the ledgers - there&#x27;s no refund. So, this is actually corporations that are feasting off of the largesse of the people and the misery of the people that are affected by these, what I sometimes believe are definitely man-made natural occurrences.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I have a question here...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Create the problem, create the solution, right?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Exactly, exactly.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Create the war, fund the war.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And make money in the process. That&#x27;s been the mantra for the last, well, in our accounting, at least a hundred years. There&#x27;s a question in the chat group, and this actually goes into both the material that was in the document and also some of my own questions. But the question came up. We all have Treasury accounts, or at least used to, although not everyone knows it, so we should use the Treasury to disperse funds... only one institution to... Sorry, that&#x27;s a little clumsy there. But basically it goes into the question of the fact that we had trust accounts established largely as a result of the 1933 bankruptcy, which was a pay-and-go system as it was originally set out, but was ultimately derailed, and we were put on the spit for paying for everything twice. Comments on that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011226">01:12:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Let me tell you, the Treasury accounts that everybody is talking about, I assume, are where the birth certificates were pledged.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Collateral, is that right?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s correct. That&#x27;s my understanding, yes.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. The accounts that exist where the birth certificates are deposited are called Treasury of USA. Treasury of USA is a Dragon Family, or was a Dragon Family organization. It has zero connection to the Department of Treasury of the United States. It is not a government organization. It was a private Dragon Family corporation, for lack of a better term.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Slush fund.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011318">01:13:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Right.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So the way the program was sold to the participants, which would be the Ways and Means Committee in the United States, your Department of Commerce, and the U.S. Government. And the way it was actually sold - and it&#x27;s not only the U.S. that has this program; by the way, it&#x27;s several different countries throughout Eastern and Western Europe that have the program - they guesstimate, based on the year that you were born, based on what they believe at the age of 18 to the age of 50, then it went to 55, then 60, then 65, how much in tax you will pay in the future. And as an example, if you were born in 1970, they guesstimate that you&#x27;ll pay some odd $10 million in taxes over your lifetime.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011414">01:14:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Just as an example between: you have your state tax, you have income tax, you have social security tax, you have VAT tax, you have sales tax, you have tax when you travel, tax on gas, and tax on every single thing you do in your life, right? And the reason why they kept increasing and changing from income tax and no income tax, and income tax again - and I&#x27;m going back to the 1800s - and then you had war bonds, you had all kinds of things that were done over the years, right? The reason why the tax keeps increasing is that they needed a higher value for the bonds to sustain the program. So the program - the way it was sold to the people - was that if we deposited these birth certificates into the trust, which is where they are, by the way, or hopefully not for much longer, but where they are currently, to the ANNA system in Belgium, in cooperation with the XN system in Belgium, and you can look these things up, they do exist. The trust would trade against those bonds and issue payment against those bonds for programs that are to sustain the health and welfare of you as a citizen, for example, of the United States.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011540">01:15:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Things like Social Security, as an example; free public education; the police department; the Coast Guard; the Pentagon; the EBT or food stamp programs; free health care; Medicare; retirement payments; these types of things. This is what it was supposed to be utilized for. So the money would go every time into what&#x27;s called Treasury of USA, and then it would trickle into the government departments during budget time. So when the program started, there was some odd 98% or so of the funds that were going into the government program, Department of Education and whatnot. By the time it ended in 2007, when the trust bought its last bond in March of 2007, there was probably somewhere around, I don&#x27;t know, two to eight percent going into the government program.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011648">01:16:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And so it ended at that time. The Treasury of USA&#x27;s contract officially ended with the trust in March of 2014. Therefore, the trust was no longer obligated at that time to buy any bonds, and it was no longer obligated to return any trade proceeds through Treasury of USA into the government. Or any of the respective governments. China also has a similar program. Denmark has a program. UK and all the Commonwealth have the program. A number of different places have the program. And in the places where the program didn&#x27;t exist, free public education doesn&#x27;t exist. That&#x27;s one example.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011733">01:17:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The reason why the IRS - virtually every dime that goes into the IRS - it goes out to Rothschild Bank right now is because the coupons on the bond note of your person are the taxes collected from you as a person. It goes to pay off the bond note or the debt. Does this need to be the case any longer? The answer is no. It can be completely unwound, and the IRS needs to return back on the continental United States soil. And all the taxes 100% collected need to go to the government where they belong. Therefore, if this is done, and Thomas and I have done the math together for hours one day, remember Thomas? (Yeah.) We could actually go to a straight spending tax, which means you pay on luxury items, you pay on non-essential items. I think there would have to be a small half a percent or quarter of a percent or something taxed on food, and you could eliminate income tax completely and totally.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011840">01:18:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, when I heard you talk about that, first off, the IRS is not constitutionally mandated, as are any of the alphabet agencies that we presently have umbrellaed under USA Inc. And my question is, is it even useful at this point to continue to use an agency which has no lawful mandate and which has such egregious crimes against individuals on its records? I mean, as one of the people who has been terrorized by the IRS, I really would hope this organization would be just taken down and we would go back to the Treasury itself actually doing its job and the Congress actually doing its job. Let&#x27;s talk about Congress for a minute. This is the largest pack of criminals sitting in one body on planet Earth outside of the Vatican. And yet nobody ever brings up the fact that these guys have been screwing us for a hundred years now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011947">01:19:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The problem with the, for the sake of the IRS, you know, this has been brought up in the show. Yeah, I think we have to change the name because of the implications behind it. But you know there&#x27;s a lot of people who work for the IRS that are not criminals and corrupt, and there&#x27;s a lot of people who work because of the IRS, accountants and whatnot, and financial advisors.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, as I said to, well, as I told one accountant who worked for the IRS, you do have the option to go get an honest job somewhere because, from my standpoint, you know,</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There has to be, in my opinion anyway, there has to be...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ll get off of this in a sec.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A phasing out and a phasing in, or a phasing in and a phasing out. The first thing which is already being worked on, as Kim said, is getting the IRS off Puerto Rico and back to the mainland United States, where it comes under American control, not USA Inc. You know, it&#x27;s important people understand the USA is not America. The United States is Europe, not America. And the government&#x27;s been run by USA Inc. Operating as the government, but it&#x27;s not the real government. We haven&#x27;t had a real government since 1871. We haven&#x27;t had the original constitution since 1871, the organic one. And so all this is being worked on currently.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012127">01:21:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">We technically haven&#x27;t had a sitting Congress since 1861. (Yeah.) Lincoln reconvened them under martial law.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s when the first income tax came in.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And I did kind of pop off there a little bit about Congress and the IRS, and those are personal triggers, I admit. But I think we have to go back and understand something about the United States or America as it was founded. Maybe the reality is that this was always a business venture. I went to Jamestown Colony maybe about seven years ago and looked at the documents on display there. It&#x27;s very clear to me that from the very beginning this was a business venture funded by the Crown, and maybe part of the reclamation of America is to admit what we are and then to move forward under a different structure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012229">01:22:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">A hundred years before America became, quote unquote, &quot;America,&quot; not that there weren&#x27;t people living here and it wasn&#x27;t a functioning country that had been trading for thousands of years with other countries, by the way. The land now known as America or the United States, the Republic, or whatever you want to call it, it was actually designed to be the power center for the New World Order. In 1975, that plan was revised, where they decided in 1975 they were going to start breaking down America and have it run from the East, from China. They decided that America was getting too much power. Now they decided seventy-some-odd years before World War II that the UK was going to no longer be the power center of the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012330">01:23:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They defined its weaknesses as, how would you say, the leader of the world, the new world order, right, as that plot of land. They defined its weaknesses, and then they made sure that they didn&#x27;t repeat that process in the land now known as the United States. So it was strategically chosen as a location for this based on its inaccessibility to be attacked, number 1; that was one of the reasons. And they intended to take over all of North America and make it one country. And if you&#x27;ve been in the game long enough, do you remember the Amero?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012413">01:24:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh, yeah. Yeah, absolutely.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">They wanted it to be the currency for all of North America, and now the Amero has become the Dinar. They&#x27;re selling that, and you know.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The Dings and the Zings and the Dongs.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Umm-hmm. Yeah. But nonetheless, it was actually designed for their pleasure. It was never designed to be a free country.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012437">01:24:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And so we have to deal with, you know, even the native people and their asserted rights, and that&#x27;s a whole other conversation we don&#x27;t have time for today. But one of the issues that comes up continuously in both my research and my inner thought process, has to do with these structures called corporations, which go back as nearly as I can tell in known history to Sumeria, Mesopotamia, that we&#x27;ve basically been running nation-state corporations for 10,000 years or more. This construct of the corporation appears to me to be, I guess what you would call a form of AI, actually, because it basically harnesses the intellectual power, energy, and utility of human beings into a conglomerate that itself is recognized as, I don&#x27;t want to use the word sovereign here, it is recognized as an entity unto itself. In contrast to the living soul, which is each one of us that walks around on two legs and is inhabited by Source. Is it possible that at some point we can end this grip of these corporations and do away with this? Do you know, just by virtue of the fact that all nation states in the Western world, and largely in the East as well, are also corporations, isn&#x27;t it time we recognize the danger of this and begin to move towards a form of law that no longer recognizes the superiority of corporate entities?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012620">01:26:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I just want to make a quick comment about that. In 1975, the plan of Hitler, who was your previous to-be ruler of the world person, as assigned by the Dragon Families. And yes, the Chinese people paid for it. And yes, the Rothschilds paid for it. And yes, the Bushes paid for Hitler. And I have those documents. But in 1975, that plan was revised, and it&#x27;s called the Non-Compete Plan. And it was written by a few generals, some American and some not, and it was spearheaded by Bush Senior. And the Non-Compete Plan was a plan to control every industry on the planet Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012708">01:27:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So in other words, even if you invented a new widget, say a new piece of technology, you would have to purchase your item from companies that they profited from. Now the system is flawed, and this is what I had written in the previous statement. You hit a precipice or a plateau in any kind of a non-compete plan because there is too much competition. There are too many countries walking away from the system, and there are too many companies that do not want to pay billions of dollars for a power plant that costs 100 million dollars from the UN. It was a nice control system, and I could explain it to you in detail, but they hit the precipice probably about 2 or 3 years ago. And you can&#x27;t go back; it&#x27;s been crumbling ever since, just because the [Non-Compete] Plan itself is flawed, not because anybody&#x27;s doing anything about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012808">01:28:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, eventually, people don&#x27;t understand, or a lot of people won&#x27;t understand that this planet was a harvesting program. The whole system was run for people, plants, animals, you name it, other beings to be harvested, including all the resources, and then they were going to destroy this planet in total once they got all the resources, and that&#x27;s where we were heading towards in 2012, and that plan failed. And that&#x27;s why some of them left at the time, because it failed. And changes are now being made, and you want to know how to take the corporate structure down is that when the trust funds come out and people create new companies to do things in a better way and hopefully on a need basis, not a greed basis. You know we don&#x27;t want loads of millionaires. We want people sharing it all out. That&#x27;s the difference between the old system and a new system. We can&#x27;t all be greedy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012923">01:29:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We have to learn to share everything out. And so, if you are cutting your costs down and you haven&#x27;t got the ridiculous markup profits that these corporations are doing, you can undercut them, so you don&#x27;t/we don&#x27;t have to knock them out; you just have to do things in a better way, work around them, you know? And we get good products and we create a network, for argument&#x27;s sake, the People&#x27;s Club, and the People&#x27;s Club funds new corporations, and they&#x27;re operating in a better way, whereby then they can create a cooperative, so you would vet a certain company to supply you for argument&#x27;s sake stationary, and if they&#x27;re giving you ridiculous prices because of the high profit margins, then they would not be part of that cooperative. And then if they want to be part of it, then they&#x27;ll come and adapt the same way. And then suddenly you&#x27;ve got a cooperative of companies all working together, all based on need for the people, not greed for themselves, and those corporations will just fall away rapidly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013038">01:30:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And in my opinion, this is one of the futures of the alternative media, because you do have the capacity to talk about, for example, alternative medicines that are available, natural cures to a thing. All of these things should be what the alternative media is focusing on: alternative industries, things that are actually going to be beneficial to the human person. And you can do that in a bartering-type way, like Thomas was just describing, or you can do that for financial means. But this is where all of the people don&#x27;t know that there is an alternative. There are so many alternatives out there to the corporations and to what the corporates have to offer. This is where, in my opinion, these things are going to start. Because it&#x27;s not going to start on CNN. They&#x27;re certainly not going to start... That&#x27;s right. They&#x27;re certainly not going to...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013132">01:31:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the one thing you can do, and eventually, once there&#x27;s enough money within the alternative media, you can eventually buy flight time on any channel you want. So the news may not be reporting it, but you can buy enough air time to run a three-minute commercial which talks about whatever it is you want. They can&#x27;t reject it if you&#x27;re paying for it. You&#x27;re going to have to be smart about it because once the first commercial goes out explaining what&#x27;s really going on, then they&#x27;re not going to talk to you again. So there&#x27;s going to have to be the next guy and the next girl, and the next person.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">But as long as you&#x27;re paying, they&#x27;re going to air it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013214">01:32:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">So this comes into the other area I wanted to talk to, and this is a big subject, but I think we can address it. Thomas and I talked about this off-air. Global martial law. And we&#x27;re not talking right now about anything we&#x27;ve seen in this century but something much more ancient. So maybe you guys can, because this will actually inform the conversation of what is occurring now. One other thing I want to ask before we do that, Kim: do you have a blog? Do you have a public-facing blog where people can reference any of your work?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No. No, I don&#x27;t. I air certain things through Thomas. Occasionally I respond to things on other people&#x27;s blogs and whatnot just because it&#x27;s something I have input on or feel needs to be addressed. I have no intention whatsoever of becoming an alternative media blog person, popular person. I would start talking about the blue chickens or purple chickens or some other, you know, whatever, and then everybody would want to hear about it. You know, I have no intention of being popular in any circle, anywhere. At all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013341">01:33:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Well, let&#x27;s go back to the global martial law, the lockdown of planet Earth, and let&#x27;s do the back history on this.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas, do you want me to start? (Yeah.)</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. When I first got this position, I guess you would say, I was approached by the people you know as M - which is not Marcos - and the other two people here that I described as being at the top of the world. It had been within 30 days of me being in Russia, where I was notified of this purported position. And they sent me this sheet of paper that&#x27;s probably about six feet long and maybe about three or four feet wide. And I was actually going to; we were talking about doing video, and I was actually going to show everybody on the video this plan. It&#x27;s called the Global Martial Law Plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013449">01:34:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, global martial law began on the planet Earth 16,500 years ago. At the time there were between five and seven - it&#x27;s debatable - tribes on the planet Earth. And one of the tribes was at war with another tribe, and in marched the Draco. And the Draco basically convinced one of those tribes that they would give them advanced weaponry if they would agree to global martial law. And under global martial law, the M, et al., became the dictator of the world, because under martial law, you know, the head general is the one that takes over the country, so to speak, or in this case, the planet. So they got their advanced weaponry, they won the war, and M took control, and he&#x27;s been in control ever since.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013546">01:35:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So he keeps revising the Global Marshal Plan where you will have one world order and that world government will serve him - at the time, he&#x27;s dead now - and that was the plan he was always working towards was to be the king of the world. So under the Global Martial Law Plan, it required them to control basically every resource on the planet Earth, but they definitely had a hierarchy and a structure, and this is what I wanted to point out. So somewhere at the top of the sheet are the three gentlemen, and he uses a Sun Tzu wheel type design. And I have posted this before, and Thomas can pass it along to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013633">01:36:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the three of them were at the top. So it was a father and some brothers that were at the top. Then you had 21 Parents. Then you had the Coven leaders, and then each Coven had one to two people that reported to its respective leader. Then you had a whole bunch of other groups, which are predominantly - let&#x27;s call them 36 to 39 different groups, each one hailing from a different location. And then, after you get past all those groups, then you start hitting people. So then the people are down here, where you have your Dragon Families, your Asian dynasties, and whatnot here at the top of the people food chain.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013721">01:37:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the point I wanted to make is that there are several layers above, always was, before you get down to these people that call themselves the rulers of the world. They&#x27;re far from the rulers of the world; they never ruled the other 36 to 39 groups that are here; they never even came close to having a direct conversation with the people at the top. The only reason why those people ever reached out to me is because their goal was to control me. I didn&#x27;t know that at the time. I thought that they were working together with us; they said they had changed their ways and so on. But you know, then I sat in meetings with them every Saturday for three years, and they used to laugh at the amount of lies that they could tell, and everybody just believed them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013811">01:38:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And then you get down to the Families, and then several layers below the Families, you start getting to the government. So the people that are saying, &quot;Oh, let&#x27;s fight the government, fight the government, fight the government.&quot; All those instructions came from so far away from the government; the government is just following along with the bouncing ball. The unfortunate part about what&#x27;s happening now is the 39 groups are no longer cooperating with the Dragon Family. There&#x27;s nobody left up here. I think there might be one Coven left, possibly two, and those people - I don&#x27;t talk to those people. And then there&#x27;s no Parents left, and so you&#x27;ve got sporadic stragglers up here at the top, but they were never the brains of the operation. The brains of the operation always was, I call them - I&#x27;ve nicknamed them the &quot;trio of death,&quot; just because of all the things that they did - but they were always the brains. So there&#x27;s no brains behind the Dragon Families; therefore, there&#x27;s no brains behind the Pindar; therefore, there&#x27;s fragmented information that they received over the years, and they&#x27;re trying to execute on a fragmented plan that somebody else wrote. Which is why they don&#x27;t understand why none of their stuff is working anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013933">01:39:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these people that are purporting themselves to be the leaders of the world - which governments are still listening to - have no sense of a plan whatsoever. So when we found a loophole - meaning myself and a few other people found a loophole - and it was actually one of the original tribes that signed the agreement and came to us and said, &quot;Well, we don&#x27;t agree with martial law anymore; we want a peace treaty.&quot; And then I started thinking about it, and I&#x27;m like, &quot;Well, you know, a peace treaty - that&#x27;s the loophole.&quot; So we went to the Council, which is not - there are Draco involved, but there&#x27;s hundreds of thousands of species involved - and we petitioned for a peace treaty here on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014026">01:40:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Once that peace treaty was signed and agreed to, and consented to by the Council, then we are now under a peace treaty. Which means that anybody violating the peace treaty is subject to the UPU or any other enforcement unit. And that includes any of humanity that&#x27;s not following along. So that is the significance of global martial law, where we had one dictator for the entire planet, which is what put them in control - not the Dragon Families; they were always sub, sub, sub, sub levels down. But that&#x27;s how we basically gave up planet Earth to a third-party entity.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014113">01:41:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, the Dragon Family is about seven-eighths of the way down that page, if memory serves me correctly; that shows you the level. And the government - the piece of paper is about 5 or 6 feet - the government is on the bottom line; it&#x27;s about three quarters of an inch, which is the space of the piece of paper. In other words, they&#x27;re [at] the bottom of the list. In galactic terms, they&#x27;re not even in this solar system. And this is what people really have to understand. You know, you can blame Trump for this, that, and the other. What he&#x27;s trying to do, and what we&#x27;re trying to do, is give control back to the government, because the government did not have any control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014158">01:41:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Nobody alive in America today has operated under a real American government. It&#x27;s all been corporation. This is why we&#x27;ve got our letters, names; print your name out in capital letters. Well, if you go and look at tombstones, they&#x27;re all printed out in capital letters. Why? Because it means you&#x27;re dead, which is why they call it the &quot;corporation,&quot; a fiction name. Because the corporation, if you want to set up a Randy Morgan&#x27;s corporation, they&#x27;ll ask you for a fictitious name, because the corporation &quot;Randy Morgan&quot; already exists, because that&#x27;s when they changed all the system. But all the top end is gone pretty much. This is what I talk about in our show about the inner war and the external war. And most people are waiting for the external war. Well, the most important thing is the internal war. The most important thing is not getting money out or funding. There&#x27;s far more important things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014306">01:43:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, money in and of itself is a control system. What people fail to realize and what people need to grasp is that those pieces of paper are exchanged for your lifeforce energy. This is what they&#x27;ve been really harvesting - your lifeforce energy. And the idea of trading your lifeforce energy, which is the most valuable thing on this planet, for pieces of paper and bits of metal, once you understand the concept of it, is absolutely absurd. Now, can money help? It can, but it can only help if we change the way we operate - not the way they operate - the way we operate. And we can&#x27;t carry on just hoarding it and leaving people homeless on the street, walking past them. You can&#x27;t carry on doing that. You can blame the government for that. But as Kim said, the government&#x27;s not getting any money - it all goes to the Rothschilds. These are the same people that all the RV crew people are waiting to give money to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014416">01:44:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They&#x27;ve never given money to anybody. And if they were that flush with money, why are they selling all those estates off? Why have they sold all the stocks off early on this year? Why have they just done an art sale in Sotheby&#x27;s? Because they&#x27;ve got no money. All of it is now in the trust, and we need to get behind it and get the people in the government a chance to actually operate for and by the people, because at the moment, whether they&#x27;re good, bad, or indifferent doesn&#x27;t make a blind bit of difference. They&#x27;re only allowed to do so much. Randy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014504">01:45:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, thank you for that. The final round on this because this two hours has flown by like, wow.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I told you you need eight hours. [laughing]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, yeah. And first off, is there anything that we&#x27;ve left sitting on the table that either one of you wants to put out at the current time? Either updating the situation or updating the information because I don&#x27;t want to leave that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">I would like Kim to briefly touch on the military situation and the equipment. Because I think people need to know. People around the alt media say &quot;when is the military going to do this and when is the military going to do that?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014547">01:45:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, the military - and they will even tell you as much - are waiting for the Global Reset, and to be paid on their dinar, and they are taking orders directly from the Chinese elders and a gentleman by the name of John von Wright, which is the current general over the Nazi party. So, is the military going to come to the aid of the United States anytime soon? You know I sure hope so, but right now they are working on the economic assassination of the United States, on behalf of the Chinese elders, in exchange for special positions which they&#x27;re being offered over in China, should they do a good job. So is the military coming to the aid of the country? No, they are completely - this is why Trump passed that $700 billion military budget. He passed it in the hopes of buying the military from the Order, or Rothschild - which is your Chinese elders, your Dragon Families, whatever you want to call them. He was making an attempt to buy the military back.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014657">01:46:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It didn&#x27;t work. You know, the military is still reporting to somebody else in a foreign country, and I wish that wasn&#x27;t the case, but they are still exercising the Globalist Agenda, and you know, if I had anything to say to them while I&#x27;m sitting here on the phone, you know, remember you took an oath to these people. The 380 million people in this country, to protect and serve these people, and serve at the pleasure of the president. The president is Trump, like him or hate him. He is the president of the United States, and that&#x27;s who they&#x27;re supposed to report to, the Commander in Chief. Not to these people in China, who can&#x27;t even properly report to themselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014747">01:47:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If we are presented with a complete macro- and microeconomic plan of how the Global Reset is going to occur and how it is possible to have a revaluation of currency, we would be happy to review that plan. And if there&#x27;s any merit to it, then we will execute on that plan, and I agree. I will do that - if it is being presented in a way to us that makes macro- and microeconomic sense. So, if you need to go to your superiors over there in China or anywhere else, and ask them for a copy of this plan, we would love to review it. And then you don&#x27;t need to hack our system anymore. We&#x27;d be happy to give you the funds for the program if it is for the benefit of the people. Otherwise, I have nothing else to say.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014840">01:48:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, and it&#x27;s important to note this is not China, the government. Because they&#x27;re being used as well.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Or China, the people.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, no, you know It&#x27;s nothing to do with the country. Countries are irrelevant. Imaginary lines on a piece of paper, as Shane said once. And that&#x27;s exactly - they just use countries for their own benefit. America is being used as the military bully around the world now, like Britain was used previously, and Israel is being used and their people as a religious program designed to disrupt the whole of the Middle East. And China&#x27;s the latest one, so everyone hates on China like everyone hated on Russia for the last 50 years. When the country is not even communist, it wasn&#x27;t created; communism wasn&#x27;t created by Russian people; it was created by the Khazarians, the same as China.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And so we have to get away from blaming this country and that country. And start working together. Because these people are not interested in countries; they&#x27;re not interested in people. And we have to remove them quietly. Non-violent. All the advancements we&#x27;ve done with the trust - we shook this people down, that people down, this people down, this server down - you name it. Not one has been done by violence. You don&#x27;t have to be violent.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015011">01:50:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, we have, as a body organism, as human beings on this world, been plotted against and pitted against each other. We have been effectively our own greatest enemy. And it&#x27;s not lost on me that as we&#x27;re sitting here on 11-11, when the 100th anniversary of the end of World War I - which was not the war that ends all wars at all - it was actually the beginning of all the next wars that would follow it, including World War II, which opened up the Deep State, and got us to where we are today - that we need to stop finger-pointing and attacking each other as much as possible. And begin to work together as an organism. Each one of you out there is sovereign, in the sense that you are breathed of spirit and breathed of Source, and we need to recognize that within ourselves first, and within each other living being, and begin to operate going forward. And I don&#x27;t think anybody on this call today disagrees with that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015117">01:51:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">No, no absolutely. It&#x27;s about coming together, you know. We have to go away from us and them. It&#x27;s all about us - no one&#x27;s coming to save you. Kim&#x27;s not coming to save you; I&#x27;m not coming to save you. Randy&#x27;s not. Neil Keenan, Anna von Reitz, heaven forbid. We save each other; the ETs are not coming down to save us. Why would they? You can blame the Cabal all you like, and the Cabal have played a role, but we have also got to recognize our own issues, because we&#x27;ve gone along with a lot of it. Where we&#x27;re collecting wealth and ignoring our friends, family, and neighbors. Let&#x27;s stop competing with our friends, family, and neighbors, and let&#x27;s all work together. And I mean all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015214">01:52:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Healing the trauma of the collective conscience, and the shadow work - that&#x27;s really where it&#x27;s all at, folks. And you can hear that exhorted to you in numerous ways on Thomas&#x27;s show. Thomas, tell people where they can reach you.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thomas Williams:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, we go live every Thursday at 7:30 Eastern Standard Time. And the link is:www.spreaker.com/user/8955881</div>
+<div class="line">And you can also listen live on the website: thinkdifferent.thepeoplesclub.org</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015255">01:52:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Thank you both for coming on today. Thanks for fielding some questions, listening to me vent myself a little bit. And Kim, thank you for coming on and answering questions that I believe people wanted to hear; greatly articulated.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, I appreciate your time, and I appreciate everybody who&#x27;s listening on a Sunday on 11-11.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Randy Maugans:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">There you go. Yeah, we love you guys. Thanks for joining us. This is OffPlanet Radio. I&#x27;m Randy Maugans.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">The truth is out there. It&#x27;s inside you, and we&#x27;ll uncover it all together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015332">01:53:32</div>
+<br>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
