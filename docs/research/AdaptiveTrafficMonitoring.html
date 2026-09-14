@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive Traffic Monitoring and DDoS Defense</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #0f1620;
+    --text: #e6edf3;
+    --muted: #9da7b3;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --warn: #d29922;
+    --danger: #f85149;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.55;
+  }
+  main {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 32px 22px 60px;
+  }
+  h1 { font-size: 2rem; margin: 0 0 8px; }
+  h2 { margin-top: 34px; font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { margin-top: 24px; }
+  p { margin: 12px 0; }
+  .subtitle { color: var(--muted); margin-bottom: 26px; }
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 15px 17px;
+    border-radius: 7px;
+    margin: 20px 0;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .card strong { display: block; margin-bottom: 5px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    background: var(--panel);
+  }
+  th, td {
+    border: 1px solid var(--border);
+    text-align: left;
+    padding: 10px 12px;
+    vertical-align: top;
+  }
+  th { background: #1c2430; }
+  code {
+    background: #1b222c;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  .chart-wrap {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 14px;
+    overflow-x: auto;
+  }
+  .legend {
+    color: var(--muted);
+    font-size: .92rem;
+    margin-top: 10px;
+  }
+  .small { color: var(--muted); font-size: .9rem; }
+  ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  footer {
+    margin-top: 42px;
+    color: var(--muted);
+    font-size: .88rem;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Adaptive Traffic Monitoring and DDoS Defense</h1>
+<div class="subtitle">Using traffic velocity, historical baselines and standard-deviation bands to spot abnormal behavior before it becomes an outage.</div>
+
+<div class="callout">
+  <strong>Core idea:</strong> Do not ask only whether one IP address is making too many requests.
+  Also ask whether the <em>whole site's traffic pattern has suddenly become statistically abnormal</em>.
+  A distributed attack may keep each individual source below a simple per-IP limit while producing an enormous aggregate burst.
+</div>
+
+<h2>1. The Basic Model</h2>
+
+<p>
+A useful monitoring system can treat incoming request velocity much like any other time-series signal.
+Maintain a historical baseline for normal traffic, measure its variation, and compare current traffic with that baseline.
+Instead of one hard-coded threshold, use progressively stronger action levels as traffic moves farther outside its normal range.
+</p>
+
+<table>
+<thead>
+<tr><th>Traffic level</th><th>Interpretation</th><th>Possible action</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal to +2σ</td><td>Ordinary variation</td><td>Observe and log</td></tr>
+<tr><td>+3σ</td><td>Statistically unusual</td><td>Alert; inspect traffic composition</td></tr>
+<tr><td>+4σ</td><td>Highly abnormal</td><td>Managed Challenge on sensitive/dynamic routes</td></tr>
+<tr><td>+5σ and above</td><td>Extreme event</td><td>Aggressive challenge, temporary rate limiting, or emergency protection of dynamic/API traffic</td></tr>
+</tbody>
+</table>
+
+<p class="small">
+Statistical note: for a normal distribution, the one-sided 95th percentile is about +1.645σ.
+A +2σ observation is around the 97.7th percentile. Web traffic is not perfectly normal, so sigma bands are best treated as operational signals rather than rigid probability claims.
+</p>
+
+<h2>2. What the Chart Might Look Like</h2>
+
+<div class="chart-wrap">
+<svg viewBox="0 0 940 390" width="100%" role="img" aria-label="Illustrative request velocity chart with standard deviation bands">
+  <rect x="0" y="0" width="940" height="390" fill="#0f1620"/>
+  <line x1="70" y1="320" x2="910" y2="320" stroke="#6e7681"/>
+  <line x1="70" y1="35" x2="70" y2="320" stroke="#6e7681"/>
+
+  <!-- sigma bands -->
+  <line x1="70" y1="260" x2="910" y2="260" stroke="#3fb950" stroke-dasharray="6 6"/>
+  <line x1="70" y1="210" x2="910" y2="210" stroke="#58a6ff" stroke-dasharray="6 6"/>
+  <line x1="70" y1="160" x2="910" y2="160" stroke="#d29922" stroke-dasharray="6 6"/>
+  <line x1="70" y1="110" x2="910" y2="110" stroke="#f0883e" stroke-dasharray="6 6"/>
+  <line x1="70" y1="60" x2="910" y2="60" stroke="#f85149" stroke-dasharray="6 6"/>
+
+  <text x="78" y="254" fill="#3fb950" font-size="13">Baseline</text>
+  <text x="78" y="204" fill="#58a6ff" font-size="13">+2σ</text>
+  <text x="78" y="154" fill="#d29922" font-size="13">+3σ</text>
+  <text x="78" y="104" fill="#f0883e" font-size="13">+4σ</text>
+  <text x="78" y="54" fill="#f85149" font-size="13">+5σ</text>
+
+  <!-- illustrative traffic line -->
+  <polyline fill="none" stroke="#bc8cff" stroke-width="4"
+    points="80,265 120,258 160,271 200,250 240,263 280,248 320,255 360,244 400,259 440,247 480,238 520,252 560,241 600,226 640,218 680,190 720,145 760,88 800,45 840,82 880,128"/>
+  <circle cx="800" cy="45" r="6" fill="#bc8cff"/>
+  <text x="812" y="42" fill="#e6edf3" font-size="13">Extreme burst</text>
+
+  <text x="370" y="365" fill="#9da7b3" font-size="13">Time →</text>
+  <text x="20" y="180" fill="#9da7b3" font-size="13" transform="rotate(-90 20,180)">Requests / minute →</text>
+</svg>
+<div class="legend">
+Illustrative only. The important idea is the relationship between current traffic and the site's own historical baseline—not these particular numbers.
+</div>
+</div>
+
+<h2>3. High Traffic Is Not Automatically an Attack</h2>
+
+<p>
+A legitimate event can create a huge burst. A new report, a viral social-media post, or a link shared to a large audience might drive traffic several standard deviations above normal.
+The monitoring system therefore should not judge traffic volume alone.
+</p>
+
+<div class="grid">
+  <div class="card"><strong>Total requests/minute</strong>How fast is overall traffic arriving?</div>
+  <div class="card"><strong>Unique IPs/minute</strong>Is the burst coming from one source or thousands?</div>
+  <div class="card"><strong>Requests per IP</strong>Are individual clients behaving normally?</div>
+  <div class="card"><strong>Endpoint concentration</strong>Is one expensive API or search route taking most of the traffic?</div>
+  <div class="card"><strong>HTTP status codes</strong>Are 403, 429, 500, 502, 503 or 504 responses suddenly increasing?</div>
+  <div class="card"><strong>User-agent / request pattern</strong>Are the requests diverse like humans, or highly repetitive like automation?</div>
+</div>
+
+<p>
+A legitimate traffic surge often brings many new visitors who request a variety of pages and assets.
+A distributed application-layer attack may instead produce thousands of apparently independent clients repeatedly hitting the same expensive endpoint or making nearly identical requests.
+</p>
+
+<h2>4. Use Comparable Historical Traffic</h2>
+
+<p>
+A single lifetime average is too crude. Traffic usually has daily, weekly and event-driven cycles.
+A better baseline compares current traffic with similar historical periods: for example, Sunday evening traffic with previous Sunday evenings, or traffic immediately following publication of a new report with earlier publication windows.
+</p>
+
+<p>
+Known attacks should be excluded from the data used to calculate "normal." Otherwise an attack can slowly inflate the baseline that is supposed to detect it.
+</p>
+
+<p>
+For very uneven traffic, a robust statistic such as the <strong>median and median absolute deviation (MAD)</strong> can be useful because a giant spike has much less influence on the baseline than it does on a conventional mean and standard deviation.
+</p>
+
+<h2>5. Detection and Defense Should Be Separate Jobs</h2>
+
+<p>
+The monitoring system should answer:
+</p>
+
+<div class="callout">
+  "Traffic is now +4.6σ above its normal baseline, unique IPs have exploded, and one API endpoint accounts for 84% of all requests."
+</div>
+
+<p>
+The edge-security layer should then answer:
+</p>
+
+<div class="callout">
+  "Challenge, throttle, or block the suspicious traffic before it reaches the application."
+</div>
+
+<p>
+This is where a service such as Cloudflare is valuable. The application does not need to absorb an enormous request flood merely to decide that the flood is dangerous.
+Cloudflare can apply DDoS mitigation, WAF rules, rate limits and Managed Challenges before requests reach the origin server.
+</p>
+
+<h2>6. Why a Managed Challenge Is Better Than an Immediate Block</h2>
+
+<p>
+When traffic first becomes suspicious, a challenge can be safer than a blanket block.
+A legitimate user caught in a sudden surge can usually continue after passing the challenge, while a large amount of automated traffic may fail before it ever reaches the application.
+</p>
+
+<p>
+This is especially useful when the site occasionally experiences legitimate bursts from social media or newly published content.
+The escalation ladder can therefore be:
+</p>
+
+<p>
+<strong>Observe → Alert → Challenge → Rate Limit → Block</strong>
+</p>
+
+<h2>7. Keep the Raw Logs</h2>
+
+<p>
+Aggregate charts tell us <em>when</em> something abnormal happened. Raw request logs tell us <em>what</em> happened.
+Useful fields include timestamp, client IP (properly accounting for trusted reverse proxies), request path, HTTP method, query string where appropriate, user-agent, referrer, response status, and request duration.
+</p>
+
+<p>
+Historical attack logs are particularly valuable. They can reveal repeated endpoint choices, request shapes, timing behavior, user-agent patterns, error signatures, or other characteristics that later become useful WAF or challenge rules.
+</p>
+
+<h2>8. The Practical Goal</h2>
+
+<p>
+The goal is not to predict every possible attack or build a private replacement for a global DDoS network.
+The goal is to know what "normal" looks like for this particular site, recognize when behavior departs sharply from normal, preserve enough evidence to understand the pattern, and have graduated defenses ready before the application itself becomes the bottleneck.
+</p>
+
+<div class="callout">
+  <strong>Simple philosophy:</strong><br>
+  Learn normal. Measure deviation. Escalate gradually. Let the edge fight the flood. Keep the evidence.
+</div>
+
+<footer>
+Research note prepared September 2026. The chart and sigma thresholds above are an operational framework, not a claim that Internet traffic follows a perfect normal distribution.
+</footer>
+
+</main>
+</body>
+</html>
