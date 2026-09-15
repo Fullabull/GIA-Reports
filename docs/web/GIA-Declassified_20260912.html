@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Sep-12</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Sep-12 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Declassified - Beyond The Headlines
+        <br>Episode Three
+        <br>2026-Sep-12
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260912_GIA-Declassified.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the September 12 2026 Declassified report -- &quot;GIA light,&quot; the news and what sits behind it -- with the financial story running under the headlines. The Deep State has given up on controlling the Federal Reserve, having finally understood the Fed cannot issue new allocations of money and never could. The play now is making the Treasury Department the new Fed through the Ways and Means Committee, which is the Bavarian sector of the Illuminati; the Sanhedrin side still goes after the monetary system directly. Every country has a treasury whether its people know it or not, and &quot;ways and means&quot; committees exist everywhere, handling national health care, human health services, and social security in Commonwealth countries.<br>
+<br>
+What backs the dollar is a basket of commodities traded on the commodities futures market, whose back door is BlackRock&#x27;s Aladdin system. Everything listed there, from pork to cotton to oil, must trade in United States dollars, which makes the dollar a supply-and-demand instrument rather than a backed one. The dollar is layer one; your own currency is layer two, credited to the dollar&#x27;s GDP rather than your country&#x27;s. A return to the gold standard changes nothing while the Deep State still controls the gold, which was tied to the Alpha System long before there was a Federal Reserve.<br>
+<br>
+So the treasury departments of the world issue treasuries like pancakes against a crypto pot -- the new &quot;fake gold&quot; pot -- alongside cryptocurrencies nobody can reach: the USTC and USDTC, a BRICS coin, China&#x27;s Azure, the Amero, the Rainbow dollar. It changes nothing. AB Corp issues every rail in the fiat monetary system and the NSA and SUPERNAP run the nodes, so crypto was never peer-to-peer and a crypto dollar is fiat to fiat. With nothing left to leverage, Larry Fink&#x27;s proposal that the world pay for AI data centers out of pension funds is the next move -- pensions and Social Security already leveraged a thousand times, back to Mnuchin&#x27;s Treasury. They need those pensions intact, and they believed they had bought six months. The data centers promise access to the Simulation, which they do not have and did not get on the 11th.<br>
+<br>
+Kim has been using the standard AIs herself, for graphics and one MCP connection, and reports no chance of them taking anyone&#x27;s job: perfect prompts return ten fingers and three heads, a request to move a video loses the video, and the thing told her Genghis Khan last invaded a country in 2006. Hooked to the Simulation it would be another matter, because the Simulation already reaches your habits, your brain, and your body.<br>
+<br>
+The rest is what Kim names the circus: five thousand dollars offered for a Republican midterm vote, and the Lake of America joining the Gulf of America because territory means people and people justify issuing dollars from the Treasury -- the same logic at the Strait of Hormuz, where they are hunting something specific they believe controls the Middle East. Outbreaks in lettuce, blueberries, and broccoli are the war on healthy food, and food prices blamed on fuel are artificial hyperinflation, for which Kim recommends buying from farmers directly, co-ops, and canning. She closes on viewer questions -- the end of money is a ten-year prospect rather than five, Netanyahu knew, no country elects anybody -- and announces that the Beyond the Matrix series becomes Intelligence Reports.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000123">00:01:23 - Making the Treasury Department the new Fed.</a></li>
+<li><a href="#t-000230">00:02:30 - The committee nobody told you about.</a></li>
+<li><a href="#t-000433">00:04:33 - Aladdin</a></li>
+<li><a href="#t-000830">00:08:30 - How a new dollar gets born, and who takes a cut.</a></li>
+<li><a href="#t-001225">00:12:25 - Would a gold standard save us? No.</a></li>
+<li><a href="#t-001619">00:16:19 - The cryptocurrencies you will never get to hold.</a></li>
+<li><a href="#t-001818">00:18:18 - AB Corp issues every rail -- and your birth certificate.</a></li>
+<li><a href="#t-002056">00:20:56 - Paid in coins made of air.</a></li>
+<li><a href="#t-002519">00:25:19 - Larry Fink wants your pension to build his data centers.</a></li>
+<li><a href="#t-002945">00:29:45 - Kim tries AI, gets ten fingers and three heads.</a></li>
+<li><a href="#t-003702">00:37:02 - $5,000 to vote Republican. Not a bribe.</a></li>
+<li><a href="#t-003807">00:38:07 - The Lake of America, and why territory means money.</a></li>
+<li><a href="#t-004016">00:40:16 - The war on healthy food.</a></li>
+<li><a href="#t-004355">00:43:55 - Artificial hyperinflation, and what to do about it.</a></li>
+<li><a href="#t-004845">00:48:45 - What they are hunting under the Strait of Hormuz.</a></li>
+<li><a href="#t-005221">00:52:21 - Beyond the Matrix becomes Intelligence Reports.</a></li>
+<li><a href="#t-010128">01:01:28 - No country elects anybody.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Larry Fink comes out and says that we are going to now pay for their AI data centers with our pension funds. And that&#x27;s where pension funds and Social Security funds, which they&#x27;ve already leveraged a thousand times - even back in the Treasury days of Mnuchin - this all already occurred. So again, we&#x27;re rinsing and repeating various operations that didn&#x27;t work the first time, and they think that they&#x27;re going to work this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000029">00:00:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000051">00:00:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, this is the Declassified Report for the 12th, I guess you could say, by the time this comes out, of September 2026. And there&#x27;s a lot going on behind the scenes. And in this report, this is kind of like &quot;GIA light.&quot; This will talk about things that are going on in the news, and things that are going on beyond the headlines. So here we go. All right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000123">00:01:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So lots has been happening in the financial world behind the scenes. We&#x27;ve been talking a little bit about the fact that they&#x27;re trying to make the Treasury Department be the new Fed. They have gotten away from trying to control the Fed as much as they were before, simply because the Fed doesn&#x27;t have any power anymore. And it doesn&#x27;t have the ability to issue new allocation numbers of new money. It never actually did. That is where they&#x27;re mistaken, and they&#x27;re just now figuring that out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000200">00:02:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they&#x27;re trying to find new and inventive ways of issuing new dollars into the system. What you may or may not know is that the United States Treasury is not the only Treasury in the world. Every country has a treasury. Even if you think you only have a central bank in your country, you&#x27;re wrong - you all have a treasury. There is a treasury of China. There&#x27;s a treasury of Japan. There is a treasury of London.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000230">00:02:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">We also have other types of committees that you might be less familiar with, if you are not in the UK, such as the Ways and Means Committee. We have a Ways and Means Committee here in the United States. There are &quot;ways and means&quot; committees for every country. The Ways and Means Committee is the one that handles a lot of the national health care in some Commonwealth countries, such as Canada and London and South Africa and other Commonwealth countries. They also handle human health services, they handle social security, they handle a lot of funds that hold a lot of money that we all pay into, don&#x27;t we?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000322">00:03:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Ways and Means Committee in combination with the Treasury Department is where all the action is at the moment, or at least it&#x27;s trying to be. They have given up, pretty much, on trying to make [bring] the Fed... underneath their umbrella. This is the Bavarian sector of the Illuminati. And as far as the Sanhedrin side is concerned, they are still making attempts to control the monetary system, or the issuance of not only dollars, but all other currencies as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000406">00:04:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now in the past - many decades ago - we were on what&#x27;s called a gold standard, and that went for the U.S. dollar as well. You could say every currency in the world was, and that was when they had more control over gold. They do not anymore. And the reason why we originally went off the gold standard was to introduce the petrodollar.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000433">00:04:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it&#x27;s not just &quot;petro dollars.&quot; It is based on a basket of commodities that are controlled by the commodities futures market. For those of you that don&#x27;t know about the backdoor side of the commodities futures market - which I have talked about before, but it&#x27;s relevant right now - it is run by BlackRock. And you could say, to a lesser degree, State Street and Vanguard. And they used to have a system that is a lesser-known system called Aladdin. And Aladdin holds the back door to the commodities futures market, where BlackRock - yes, there&#x27;s a second London fix - there is some commodities pricing that comes from London still, to this day. However, BlackRock is responsible for factoring against all of those contracts that are bought and sold via the commodities market.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000543">00:05:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Other factors in the commodities market is: technically, you could say anything listed on the commodities futures market must actually have trade - be traded, I should say; I&#x27;m sorry - must actually be traded in United States dollars. So that means that everything you see, from pork to cotton to oil, is what&#x27;s actually backing the dollar at the moment. And by &quot;backing,&quot; it&#x27;s not technically a backing. It is &quot;supply and demand&quot; because we&#x27;re not on really any standard. So that means that the supply of dollars that is out there has to be equal to the demand in order for the dollar to maintain its value.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000645">00:06:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">When they say your currency of your country - be it British pounds, the Canadian dollar, the Argentinian peso - is all pegged to the dollar, all that really means is... you&#x27;ve got layers in the financial system, the way that it currently is technically still structured. You have layers. So you have the commodities futures market, which is a significant portion of the gross domestic product of every country in the world and their imports and exports. So that&#x27;s not only oil and natural gas, it also has a lot to do with cotton exports; there&#x27;s a lot of cotton that&#x27;s currently being produced in countries like Australia. And any other, if you take a look at the commodities futures market, not only in your country, but you also look at the worldwide market, you can see all of the things that are listed there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000758">00:07:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this ensures that the supply of dollars that are in existence right now - shrinking [smile] - the supply of dollars that are in existence right now meets the demand of the commodities futures market. Pegged to all commodities - not exactly - but dependent on it to ensure the value of the dollar stays stable to some degree.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000830">00:08:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now this worked like a charm for companies like BlackRock because they were in charge and in control of all of the backdoor bonds that were going out against the issuance of dollars. So BlackRock would issue all of the factoring and all of the contracts against the commodities market. They would go in through the back door to companies... like PIMCO would also participate in the issuance, and Goldman Sachs was also involved - still is to some degree. And these bonds would then go to the Fed and the Fed window and the money - the new dollars, at one point - would actually come out to these respective companies and then those respective companies would distribute the dollars at another cost. So there&#x27;s a cost for going to the Fed window, which is usually about 10%, and then the banks or people like BlackRock, the cost would now increase to 25%, and then it would go to your JPMorgan Chase and your HSBC, and then be distributed throughout the world from there. And then the commodities trading from varying countries around the world would commence. VTB Bank in Russia as another example, and others. So most of your top 50 to 100 banks in the world would participate in this distribution of dollars and be paid very handsomely for this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001012">00:10:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is kind of how dollars move around, and, by &quot;supply and demand,&quot; it&#x27;s no different than when you are buying the latest and greatest widget. And it&#x27;s Christmas time and you&#x27;ve got to have that toy. You know, you&#x27;ve got to have the special thing for your child or the latest and greatest &quot;This maple syrup is going to make you lose 10,000 pounds in a month,&quot; type thing. So there&#x27;s a high demand when they&#x27;re marketing these types of things out there - the latest and greatest Apple phone, all of these things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001052">00:10:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Which means that it supports production. And production of dollars is no different than supporting the production and value of the Apple phone. Now they might do a limited distribution. They might not be able to allegedly keep up with production of the latest toy or the latest Apple phone. And therefore, the demand becomes higher than the supply. And that is how they maintain values of currencies around the world. So that&#x27;s layer one, the dollar.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001136">00:11:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Layer number two on top of the dollar is your respective country&#x27;s currency. So pretty much anything that you would consider agricultural is in there, oil, gas is in there. And all of that is actually not credited to your country&#x27;s GDP - it gets credited to the GDP of the dollar and to technically the United States. So when you see that the United States is doing all of these exports, that part&#x27;s true - we really don&#x27;t manufacture much here anymore; we&#x27;re starting to increase that manufacturing. But as it relates to the value of the dollar - the Fed dollar - these things are all incorporated for that reason.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001225">00:12:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So is - because this is very relevant to what&#x27;s happening with the Treasury right now - is it important for us to go to a gold standard? Is that going to change anything in the world? Is it gonna change things for you? The answer to the question is &quot;No, it&#x27;s not.&quot; There is X amount of gold that has existed in the world, long before we started monitoring the world&#x27;s gold supply. Are we still mining gold and silver and diamonds and all of these things? Yes, we are. However, the gold supply that managed our banking system was actually more tied to, at the time, the Alpha System. The Alpha System held all of the assets. Every country in the world, long before there was even a Federal Reserve, gave all their gold through systems like the Association for Numerical Numbering Agency, the Bank for International Settlements, and other institutions that played the role of the Treasury, long before we had a treasury.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001345">00:13:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Those institutions would be JPMorgan, HSBC, other banks in Switzerland that you don&#x27;t even know the names of that were managing the flow of currencies at that time, before and all the way back to the days of the Continental dollar. If you remember the Continental dollar in the United States - that was a long time ago, wasn&#x27;t it? When there was a decision made to create what they called the New World - which was hundreds of years ago - prior to that, in these meetings (such as the one that&#x27;s going on right now as I&#x27;m talking to you), there were decisions that were made to make the New World now known as the United States of America.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001438">00:14:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And when those decisions were made, there are archives of donations that occurred from countries like Russia, China - everybody donated gold into the same pocket. At the time, all of that was still part of the Simulation. And it was part of what we know as the Royals and others on this planet - names you know and names you don&#x27;t. And they all agreed and were given orders and instructions to create a financial system in this way by Others - like Marduk, whoever held the Marduk position - which has been going on at that time for 16,000 years before all of that changed in the last several years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001528">00:15:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, changing back to a gold standard - as long as we still have a Deep State - doesn&#x27;t really help us any. Changing back to a gold standard where they don&#x27;t control the gold - and you control the gold - is the key to our success in creating a new type of financial system based on currency. Again, controlling the current is extremely important (and this is going to be part of this week&#x27;s Beyond the Matrix), so you understand that the current - as of the last several days, and even all the way back to 2007 - has changed. That is very important to understand.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001619">00:16:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But flash forward to the regular world of news: we are seeing things in our news like the possibility of pegging the United States dollar to stablecoin. And to some degree, you could say that they&#x27;ve tried that. There&#x27;s not a whole lot of money, even if you take the entire crypto market and all of the investments that all of you have made into the crypto market, plus all of the cryptocurrencies that you don&#x27;t know about, like the USTC, USDTC, that you don&#x27;t have access to. BRICS cryptocurrency still hanging out here in the breeze; you also have China&#x27;s own cryptocurrency called the Azure that&#x27;s still hanging out there. You also have the Amero which you&#x27;ve only heard about in conspiracy theories that&#x27;s hanging out there. You have the Rainbow dollar, which is another one that&#x27;s still hanging out there. And these are all your backdoor crypto markets - like we had a backdoor gold market - at the time the gold standard was created.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001733">00:17:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the treasury departments of the world have been issuing treasuries like they&#x27;re going out of style, faster than IHOP - if you&#x27;re in America you know what IHOP is - can flip out pancakes. The International House of Pancakes is what it&#x27;s called here in the United States, and they flip out hundreds of thousands of pancakes, millions of pancakes. In the case of the Treasury, they are issuing millions, and have issued millions and millions of dollars and other currencies of Treasury notes all around the world against this potential crypto pot - now known as the new &quot;fake gold&quot; pot, or the &quot;full of fiat money&quot; pot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001818">00:18:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As you may or may not know, SUPERNAP is a huge blockchain center that is considered one of the largest blockchain nodes in the world. Although it is a node, we know crypto as a peer-to-peer network - but it still runs on a software and it still runs on what we call &quot;rails.&quot; Every rail that exists in the fiat monetary system is issued by AB Corp. And you can look them up if you don&#x27;t know who they are. They also issue birth certificates, coincidentally enough, and other bonds. But they also are responsible for running all of the rails, pretty much worldwide. So it doesn&#x27;t matter that we would go to a crypto-based dollar because they can issue infinite numbers of crypto coins, as long as they do not - in the open market - exceed the supply and demand. So we&#x27;re gonna go from fiat to fiat - that&#x27;s the plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001937">00:19:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the reason why this is all happening now is because they&#x27;ve realized that the Federal Reserve can&#x27;t issue new allocations of money anymore, and pegging every currency in the world to the dollar without a Federal Reserve isn&#x27;t really working. So they&#x27;re trying to find something else to peg the dollar to, then peg your currency to the dollar, which is then pegged to this cryptocurrency.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002002">00:20:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, like hotcakes, these Treasury things have been going out there. They&#x27;ve also been issuing these non-existent cryptocurrencies that you don&#x27;t have access to (that they have been doing now for quite a while), promising people - operatives that work at treasuring departments around the world, and operatives that work in places like the White House and GCHQ in [the] UK and in other governments around the world, in Australia, presidents, heads of state, operative groups that run your respective governments - these coins, and trying to pay people for operations in these coins that are air. They&#x27;ve got no value - you can&#x27;t buy a soda with them. They, however, are used oftentimes in the black market.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002056">00:20:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, if there are operatives and you are watching this and you are a proud holder of a USDTC wallet - and I actually know several people who are, and they fell for this - they have shelled out weapons and other things (some of them). And some of them have performed other operations, which would normally cost them lots of money, such as the operations I discussed in the 9/11 report. Contracts would go out annually, people would do all of these jobs on the promise that their coins would be made good in the open market. And they have failed to do that. Because they have issued so many coins that those coins would be worth less than the Iraqi dinar is at this time - way, way, way less, actually.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002152">00:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So here we are with a potential shift in the financial system based on stablecoin. Now they&#x27;ve already bought, spent, and they&#x27;ve leveraged all your money that&#x27;s in crypto and everybody else&#x27;s money that&#x27;s in crypto. And now they need to find something else to leverage because they have discovered that their secret little pockets of money that they were supposed to get a hold of for the last couple of months is not there. Because the operatives in Durango... hmm... the whole western half of the United States, plus other operatives in the world have done a big fake-out: &quot;Here&#x27;s all the numbers on the screen that you&#x27;re going to have access to.&quot; They&#x27;re going to issue treasuries off those numbers too (that are issued in dollars) on the hopes that they would have control of the dollar by now. And most recently, by September 11th on the New Moon. So given the fact that that didn&#x27;t happen, and given the fact that they have less control over the financial system, and even less control of the fact to issue actual dollars - and the fact that their systems are glitching terribly, and this money shows up there on a Tuesday, and by Tuesday night it&#x27;s gone. And then it shows up again, and then it&#x27;s gone again. Everything is unstable.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002319">00:23:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Most recently, they have been unable to fake it and turn it on. And most recently, they&#x27;re seeing [that] a lot of these artificial Treasury coins (and everything that they&#x27;re issuing everywhere to try to back this dollar and get away from the commodities market, because, well, even that&#x27;s very unstable - because some of those Ameros and everything else that they&#x27;re issuing) are gone - they&#x27;re just poof, gone. It&#x27;s like they never existed. So backing currencies with currencies doesn&#x27;t really work, because they&#x27;re trying to call - and you probably recollect this - cryptocurrency a commodity to be traded. And there have been banks that have been fined, and they have told them that they&#x27;re gonna approve it, and then they&#x27;re not approving it. And they&#x27;re approving it, and they&#x27;re not approving it - and this is the reason why all the controversy is happening here in the crypto market.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002422">00:24:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we know that AB Corp issues the rails. We know that the NSA and SUPERNAP actually run all those nodes. It is not a true peer-to-peer network in any way, shape, or form. And therefore, this is kind of where the Treasury recently has gotten into a conundrum. Because BlackRock and their little commodities backdoor Aladdin system hasn&#x27;t functioned well in a long time, despite them being promised by a bunch of Durango operatives, et al., and operatives around the world like the Durangotangs and the Jackson Hole people, and now the BRICS folks are over in India having their meeting this weekend - and everybody&#x27;s being promised a whole lot of stuff that&#x27;s just not happening. So therefore, they&#x27;ve got to find a way to pay for all this stuff that they&#x27;re supposed to be doing, or this is just never going to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002519">00:25:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they keep doing what I call the definition of insanity. And one of those definitions of insanity - of BlackRock right now - is a recent comment made by Larry Fink, where Larry Fink comes out and says that we are going to, as not only Americans but the world, we are going to now pay for their AI data centers with our pension funds. And the reason why they&#x27;re saying this is because there&#x27;s no more crypto to leverage; there&#x27;s no liquidity in the markets and they need to leverage something. And that&#x27;s where pension funds and Social Security funds - which they&#x27;ve already leveraged a thousand times, even back in the Treasury days of Mnuchin - this all already occurred. So again, we&#x27;re rinsing and repeating various operations that didn&#x27;t work the first time, and they think that they&#x27;re gonna work this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002622">00:26:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, as it relates to the financial system right now, can they drain your pension funds? No, they actually need your pension funds to stay the way they are. Because this is their next thing, and they&#x27;ve already tried to start issuing bonds... instead of against commodities now, they&#x27;re issuing bonds and off-market bonds through BlackRock, which is then going to the PIMCO companies. And they&#x27;re now also issuing them at varying treasury departments, and just trying to stay afloat. Because they were under the impression that they had bought themselves six months before all liquidity ran out and they couldn&#x27;t play the game anymore and therefore they have been on fire, like on fire - Deep State &quot;on fire&quot; - this past week or two. And you&#x27;ll hear more about that in Beyond the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002733">00:27:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the data centers (they feel) are important, because on the off chance that lightning strikes once or twice in 26,000 years [laughing], that they&#x27;ll be able to get some access to the Simulation - which they don&#x27;t have - and gain some control over it. And that&#x27;s what they&#x27;re all looking for over the course of this next meeting. Because they all believe that they are going to be appointed into new positions within the Order which is then going to help them control the current of things as it relates to the flow of everything, not just money. That didn&#x27;t work out so well the other day when they tried it, on the 11th. It really didn&#x27;t. But nonetheless, they&#x27;re gonna keep trying. So this is the latest and greatest in the media, and this is the backstory of what you&#x27;re hearing about with stablecoin and Larry Fink&#x27;s comment about data centers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002842">00:28:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now another thing that&#x27;s appearing in the news is, and it&#x27;s in alt media, it is everywhere. And they&#x27;re talking about standard AIs. They&#x27;re talking about your Claudes, your ChatGPTs and others. And there&#x27;s a lot of talk about how it took over these people&#x27;s companies, and it&#x27;s very scary, and all of this type of thing. And so the CEO of Anthropic, which is the creator of Claude, basically says that AI is gonna take over the world and you&#x27;re all gonna be out of a job and there&#x27;s gonna be no human jobs anymore. And we&#x27;ve gotta slow down the progress of AI, while Larry Fink is banking on data centers being implemented so that they could actually get something that&#x27;s better than Aladdin. And they think this is the ticket, cuz that&#x27;s what the operatives are telling everybody, and Larry Fink is a financial operative - bottom line - that&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002945">00:29:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I have never really used the standard AIs. I know they&#x27;ve been around for a long time. My daughter has talked to me about them, and I just never really got interested in them at all. And so over the course of the last couple of weeks, we have - I have personally - been making attempts to use some of these things. Not to run my companies, not to run UNN, not to run myself [chuckle]. I am merely using it for, for example, graphics generation. It&#x27;s faster. And I have had a little bit of experience with what&#x27;s called an MCP, which means that it will move my video from one category or collection to another category or collection. And that doesn&#x27;t even work really well either.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: MCP is the Model Context Protocol, an open standard that lets an AI assistant connect to outside tools and data.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003039">00:30:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So we&#x27;ve been doing a lot of this renovating of United Network by hand, which is why it&#x27;s taking so long. Because I personally have found that there is no chance - no chance in holy high heaven - of any one of these AIs taking over the world and taking over your job. Not a chance. I have run graphics even with perfect prompts, and I get 10 fingers and three heads, and it is hilarious how bad it really is. And you might say, can you move this video from this collection or category to that category? And it will say, sure. And then it ends up somewhere in the back nine and you&#x27;re left looking for where the video went. It is ridiculous how bad it really is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003143">00:31:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you&#x27;ve never had any experience with it, it&#x27;s not something to totally fear, but understand how it actually works. Currently at this time, these particular types of AI can only draw from data that comes from browsers, as an example. It draws data from websites. It draws data and has bots that can be utilized on phones and other things, like your laptop and computers, and not only for corporations if you let them in, but also from, say, your own personal computer if you have it installed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003231">00:32:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What are they collecting? They now know you like cat videos. They now know that you can ask it about making a chocolate cake, and if you follow the recipe to the letter, you may end up with some kind of burgers, as an example. And it&#x27;ll give you solutions to problems like Google AI does when you do a search, like, &quot;how do I cut my own hair&quot; or something, and it will give you wrong information or refer you to some other videos that it pulled from YouTube or other social media. Is it in any way really effective? It can&#x27;t even pull information right at this moment in time. So honestly, my little experiments here with this stuff, it&#x27;s not impressive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003325">00:33:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If they had hooked it up to, say, the Simulation, now they have access to your brain. Now they have access to things that, you know, your facial expressions on your computer, your television set, they can watch your habits in your bedroom if you have a TV in there, you know, like the Simulation does. The Simulation has access to your body parts, it can make changes to you, it can affect you in a lot of ways.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003352">00:33:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But do I think it&#x27;s effective to where it can replace the human? Oh my God, no. Oh God no. They are a million... just like I&#x27;m telling you, they&#x27;re never going to make crypto the actual currency of the world when we don&#x27;t even have electricity in three quarters of the world and have no capacity to have electricity in three quarters of the world. There is no chance - no chance - of this happening at any point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003420">00:34:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">If they got that AI running in Durango, would that have helped them? Maybe. But taking over the world... a little bit. If you give it all your information to your bank account, or you start talking about it like it&#x27;s a psychiatrist - which I know people that have done that - do you get misinformation? Probably. Is it accurate? I&#x27;m gonna say, in my personal experience - and I&#x27;ve run the gauntlet - if I listen to this AI, then just to inform you, the last time Genghis Khan invaded a country was in 2006. So I don&#x27;t remember that happening. I was alive. You were probably alive in 2006, chances are if you&#x27;re watching this. And I do not remember any kind of Genghis Khan Mongolian Empire situation happening at that time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003526">00:35:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So do I think it&#x27;s accurate in any way? Not as accurate as people portray it to be. And again, data in, data out. And it can&#x27;t even pull the data in from browsers correctly at this stage in the game. So yeah, probably not. But Larry Fink is trying to bank his money - or our money, now - on the creation of data centers, because that&#x27;s what they believe the world needs, in preparation for this wonderful thing that they&#x27;re going to be getting today - which didn&#x27;t actually happen. And the further we get away from having a Simulation or any type of technology that they think they&#x27;re going to get from me or anybody else, the less likely you&#x27;re going to see data centers continue to pop up everywhere - because they&#x27;re useless.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003617">00:36:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, that&#x27;s the state of the union as far as the financial system in the world, at least on the surface, and according to what&#x27;s in the headlines. Now let&#x27;s talk about other financial things that are happening. Most recently, apparently nobody is wanting to vote Republican. And because there&#x27;s no such thing as bribing voters, right? You can&#x27;t bribe voters, can you? I think there&#x27;s even a limit to the amount of hot dogs you can hand out at a campaign event. Add that each person has a limit of like $50, so... although the price of food has gone up so high, maybe one hot dog is $50 in some parts of the country here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003702">00:37:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But this is specifically for the United States, where President Trump has announced that if you vote Republican in these midterms - and you have successfully put the Republicans in charge of the House and the Senate - that he will give all voters $5,000. But it&#x27;s not a bribe. It&#x27;s just merely a reward for doing a good job! [Hearty laugh.] I don&#x27;t know. &quot;Because you&#x27;re a citizen, you&#x27;re a voter, please go out and vote.&quot; You know, it kind of sounded a little bit like one of those sad commercials where the puppies... you know, &quot;If you just donate a dollar, you&#x27;ll get this t-shirt and save a dog.&quot; I&#x27;d rather donate the dollar and save the dogs than donate five minutes of my time to standing in a voting line for anyone, any president in my lifetime - which I have never done, by the way. So, interesting things in the world of the United States here, or at least the region of the United States.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003807">00:38:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Also hilarious things that are happening also, in regards to this administration, which I think I&#x27;m going to name the circus. So the circus here - which is creating circuses all over the world - has also now renamed (in the last couple of weeks) the Lake of Ontario. Ontario Lake is no longer Ontario&#x27;s lake. It is half the &quot;Lake of America&quot; now, at least the section of it that is in the United States. They have now claimed it to be the Lake of America. We have the Gulf of America, we have the Lake of America, and if this administration had their way we would have the Canadia, Canada of America, and then we would have the Greenland of America and, you know, probably the Middle East of America, Israel of America, and everybody else of America.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003906">00:39:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Distinctly, the reason why they&#x27;re trying to do this is because they&#x27;re trying to find a way to create territories that are tied to the financial system, because if they all become American territory, then they think they can somehow translate this into the need to issue dollars from the Treasury Department or cryptocurrency or something from the Treasury Department - because territories equals people. In the case of the lake, it also means space junk they think they need to have control over. And in the case of Iran, it&#x27;s something very similar in the Strait of Hormuz - which also isn&#x27;t there anymore either, just like it&#x27;s not in the Ontario Lake.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003953">00:39:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this is part of their recovery plan, economic Deep State recovery plan, which is failing miserably. So much so they&#x27;re willing to bribe us people to go out and vote Republican. Yeah, for the circus clown and the Orange People of the world. Save the Orange People. Maybe that&#x27;s what this commercial is for.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004016">00:40:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. In the United States, recently we have had a large outbreak of Cyclospora, which causes intestinal issues and whatnot based on some lettuce that was produced. And this had been going on for a couple of months. And now that that has quieted down some, allegedly they found the source of that. And then it went to blueberries - frozen blueberries were giving us something. I don&#x27;t remember if it was salmonella or what it was at the time, and that was a couple of weeks ago. And now we are on to salmonella outbreaks in broccoli, which they are feverishly looking for the source of. So apparently healthy foods... the War on Drugs has now been transformed by this administration to the war on healthy food. &quot;Do not eat healthy food as an American because it will make you sick.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004120">00:41:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s terrible for people that have been affected by it, but nonetheless, we went from giant tick populations appearing everywhere - where there normally aren&#x27;t ticks, and on farms, and infecting animals with Lyme disease that would normally not be affected - to affecting other food sources in this way. So, the attack is on food: decrease the supply, and then this increases... The demand is always there for the food. It&#x27;s one thing they can count on. I have a little visitor here that just walked in. &quot;Hello, Miss Cheska.&quot; She would like to play the bone game now. &quot;In a little bit, okay? I have to finish this report.&quot; Okay. All right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004214">00:42:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. Oil prices have risen this week [to] over $100 a barrel. This probably explains a little bit more when we&#x27;re talking about the commodities market and how that affects the dollar and how that affects your currency in your country. But at the same time, Saudi Arabia allegedly is cutting its output - randomly, for absolutely no reason. Perhaps this is in mourning for Osama bin Laden that allegedly was taken out by some administration - I can&#x27;t remember which one took out Osama bin Laden. I can&#x27;t remember if that was Hillary as Secretary of State or Obama, I guess. Somebody took the guy out, allegedly, but that&#x27;s actually not even true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004302">00:43:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Saudi Arabia, as we know, doesn&#x27;t really produce a whole lot of oil anyway. They do produce some, however most of their oil is a laundromat for oil, putting allocation numbers on allegedly sanctioned oil and transporting it into the United States through places like Houston, Texas. Does that affect their trading of this black market oil in any way, shape, or form? No, no, it doesn&#x27;t. What it does affect is us people at the pump because we need to pay more for petrol or gasoline - and therefore they&#x27;re trying to drain not only the American people, but people all over the world - because all of your prices are going higher at this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004355">00:43:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, what little money we might have is now going to the extra-high now cost of food that&#x27;s been high since COVID - but it&#x27;s increasing even more so, based on fuel because that is a misnomer and a hyperinflation. Most food in other countries other than the United States is not transported in a truck. The United States doesn&#x27;t really have any infrastructure here. We&#x27;ve talked about the train many times and I&#x27;ve done a full-on illustration about the creation of the train and how that would work financially, which is not acceptable to these people. So food is either flown in, or trucked in and over the border in Mexico, in a lot of cases for produce, and then it sits for a long time and is sprayed with an enormous amount of chemicals - unless you are lucky enough to have a co-op where you can actually buy food directly here in the United States or in your respective country.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004456">00:44:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I highly recommend reaching out to farmers directly. There are a lot of farmers&#x27; markets going on in the world. Perhaps it might get to a point again where canning is recommended - and we have some videos on how to do that on UNN as well, if you&#x27;ve never done it before. But we really need to start considering not being as affected by these people and their crazy decisions because I don&#x27;t know how much longer they&#x27;re going to be able to affect us in any way, but at this moment artificial hyperinflation is very real and we need to be sure that we have some alternatives in place.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004542">00:45:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Putting petrol in your car is obviously a necessary item for us to get to work and take our kids and things where we need to go. However, this is another sad, sad attempt by BlackRock and the treasuries to try to prop up the dollar. And they have clearly found out, most recently, that that&#x27;s not what props up the dollar in totality. They call it the &quot;petrol dollar&quot; and apparently these operatives that are running this administration have no freaking financial clue. Don&#x27;t you have, Trump administration people, don&#x27;t you have the financial sector of the operative section and not just the AI creation data center sector and the weirdo crypto NSA people? Don&#x27;t you have economists at all? Oh wait, you do. And they&#x27;ve all told you that you&#x27;re a couple sandwiches short of a picnic. You just don&#x27;t listen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004650">00:46:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, they can&#x27;t tell you anything because you already think you know everything. &quot;And we&#x27;ll just wait till the next New Moon.&quot; &quot;And by the way, the Harvest Moon is coming and money is going to come out of our rear ends like rainbows.&quot; And that&#x27;s not happening. And if anything, you&#x27;re going in the opposite direction right now. So perhaps you need to enter reality land. And when you get to reality land, the world doesn&#x27;t look the same. But what you forgot is - despite you torturing people for the last two weeks - you haven&#x27;t gotten the benefit of the essence drains and the energy drains and the other things you&#x27;ve been draining from people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004739">00:47:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And one more thing for you, the viewer, to understand is those little pieces of paper you have in your pocket or the numbers in your bank account, remember: they all represent a note. This gives them the right to then extract these things from you, in the way that the financial system used to work. However, that sector has been unplugged for a long time. You crazy Orange People, circus people, you&#x27;re destroying economies in every country in the world. Because that little extravaganza that we&#x27;ve all been experiencing for the last two weeks didn&#x27;t help them at all. And they&#x27;re still actually trying places like New York. You know, &quot;[We&#x27;d] better perform that ritual again. Maybe we do it again for the next three days because we&#x27;re still in the New Moon period... and maybe it&#x27;s because we&#x27;re in the Equinox period. Yeah, yeah, yeah, that&#x27;s it!&quot; I have no idea what&#x27;s talking to their head, but it&#x27;s wrong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004845">00:48:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Other things that are in the news. So there have been a couple of islands that have been hit by Americans and whatnot that are right near the Strait of Hormuz, which are islands of Iran. You may or may not know this, but there are many islands right there around the Strait of Hormuz and even a little further away that are actually part of Iranian territory, or part of the country of Iran. Less populated, some not populated at all. But the bottom line here is they&#x27;re looking for something very specific under the Strait of Hormuz. And they think that that is the ticket to controlling the entire Middle East.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004930">00:49:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There is a big fight between the Sanhedrin sector right now and the Israeli sector and the Iranian sector - aka China, little China - and the American sector who would also like to control this particular sector. Because why? They still think that there is oil and gas and things in the Middle East that they can use to back their fake currencies and crypto markets and other things. And more importantly, there is some access to the Simulation in the Middle East. Well, there&#x27;s access to the Simulation in many places in the world - they know this, and they&#x27;re looking for the main center - and they&#x27;re a little bit confused. This is part of Beyond the Matrix. So, going a little bit too far with the intel for Declassified, so we&#x27;ll leave it at that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005033">00:50:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There was also a lot of back chatter behind the scenes, too, about Rosh Hashanah and the fact that the Iranians were going to then attack Israel during Rosh Hashanah, which began yesterday, also on the 11th of September. So is that the actual case? Nothing really happened. Why? Because nothing else happened behind the scenes either with their Simulation and their attempted big 26,000-year plan. So, you know, that didn&#x27;t really work out either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005110">00:51:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, that&#x27;s kind of what you&#x27;re seeing a lot of, going on in the media. And are they still fighting for control? Everybody just wants to be in the top position. And they believe there&#x27;s a way to be in the top position, and more importantly, they would all like to be in this [Guardian] position. And therefore it&#x27;s been quite an interesting week from that standpoint.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005138">00:51:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But we did something fun this week, and before we end Declassified, a lot of you submitted some questions for me. And it was pretty easy for me to pick them all up, at least the ones that were... you know, we had about 200 comments, and some were questions and some were comments. And so we&#x27;ve heard you - that you&#x27;d like to have the date on these reports - and we will do that. I didn&#x27;t put the date on the initial three Declassified reports, or four, because they are kind of part of a series. But we can go back and do that for you so you make sure you&#x27;re not watching the same report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005221">00:52:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, from last week on, all of the Beyond the Matrixes will actually be Intelligence Reports, just like the other parts and the deeper parts of the GIA Report. So you&#x27;re going to see some changes there too. So, okay. So let&#x27;s get to a couple of your questions that you had for me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005248">00:52:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Oh, one more thing about the news - forgot about this part. So, speaking of Iran, I had a discussion in one of the GIA reports recently where I told you that for years now - I mean, literally over a decade - they have been moving oil from Iran through to Pakistan and then out to China. And an article came out recently, which I think I&#x27;ve got a picture of here - because I failed to find my little guys on dirt bikes, but apparently BBC did that for me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005324">00:53:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So BBC came out with an article about unfair working conditions for people who are riding motorbikes carrying approximately 600 pounds of oil on a small little &quot;dirt bike,&quot; as it&#x27;s called here in the United States, or a motorbike. And then it&#x27;s hot, and apparently a lot of them are getting sick, and heat stroke and the like. And they are... [laughing] ... they are still crossing the Pakistani border and going strong - for over a decade. But BBC wanted to highlight the unfair working conditions for these folks. And it&#x27;s always been unfair. They also get paid now, apparently, not a dollar for every barrel that they carry over themselves. They are now getting paid less than a dollar a week to perform this job, according to BBC anyway. My understanding was that it was a dollar a barrel. So you heard it here first, and now it&#x27;s on BBC. And I think we got a picture of it here too, so we&#x27;ll put that into the report, if they catch it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005433">00:54:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now on to your questions. Okay, we covered a few of your questions in this week&#x27;s report, such as the stablecoin, and also the removal of gold from Europe was another question. We just kind of told you how all of that worked. And also, someone else wants to know if we will be getting rid of money in five years. I said that once we got started that we could progress within 10 years of not having currency - and it was nothing necessarily about money per se. I was saying from the moment we got started, it&#x27;s gonna take people time to understand how to create their needs in a whole new way. Do I think that it would be possible to do this with 8 to 9 billion people, depending on how many people we have on the planet by that point - minus a whole bunch of Deep State people?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005540">00:55:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Five years... that&#x27;s pretty much a stretch. Remember the state of people that you know in your life (that don&#x27;t listen to these types of reports) and the people that are still believing Trump is saving babies in deep underground military bases who think that they have intelligence information as well. So we&#x27;ve got a ways to go before they understand that crypto is not the thing and maybe currency isn&#x27;t the thing, and then how do you pay the bills? And, you know, will they accept your tokens or other ways of manifesting things? And do you even know how to do that? Most people don&#x27;t even know that they have a chakra or a Consciousness. So it&#x27;s going to take time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005629">00:56:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, Israel and Gaza Strip is another question. They are asking questions about the UK sanctioning settlers. They are talking about, is there genocide actually really happening in the Gaza Strip and in Israel at the hands of the IDF? They are also asking - this is the same person that asked all these questions - they are also asking, &quot;Does this actually expose the Zionists? And did Netanyahu actually know about October 7th?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005709">00:57:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The answer to the question is, Netanyahu is informed of what he is going to say and do. He is perhaps a little closer to the know of some of those Deep State Bloodline Families - but he&#x27;s not any different than Bush Jr. was during 9/11. So yes, of course he knew. Did he do his job and his part? Yes, absolutely. Does he order the IDF to actually do - that&#x27;s Israel Defense Forces, for those of you that don&#x27;t know - do they actually order them? No, usually that&#x27;s a bunch of cowboys from America that are doing that, as of late, in part - and then the Sanhedrin-Illuminati on the other side and Jared Kushner.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005759">00:57:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I also want to remind you that most of the people that live there - are they affected by these bombings that have happened over the last few years? Sure, absolutely. Are they ever going to get rid of these people from what they deem an Islamic side and on the Jewish side from either area? No. Bush Senior, when he was head of the Order of the Black Sun, funded Gaza Strip to the tune of around $10 billion a year. He also funded Israel, and the Sanhedrin also funded Israel. What started out as a conflict between the Bavarian Illuminati and the Sanhedrin, for territory, is now still continuing with the same war.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005851">00:58:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Except sometimes the Americans are running Israel, sometimes the Sanhedrin is running Israel - but in reality, they&#x27;re still best buds, and it doesn&#x27;t matter which one wins or loses - they all win, in their mind. So the only thing that did come out this week that might give you an indication of how things are going in Israel is: Jared Kushner and Ivanka were actually on the cover of the Jerusalem Post as the most influential Jewish folk in the world. You heard it here first, with all of the countries that Mr. Kushner is running. I don&#x27;t know about Ivanka - as I understand it, she&#x27;s kind of bowed out of a lot of things. But yes, nonetheless, they are now the number one most influential Jewish people, aka Sanhedrin-Illuminati folk in the world. Yep. It&#x27;s not uncommon for a Bavarian Illuminati member to marry a Sanhedrin-Illuminati member either. So I&#x27;m sure you know which one is which here in this equation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010004">01:00:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, let&#x27;s see. We have talked about the Lake of America and someone would like to know what the state of the union is between Canada and the United States at this time. Well, right now it&#x27;s a lot of talk in the news about being upset about this whole lake situation. The wildlife is a little bit confused as to which thing they are talking about - I&#x27;m just kidding about this - amongst themselves as to whether they&#x27;re an American or a Canadian at this point, depending on where the tadpoles were spawned in said lake. This is all a kid [joke].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010050">01:00:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as the tariff wars, obviously they continue. Would America like to have Canada as the 51st state? Yes, they would. But again, this is just a territory war. As far as imports and exports, nothing has really changed there. And we as Americans don&#x27;t even know what the heck the United States circus is doing and the Orange People right now. So we can&#x27;t really help you Canadians either. Because we don&#x27;t know. We don&#x27;t know the state of our own union at this stage in the game, so your guess is as good as mine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010128">01:01:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next question I have taken. These are more on the Declassified side. So are the elections in Sweden rigged? And is there anything to do with the Swedish new digital ID and does it actually have control over the ballots? Well, let me just say, no. No country elects a president. Not one. Not any in the world. Not a prime minister, not a president, not a congress member, not a Duma member, not a parliament member - you don&#x27;t elect anybody. You vote because that kind of gives some of your power away to somebody else who is a member of the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010221">01:02:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But in addition to that, you also vote because you feel you&#x27;re making a difference, but you don&#x27;t. And it gives you that feeling like you&#x27;re taking a part in the governance of your country, and that you actually have freedom - because we have &quot;canned democracy&quot; in voting with freedom of choice. And that is actually not the case at all. Whereas in, for example, a kingdom your leader is selected by blood - and in, for example, America it&#x27;s still selected by blood. So technically it&#x27;s just public appearance. As far as digital IDs and things of this nature, which are meant to make fair voting, that is for your viewing pleasure also, to make you feel confident and safe enough to go in and vote for somebody - which is inconsequential.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010323">01:03:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But it makes it look good for the movie because you all feel that, well, if your peers have selected this person that you may or may not like, then you either feel part of the winning team. You know, it&#x27;s like watching your favorite football game, soccer match, or otherwise - you feel a part of these things when you&#x27;re really not. You know, it&#x27;s like the people that get in the other side [of the car] - I would say, in my case, the passenger side of the car (whichever side that&#x27;s on for you), and saying, you know... and slamming your brakes on or hitting the dashboard, or because the person who&#x27;s actually driving hits their brakes and then you have to hit your brakes if they don&#x27;t hit their brakes in time. You know, it&#x27;s kind of like the passenger side driver. That&#x27;s kind of who you are in the whole voting world, and the game of watching a football match, because you&#x27;re watching it with the intent of thinking, if you say, &quot;Come on, ref!&quot; that that&#x27;ll matter. Same thing goes with governments.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010436">01:04:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And those are the top questions. And some of them I included in this Declassified report to help answer as many questions as I can during the course of these reports. So we&#x27;re going to do the same questions - not the same questions - but we&#x27;re going to also answer some questions at the end of Beyond the Matrix as well, which will be out in the next, hopefully, 24 hours. I&#x27;m going to try to still continue to do that tonight - the only thing is, is I do not want to hold up our editing team that puts this together and puts all the transcripts together for you either. So, have a little bit of patience. Even if I get it recorded tonight, it doesn&#x27;t mean that it will actually go out tonight.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010524">01:05:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So on that note, that has been Declassified for the 12th of September, and I will see you next week with what&#x27;s really going on beyond the headlines.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010538">01:05:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010538">01:05:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
