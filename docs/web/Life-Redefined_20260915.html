@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Sep-15</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Sep-15 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Life Redefined
+        <br>Andrew Millison - Ecosystem Restoration
+        <br>2026-Sep-15
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://unitednetwork.earth/programs/how-ecosystem-restoration-builds-climate-resilience"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://unitednetwork.earth/programs/how-ecosystem-restoration-builds-climate-resilience"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260915_Life-Redefined.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the September 15, 2026 Life Redefined report by introducing Andrew Millison, a permaculture educator and filmmaker who has spent more than 30 years studying how damaged landscapes can recover. Millison traces his path from landscape and gray-water design to teaching at Oregon State University and eventually filmmaking, which he describes as &quot;broad-scale teaching.&quot; He argues that the technical solutions already exist and that the greater obstacle is human will. His breakout came in India, where he documented the Paani Foundation&#x27;s Water Cup Competition, which helped thousands of villages recharge their groundwater, and his film on the UN World Food Programme&#x27;s Great Green Wall work in Senegal has surpassed 15 million views. His work now spans climate zones and cultures, including typhoon resilience in the Philippines, Mexico City&#x27;s chinampas, Hawaii&#x27;s gravity-fed ahupua&#x27;a taro terraces, and an Arizona neighborhood where water harvester Brad Lancaster cuts curbs and reshapes streets to &quot;plant the rain.&quot;<br>
+<br>
+Millison&#x27;s central argument is that restoring hydrologic cycles is foundational: when water is slowed, captured, and returned to the land, forests, soils, biodiversity, food systems, and local resilience can recover with it. He describes restored ecosystems as &quot;shock absorbers&quot; for climate extremes and emphasizes that this work is already being done, from individual neighborhoods to entire regions. Kim closes by tying the examples together: water, soil, food, climate, and community are not separate problems, but parts of one connected living system.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000141">00:01:41 - Meet Andrew Millison.</a></li>
+<li><a href="#t-000549">00:05:49 - The obstacle isn&#x27;t technology.</a></li>
+<li><a href="#t-000713">00:07:13 - Building Maynard Keenan&#x27;s vineyard.</a></li>
+<li><a href="#t-000854">00:08:54 - India and the Paani Foundation.</a></li>
+<li><a href="#t-001109">00:11:09 - Thousands of villages fix their own water.</a></li>
+<li><a href="#t-001454">00:14:54 - A wasteland now feeding half a million people.</a></li>
+<li><a href="#t-001642">00:16:42 - The Great Green Wall vs. the Sahara.</a></li>
+<li><a href="#t-001811">00:18:11 - An encyclopedia of climate zones.</a></li>
+<li><a href="#t-001936">00:19:36 - Hawaii&#x27;s ancient ahupua&#x27;a.</a></li>
+<li><a href="#t-002356">00:23:56 - The neighborhood that broke the law.</a></li>
+<li><a href="#t-002540">00:25:40 - Planting the rain.</a></li>
+<li><a href="#t-002909">00:29:09 - Are we too late?</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000001">00:00:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew Millison: I want people to realize that we can fix this mess. You know, that it is completely possible - and it is being done around the world. We can see places where masses of people are getting together and fixing it. We are not too far gone here; it is not beyond our means to stabilize the hydrology of the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000031">00:00:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim Goguen: Across the world, communities are bringing water back into the ground, rebuilding soil, and turning damaged land into productive ecosystems. The question is no longer whether restoration is possible. The question is whether we are ready to learn from the people already doing it. What changes when we stop treating nature as a resource to consume and begin designing our life as a part of a living system? For more than 30 years, permaculture educator and filmmaker Andrew Millison has been following just that question around the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000113">00:01:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: Life is constantly changing, and the old answers are not enough. Life Redefined sits down with the visionaries, healers, farmers, inventors, and scientists to find solutions, engaging in conversations no one else is having. Join us as we explore the answers, the ideas, the possibilities, and redefine the world we live in. This is Life Redefined.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000141">00:01:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Andrew Millison has spent more than 30 years studying and teaching permaculture. Today, he travels the world documenting projects that do more than just promise change. They show what recovery looks like after the work has taken root. We hear every day that the environmental problems facing us are too large, too political, or too expensive to solve. But what if the evidence tells us a different story? Andrew, when did you first realize that the way we were living could not continue, and that there was another way to design our relationship with the Earth?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000219">00:02:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: As a young man, I realized that things were not headed in the right direction in the world, and that if we kept going where we were headed, we just might get there. And stresses with water, soil, pollution, food - all of these things - I realized that the world was actually in a pretty precarious place. So this was the early &#x27;90s, basically, when I was in my young 20s. And I found permaculture along my travels, and realized that permaculture really provides a roadmap for how you can live in this world in a way that does not deplete water and soil and resources, but actually increases them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000313">00:03:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So, at that point, I realized that that&#x27;s what I wanted to dedicate my life to. And my road has just led me many different places on that journey. Now, I guess I realize that my greatest point of leverage - the place where I seemed like I could have the most impact - was in doing video production and telling the stories of the places that really had figured out how to live well in the world and were actually doing it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000347">00:03:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Permaculture is often mistaken for a style of gardening. At its core, it is a way of designing relationships between water and soil, buildings and energy, food and community, and between human decisions and the living systems that support them. For people hearing the word permaculture for the first time, it can sound like a method of gardening. But your work reaches into water, housing, food, energy, and the whole community - what is permaculture really asking us to redesign?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000422">00:04:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: I went to Prescott College, which is a small liberal arts college in Arizona, in Prescott. And I studied permaculture there. I found out about it once I went there. And so I guess I went in wanting to study ecological design - this was my second attempt at college after I&#x27;d already gone to college and left, and traveled around. And I was exposed to environmental architecture, the Earthships of northern New Mexico, and I got really into just the idea that we could create these... In my mind, the world was headed in this... not very good direction, and I didn&#x27;t even know how to grow my own food. I didn&#x27;t know how to build a structure - I didn&#x27;t really know how to do anything. I was raised in the city and so I started studying ecological design with the idea that I could build a house that was sort of like a survival pod, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000525">00:05:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: And that was the stimulus for me when I was in my early 20s. And then that just led to food production and I was exposed to permaculture and just realized that permaculture is actually like a holistic design system that really covers housing, agriculture, water systems, energy systems, everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000549">00:05:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You have said that many of the technical solutions already exist. If the tools are available, what is actually preventing us from using them at the scale that the situation needs or demands?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000602">00:06:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: I mean, we have all of the technical solutions. We know how to create systems that regenerate natural abundance on the planet instead of deplete it. But really, the thing that we&#x27;re up against right now is just the human will. Consciousness of the world is the thing that&#x27;s keeping us from implementing a lot of these really basic solutions that would fix so many of the problems of the world. So I feel like doing the videography stuff, you know, educating people - but also influencing people, getting them inspired and showing them how we can fix this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000642">00:06:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Andrew&#x27;s path began at the scale of individual properties: landscapes, orchards, vineyards, and systems for using water. Teaching expanded that reach. Film transformed it, allowing one working example to travel far beyond the place where it began. Now, you began designing and building systems yourself. Why did filmmaking become the place where you believed you could create change in the world?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000713">00:07:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Yeah, well, I started out doing landscape design and installations for people. So I started out, basically, people would hire me and I would design and I would build their yards. And so, I&#x27;d always work on my own place too. So I started doing these kind of small-scale designs as a contractor. And then I got some pretty... I ended up - I spent almost three years working for the lead singer of the band Tool, Maynard Keenan, and building his whole vineyard and orchard and everything like that in Jerome, Arizona. And then the laws for reusing gray water - which is like mildly polluted water from your shower and your laundry machine - they changed in Arizona at that time. And so I started a business that was specifically focused on water reuse, like these permaculture-based gray-water systems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000815">00:08:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: And eventually I went to work for a landscape architect. I kind of got out of the, like, let me just build-everything-myself phase in my life, and I started doing design work for people. So, I started just designing systems, you know, more on that level, on an architecture level. And so, I did that for a while, and I was always teaching as well. And then eventually I moved to Oregon and got more into the teaching, and now into the... I guess I consider &quot;media production&quot; as like, broad-scale teaching.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000854">00:08:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In India, Andrew encountered restoration at a scale that changed the direction of his work. Villages were not waiting for a perfect global agreement - they were reshaping land, slowing water, and rebuilding local abundance together. The projects you document cross countries, climates, and cultures. What did India - and the Paani Foundation in particular - show you about the speed and scale at which land-water systems can recover?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000925">00:09:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Well, I went to the International Permaculture Conference in India in 2017, and I planned... and when I was like, &quot;I&#x27;m going to India for this conference.&quot; My wife was like, &quot;No, we have to go to India for as long as we can,&quot; basically. So we could stay - we figured out we could make it work for about two months. So like, okay, I&#x27;m going to travel around India, and I&#x27;m going to go to different permaculture sites and document them. So I was exposed to this really large-scale movement going on in India when I was there. And I was really blown away by how much and how big the scope of what was happening there, some of the land transformation there. And so I did a little bit of videography, but then I came back and I posted it on Oregon State University&#x27;s YouTube channel. And like, some of the comments I got were like, &quot;Wow, did you know about color correction?&quot; &quot;Hey, it turns out if you film right into the sun, your subject is just a giant silhouette.&quot; And at that point I realized, I was like, &quot;Wow, I really don&#x27;t know anything about videography.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001032">00:10:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So I said, &quot;Hey, there are these incredible stories that need to be told in India.&quot; I was excited about some of the places that I&#x27;d seen, some of the places I&#x27;d heard about. I said, &quot;I need to learn videography, and I need to go back.&quot; And so my second trip to India in 2019-2020, I went there with a good camera - armed with the skills to actually do videography - and I visited... the main project that I visited that was sort of like my, you might say, my &quot;launch project&quot; - like the first videos that I made that really got substantial views - was of the Paani Foundation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001109">00:11:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Welcome to Maharashtra, India. I was here three years ago with Dr. Avinash Pol, visiting two villages that had done very well in the Paani Foundation&#x27;s Water Cup Competition. And I saw the incredible work that these villages had done to solve their water problems and recharge their groundwater table. The Paani Foundation facilitated the Water Cup Competition, which enabled thousands of villages to literally fix their water problem. The work at the Paani Foundation is transforming landscapes, regenerating ecosystems, regenerating water tables at a scale and a speed greater than any other project that I&#x27;ve seen on the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001155">00:11:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So that was kind of my breakout, in a sense. And I did these Paani Foundation videos. And suddenly they started getting hundreds of thousands, eventually over a million views. And I realized: oh, this is real. I was like, these stories are powerful. People are like, &quot;I&#x27;m gonna do what the Paani Foundation did in Bolivia.&quot; &quot;I&#x27;m gonna do that in Mexico.&quot; And people are contacting me all over the world, telling me that they were inspired by this. So it kind of sparked a little light bulb above my head, where I realized that this video work is actually a really big leverage point, you know? And how can I create the greatest amount of change?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001239">00:12:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: I could do a lot of different things. I could do full-time design work for people, I could do construction, I could do teaching, you know? Like, one person - you can only do so many things. And so I realized that... I mean, I have my education program at Oregon State University. And beyond that - it&#x27;s mostly online education, we do permaculture design courses online - and so you take that (it&#x27;s a very successful program), and then let&#x27;s take the same sort of pedagogy and let&#x27;s blow it out and let&#x27;s give it away for free and do mass education.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001318">00:13:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The most persuasive part of these stories is not a rendering of what might happen. It is the comparison between what a place was, and what it became after people changed the design. There is a difference between an inspiring idea and something that has survived real conditions. When you choose a project to film, what proof are you looking for?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001344">00:13:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Most of the projects I&#x27;m visiting are already established. You know, so I mean, the Paani Foundation, I went back twice. Some of these projects that I just published work on in Rajasthan, India, I&#x27;ve gone back a couple times. Well, some things I&#x27;m visiting in a younger stage, actually. The stuff in Africa I&#x27;m visiting at a younger stage. Or I&#x27;m visiting like, &quot;Oh, here&#x27;s one that we just installed this year; here&#x27;s another one that&#x27;s 10 years old.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001411">00:14:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Sometimes I&#x27;ll go and I&#x27;ll see the before and after kind of thing, like in the same location. That just happened in Niger. But there&#x27;s probably a lot of places that I will go back. But I don&#x27;t tend to visit really young projects. I tend to visit ones that we&#x27;re able to see, like, the proof has already revealed itself. I&#x27;ve had about, I think, in the neighborhood of getting close to 70 million views on my YouTube channel - but nearly half of those were in the last year. So it started out, but then it&#x27;s really ramped up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001454">00:14:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Welcome to one of the largest-scale land restoration projects on the planet. Before this work, people relied on food aid just to survive. But 10 years ago, a vast barren wasteland began to transform and now half a million people are feeding themselves from this land. So could this work be the key to ending hunger in Africa and beyond? Let&#x27;s find out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001525">00:15:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: It started building pretty steadily. One video I produced... you know, I&#x27;ve been doing projects with the World Food Programme now, the United Nations World Food Programme in Africa. So I produced one video from one of the projects in Senegal. It somehow blew out and it&#x27;s had over 15 million views now. The video is called &quot;How the UN is Holding Back the Sahara Desert.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001550">00:15:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: When the UN World Food Programme told the villagers that they were going to bring this land back as part of the Great Green Wall, they said it was impossible. We are here at the Senegal River, which is the border between Senegal on this side, Mauritania on the other. When you look from space, you can actually see the lateral sand dunes of Mauritania where they hit the Senegal River.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001615">00:16:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: The Senegal River is really the divide between the Sahara and the Sahel in many parts of the river. So the Senegal River here, it serves not only as the border between Senegal and Mauritania, and not only as the border between the Sahel and the Sahara, but if this river zone is vegetated, it could represent the first line of defense of the Great Green Wall of Africa.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001642">00:16:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: The Great Green Wall of Africa is a vision, a project, to plant a barrier of trees across the entire width of the continent of Africa - from Senegal to Djibouti. And the purpose of this Great Green Wall is to stop the southern expansion of the Sahara Desert. The Sahara Desert has expanded about 10% in the last 100 years. So we have the Sahara Desert, then we have the Sahel, then we have the savanna, and then we have the rainforest. The design is to actually have a barrier of trees to stop the expansion of the desert southward. So I&#x27;m here on the ground at the Great Green Wall to show how we can restore degraded landscapes, we can keep the Sahara at bay, create abundance, have people living here and thriving.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001735">00:17:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The techniques vary because the landscapes vary. A dryland watershed, a tropical island, an urban food system, and a storm-prone coast do not require the same design. The shared principle is attention: read the land, work with its patterns, and keep resources cycling through the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001756">00:17:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A solution for a dry village cannot simply be copied into a wet, tropical city. What principles remain universal? And what must communities learn to lead in their own landscapes?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001811">00:18:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So recently, I just spent some time in the tropics. And in the Philippines we&#x27;re doing typhoon resilience. Thailand we&#x27;re doing more like wet/dry tropics resilience. We have some other stuff coming up - I&#x27;m actually sending some of my colleagues to go do Puerto Rico and Cuba - again, talking about hurricane resilience. So, it&#x27;s like suddenly we&#x27;re like hitting the tropics&#x27; hurricanes [cyclones]. Okay, I&#x27;ve been hitting drylands - the Sahel, right? You know, it&#x27;s like hitting temperate climate. So I&#x27;m trying to basically just cover the major climate zones of the Earth, and the major strategies that people are using. So I&#x27;m trying to create this whole sort of encyclopedia of knowledge. You&#x27;re like, &quot;Oh, but what about the low wetland areas?&quot; Well, we went to the chinampas in Mexico City, and we&#x27;ve shown what you could do with low-flooded areas. Okay, &quot;What about, like, steep mountainous terrain?&quot; Well, I haven&#x27;t quite gotten there yet, but we&#x27;re trying to cover the major climate zones of the world and the major landforms, basically.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001936">00:19:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Hidden beneath this invasive forest are the ancient remains of Hawaii&#x27;s genius traditional food system, known as the ahupua&#x27;a, where clean and abundant water flowed through an intricate design of terraced rock wall gardens, fish ponds, and productive forests.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001954">00:19:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brandon Maka&#x27;awa&#x27;awa: Our ancestors were some of the greatest innovators of the world. This valley alone fed thousands of people in its ahupua&#x27;a.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002003">00:20:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: The system revolves around growing kalo, also known as taro: a starchy root that needs wet soil. And these rock terraces are flooded to create ideal growing conditions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002014">00:20:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brandon: Fresh water was basically the economy of an ahupua&#x27;a. Whatever you did on the ahupua&#x27;a had a negative or positive impact on everybody below you. So it gave people a sense of accountability and a sense of kuleana, responsibility. And at that time there wasn&#x27;t a concept of land ownership - we lived in communal land tenure. Every person had equal access to the most precious resource on an island, which was fresh water.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002041">00:20:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Dennis Kanahele: It just was a way of life for us. It was the way we governed ourselves before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002046">00:20:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brandon: What it created was this beautiful symbiotic relationship that people had with nature, and they had to each other.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002053">00:20:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: I was eager to tour the site and learn all the technical details of how this works.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002059">00:20:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Keali&#x27;i Frank: This is the kupuna terraces that we&#x27;ve been focusing on restoring over the last two years. I&#x27;m excited to show you this whole gravity-fed technology. So we&#x27;ll be going and walking through the headwaters - the beginning of where our streams interact with the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002116">00:21:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Keali&#x27;i: All the water that comes into our restoration site comes in from this single source. This is a very special place where gravity and contour just magically start to line up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002126">00:21:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So no pump, no electricity - this is all just gravity-fed from the stream.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002132">00:21:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Keali&#x27;i: Exactly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002134">00:21:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So I see that the water basically is diverted from the stream here to this pipe and then this terrace here is the top of your system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002144">00:21:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Keali&#x27;i: Yep, this is the first patch that it interacts with. All these new freshly planted kalo are just about a week to two weeks old. Once the water gets to the perfect level, it goes from this patch and then eventually gets gravity-fed into the next patch. We&#x27;ve installed a pipe to the exact level that we want water to fill in from the top patch to the second patch. And what&#x27;s worth mentioning is, look how clean and clear this water is. And a key to this is, you have an inlet to the lo&#x27;i [taro pond] on one side - and on the exit it&#x27;s on the opposite side, so that it moves throughout this whole lo&#x27;i evenly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002220">00:22:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: It&#x27;s actually pretty complicated to move water - to have it disperse evenly around this terrace, and then to have it overflow to the next and not have any erosion in the process - I mean, your ancestors, they just figured it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002236">00:22:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Most of us will never redesign an entire watershed. But every larger system is made of smaller decisions: where rainwater goes; how soil is covered; what food is grown nearby; and whether neighbors solve a shared problem together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002253">00:22:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Many people watching will not control a farm, a watershed, or a government budget, or even a government-sized budget. Where can one household, neighborhood, or local group begin without losing sight of the larger ecosystem?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002311">00:23:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Yeah, I mean, like I said, we&#x27;ve been doing this - I&#x27;m doing a little stretch right now of typhoon slash hurricane. I guess a typhoon and a hurricane are both tropical cyclones. We just call them a hurricane on one side of the world, a typhoon the other. So, we&#x27;re like, tropical cyclones, I mean, super storms. This is, you know, with the heating oceans - here we are, larger storms. Well, let&#x27;s see what people are doing to basically create resilience to these massive rainfall events. So, yeah, and then other places, we&#x27;re talking about wildfire; other places, desertification; some places the groundwater is drying up; some places it&#x27;s raining too much. So, it&#x27;s multidimensional.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002356">00:23:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: This Arizona neighborhood was a sun-baked urban desert. But 30 years later, it&#x27;s been completely transformed into an abundant, native food oasis. And they started it all by breaking the law. Because before the work, the streets were designed to wash all the precious rainwater down the drain - leaving the ground too dry for trees and plants to grow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002425">00:24:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: But one community went rogue - literally cutting holes into the city curbs - because they knew where the water needed to go. And we&#x27;re about to meet the water-harvesting legend that cracked the code for turning depleted neighborhoods into thriving ecosystems. Brad!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002448">00:24:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad Lancaster: Andrew, man.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002449">00:24:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: How you doing, man?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002450">00:24:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: Great, man.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002451">00:24:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: This is my original permaculture teacher from 30 years ago. I can&#x27;t believe how awesome this place looks. It&#x27;s so different.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002458">00:24:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: Well, we keep evolving, man. That&#x27;s the whole aim. So we&#x27;ve actually got the rainwater tanks now passively shading and cooling the garden. We&#x27;ve now got goats along with the chickens. And we&#x27;re really diversifying the food systems. So we&#x27;re bringing in native food plants that are way more adapted to our extreme heat, the drought. So the system is becoming much more resilient. But this is what I&#x27;m really excited about: this is not on our property. This is everyone&#x27;s - this is public commons, public land. This is the neighborhood rain-irrigated food forestry, where we&#x27;re using the street to water the street trees that shade, cool the street, and feed all those living along those streets. Let&#x27;s check it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002540">00:25:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: So here we are on a neighborhood street. Our whole intention when we began: so let&#x27;s change the way we look at a street. So water flows along the street gutters, then oftentimes ends up in the storm drain. Well, what if we could capture that water before it hits the storm drain? Let&#x27;s look at it as a water conveyance system, a water source. So we started here by putting in this water-harvesting, traffic-calming roundabout; we cut out the asphalt that was draining the water, and flipped it to a basin that retains the water. So we start by &quot;planting the rain&quot; before we plant any plants. That way the rain becomes the sole irrigation source of all this vegetation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002620">00:26:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: Notice that I am six to eight inches below the top of the curb. That way no rain that falls on this drains out. Furthermore, we catch a little bit of runoff. That&#x27;s why we cut the curb here, to capture that. We don&#x27;t let a single drop go to waste.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002634">00:26:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So Brad cut the curb to intercept rainwater as it flows down the hill, containing it in the basin. In fact, Brad analyzed the entire street like it&#x27;s a watershed. Because when it rains, the water flows from the high points in the middle of the road down towards the curbs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002652">00:26:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: So we&#x27;re standing here on the ridgeline - the high point between two separate watersheds. Water flows downhill, right? So we&#x27;re working with gravity. We came and we cut the street curb - to enable the stormwater flowing down the street to then enter street-side basins - where we cut out the asphalt, dug down well below the elevation of the street. So all that street runoff just pours in here and then rapidly infiltrates. So it gets off the pavement, where you&#x27;ve got no life, and it infiltrates the unpaved area where we can grow abundant life. This system retains the water. This system plants the water, doesn&#x27;t drain it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002734">00:27:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Brad: When the surplus water overflows out of that, it&#x27;ll drain and fill in this street-side water-harvesting chicane (or curb extension) which narrows the street - slowing traffic - but enables us to plant within the street. So this whole basin - that&#x27;s well below the elevation of the street here - fills up with water, captures well over 5,000 gallons of water a year. Then it drains out (the overflow), hits the street curb, and that overflow water is then caught in the next street-side basin, which fills up. The water backs up on itself once it&#x27;s full, goes down the street curb again, and then we catch it in the next street-side basin. And we just keep going. It&#x27;s one after another.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002829">00:28:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Your work keeps returning to water. Why is restoring the way water moves through a landscape so foundational to rebuilding soil, forests, food systems, and resilience?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002841">00:28:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: Stabilizing the hydrology of the planet - the way that water moves through ecosystems - that&#x27;s the basis for regrowing forests, restoring soils, recreating biodiversity and biomass and everything. You know, restoring ecosystems. These restored ecosystems are the shock absorbers of climate extremes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002909">00:29:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: After seeing both the damage and the recovery firsthand, what gives you confidence that we are just not too late?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002918">00:29:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Andrew: So this is like the easiest win on the planet, right? It&#x27;s hard to think about getting all of the countries to agree to reduce carbon emissions and nuclear energy and it can just be overwhelming. But the thing that we really can do, and people are showing that very easily, is we can restore hydrologic cycles, rebuild ecosystems, rebuild the natural wealth of the world, and create the shock absorbers that can handle the crazy climate patterns that we have set into motion, basically. We can do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003001">00:30:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Life Redefined is not life separated from nature. It is life designed with a clearer understanding that water, soil, food, climate, and community are one connected story. The work has already begun. The next question is, where each of us enters it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003025">00:30:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://unitednetwork.earth/programs/how-ecosystem-restoration-builds-climate-resilience" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&lt;&lt;</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=document.getElementById('audioBarRate').textContent=a.playbackRate.toFixed(1)+'x';">&gt;&gt;</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Slower</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); document.getElementById('audioRate').textContent=a.playbackRate.toFixed(1)+'x';">Faster</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
