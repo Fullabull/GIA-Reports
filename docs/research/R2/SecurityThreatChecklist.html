@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Security Threat Checklist - R2 / Media Infrastructure</title>
+  <link rel="stylesheet" href="../../css/ReportLiveGIA.css" />
+  <link rel="icon" href="../../favicon.ico" />
+  <style>
+    .security-wrap { overflow-x:auto; margin-top:22px; }
+    .security-table { width:100%; border-collapse:collapse; min-width:980px; }
+    .security-table th, .security-table td {
+      border:1px solid #7775;
+      padding:9px 10px;
+      text-align:left;
+      vertical-align:top;
+    }
+    .security-table th { font-weight:700; }
+    .status { white-space:nowrap; font-weight:700; }
+    .note { margin:18px 0; padding:14px 16px; border-left:4px solid currentColor; }
+    code { white-space:nowrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="intro-banner">
+      <h1>Security Threat Checklist</h1>
+      <p class="tagline">A living checklist for the R2 / media infrastructure project</p>
+    </section>
+
+    <p>
+      This page is intentionally a checklist, not a claim that every item is already solved.
+      The purpose is to make sure every important threat has an owner:
+      <strong>Cloudflare, Render, our application, or some combination of the three.</strong>
+    </p>
+
+    <div class="note">
+      <strong>Rule:</strong> "Behind Cloudflare" does not mean "secure."
+      Cloudflare and Render can remove enormous classes of network attacks before they reach us,
+      but requests that look like legitimate application traffic still require correct application design.
+    </div>
+
+    <h2>Status Key</h2>
+    <ul>
+      <li><strong>Platform covered</strong> - the platform provides the primary control; we still verify configuration and behavior.</li>
+      <li><strong>Design / implement</strong> - primarily our responsibility and must be addressed in the application or Worker.</li>
+      <li><strong>Ongoing</strong> - cannot be considered permanently "done"; requires monitoring, patching, rotation, or review.</li>
+      <li><strong>Future</strong> - relevant to later live-streaming, multi-tenant, or production ingest phases.</li>
+    </ul>
+
+    <div class="security-wrap">
+      <table class="security-table">
+        <thead>
+          <tr>
+            <th>Threat</th>
+            <th>Cloudflare</th>
+            <th>Render</th>
+            <th>Our Responsibility</th>
+            <th>Status</th>
+            <th>Test / Verification</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>L3/L4 DDoS</strong><br>SYN floods, UDP reflection, volumetric attacks</td>
+            <td>Primary edge mitigation.</td>
+            <td>All inbound Render web-service traffic passes through Cloudflare; Render says L3/L4 floods are fully mitigated before the app.</td>
+            <td>Keep architecture behind protected entry points; monitor unexpected behavior.</td>
+            <td class="status">Platform covered</td>
+            <td>Document current topology and confirm no unintended public origin path.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Layer-7 DDoS / resource exhaustion</strong><br>HTTP floods, expensive endpoints</td>
+            <td>WAF, DDoS heuristics, custom rules and rate limiting can help.</td>
+            <td>Large obvious floods receive edge filtering; targeted abuse may still reach the application.</td>
+            <td>Protect expensive endpoints; adaptive limits; graceful degradation; application-aware monitoring.</td>
+            <td class="status">Design / implement</td>
+            <td>Load-test login, search, API and expensive database paths.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Origin bypass / alternate hostname</strong></td>
+            <td>Can protect custom domains and Workers.</td>
+            <td>Every web service also has an <code>onrender.com</code> hostname.</td>
+            <td>Do not assume all traffic passed through rules attached only to our custom Cloudflare zone. Decide whether alternate-host access should be restricted.</td>
+            <td class="status">Review</td>
+            <td>Request the service through every known hostname and compare protections.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Credential stuffing / account takeover</strong></td>
+            <td>Rate limiting, WAF and bot controls can assist.</td>
+            <td>Render explicitly identifies targeted credential stuffing as an application responsibility.</td>
+            <td>Strong authentication, login throttling, MFA/passkeys where appropriate, session alerts, password reset protection.</td>
+            <td class="status">Design / implement</td>
+            <td>Simulate repeated distributed login failures and account recovery abuse.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Automated scraping / bot abuse</strong></td>
+            <td>Bot controls, challenges and rate limits can reduce automated abuse.</td>
+            <td>No application-specific protection promised.</td>
+            <td>Decide what may be public, authenticated, indexed, downloaded or bulk-accessed. Apply quotas and authorization accordingly.</td>
+            <td class="status">Design / implement</td>
+            <td>Test slow distributed scraping as well as obvious high-rate scraping.</td>
+          </tr>
+
+          <tr>
+            <td><strong>API authorization failures / BOLA</strong><br>User A requests User B's object</td>
+            <td>Cannot determine business ownership of an object for us.</td>
+            <td>Cannot determine application authorization for us.</td>
+            <td><strong>Entirely ours:</strong> authorize every object/action server-side. Never trust object IDs, tenant IDs or UI visibility.</td>
+            <td class="status">Critical - design</td>
+            <td>Automated cross-user and cross-tenant access tests on every object API.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Tenant isolation failure</strong></td>
+            <td>Workers can enforce tenant routing, but only if we write the rules correctly.</td>
+            <td>Hosting isolation does not understand our tenant model.</td>
+            <td><strong>Entirely ours:</strong> tenant identity must be validated at every storage, metadata, cache and authorization boundary.</td>
+            <td class="status">Critical - design</td>
+            <td>Create deliberate cross-tenant attempts for reads, writes, listings, cache keys and signed playback.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Session hijacking / token theft / replay</strong></td>
+            <td>Edge enforcement can validate signed or session-based access.</td>
+            <td>Provides hosting/TLS, not our session policy.</td>
+            <td>Secure cookies, short lifetimes, absolute expiry, rotation, revocation strategy and anomaly detection.</td>
+            <td class="status">Design / implement</td>
+            <td>Copy tokens between browsers/devices and confirm intended expiry/replay behavior.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Hotlinking / unauthorized media playback</strong></td>
+            <td>Worker/WAF rules can enforce playback policy.</td>
+            <td>Not a media authorization layer.</td>
+            <td>Playback authorization, tenant policy, token/session validation and cache-key correctness.</td>
+            <td class="status">Design / implement</td>
+            <td>Embed protected media from an unauthorized site and attempt direct segment/object access.</td>
+          </tr>
+
+          <tr>
+            <td><strong>SSRF</strong><br>Server is tricked into fetching internal or dangerous URLs</td>
+            <td>May block some malicious requests at the edge but cannot safely validate our outbound-fetch logic.</td>
+            <td>Platform isolation helps limit blast radius but does not fix unsafe fetch behavior.</td>
+            <td>Strict URL validation, block loopback/private/link-local destinations, redirect controls, outbound policy and isolated processing.</td>
+            <td class="status">Design / implement</td>
+            <td>Attempt localhost, RFC1918, link-local, IPv6-local and redirect-chain targets.</td>
+          </tr>
+
+          <tr>
+            <td><strong>XSS / client-side injection</strong></td>
+            <td>WAF can catch some exploit patterns; CSP-related products can assist.</td>
+            <td>Can set response headers, but application output remains ours.</td>
+            <td>Output encoding, input handling, CSP, secure templates, avoid unsafe DOM injection.</td>
+            <td class="status">Design / implement</td>
+            <td>Automated and manual tests against every user-controlled field rendered in HTML/JS.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Third-party JavaScript / supply-chain compromise</strong></td>
+            <td>Can assist with client-side visibility/security products.</td>
+            <td>Does not validate third-party browser code.</td>
+            <td>Minimize dependencies, use CSP/SRI where appropriate, pin versions, review what executes in the browser.</td>
+            <td class="status">Ongoing</td>
+            <td>Inventory all third-party scripts and browser-accessible data.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Dependency / package compromise</strong></td>
+            <td>May shield exploitation attempts but does not make vulnerable code safe.</td>
+            <td>Maintains platform infrastructure; our packages remain ours.</td>
+            <td>Pin dependencies, vulnerability scanning, controlled upgrades, reproducible builds where practical.</td>
+            <td class="status">Ongoing</td>
+            <td>Routine dependency audit and patch process.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Secret / API-key leakage</strong></td>
+            <td>Protect account/API tokens with least privilege and rotation.</td>
+            <td>Environment/secret facilities help keep secrets outside source code.</td>
+            <td>Never ship secrets to browsers or repositories. Least privilege, separation by environment, rotation and emergency revocation.</td>
+            <td class="status">Critical - ongoing</td>
+            <td>Secret scan repository/build artifacts; document revocation procedure.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Unauthorized or malicious uploads</strong></td>
+            <td>Can enforce request size/rate/policy at the edge.</td>
+            <td>Provides compute isolation, not semantic validation of our media.</td>
+            <td>Authenticate uploaders; validate type/size; never trust filename or MIME alone; isolate processing; enforce storage quotas.</td>
+            <td class="status">Design / implement</td>
+            <td>Upload malformed, oversized, misleading and unexpected file types.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Media parser / transcoder exploits</strong></td>
+            <td>Not the primary defense.</td>
+            <td>Hosting isolation can reduce blast radius.</td>
+            <td>Keep ffmpeg/media libraries patched; run untrusted processing with minimal privileges and isolation.</td>
+            <td class="status">Future / ongoing</td>
+            <td>Fuzz/malformed-media testing and processor isolation review.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Stream-key / ingest credential theft</strong></td>
+            <td>Can provide protected ingest front doors depending on architecture.</td>
+            <td>Not application-specific.</td>
+            <td>Short-lived or rotatable ingest credentials, scoped permissions, secure producer onboarding.</td>
+            <td class="status">Future</td>
+            <td>Revoke/rotate a compromised key without disrupting unrelated streams.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Cache poisoning / cache-key mistakes</strong></td>
+            <td>Cloudflare executes the cache policy we configure.</td>
+            <td>Not responsible for our Cloudflare cache semantics.</td>
+            <td>Never allow authentication/tenant state to collide in cache keys. Normalize carefully and test authenticated/anonymous variants.</td>
+            <td class="status">Critical - design</td>
+            <td>Cross-user and cross-tenant cache tests before production.</td>
+          </tr>
+
+          <tr>
+            <td><strong>DNS / domain / control-plane account takeover</strong></td>
+            <td>Account security, scoped API tokens and MFA/passkeys are essential.</td>
+            <td>Render account security is equally important.</td>
+            <td>Protect registrar, Cloudflare, Render and source-control accounts; hardware/passkey MFA where practical; emergency recovery documented.</td>
+            <td class="status">Critical - ongoing</td>
+            <td>Review admins, recovery methods, tokens and unused access quarterly.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Bad deployment / configuration error</strong></td>
+            <td>Cannot protect us from incorrect Worker/WAF/cache logic.</td>
+            <td>Health checks, zero-downtime deploys and rollback features can reduce impact.</td>
+            <td>Staging, health checks, configuration review, fast rollback and change logging.</td>
+            <td class="status">Ongoing</td>
+            <td>Practice rollback and verify health checks detect a deliberately bad build.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Data loss / accidental deletion / destructive account compromise</strong></td>
+            <td>R2 durability is infrastructure protection, not a substitute for our recovery plan.</td>
+            <td>Application hosting does not replace media backup/recovery.</td>
+            <td>Versioning/backup/archive strategy, immutable source masters where appropriate, inventory and restore testing.</td>
+            <td class="status">Design / implement</td>
+            <td>Perform a real restore from backup/versioned storage.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Logging blind spots / slow attack detection</strong></td>
+            <td>Security events and request identifiers provide edge visibility.</td>
+            <td>Render forwards <code>CF-Ray</code> and recommends logging it.</td>
+            <td>Adaptive Traffic Monitoring, structured logs, alert thresholds and enough retention to investigate incidents.</td>
+            <td class="status">Design underway</td>
+            <td>Generate a known anomaly and verify detection, logs and operator visibility.</td>
+          </tr>
+
+          <tr>
+            <td><strong>Adaptive / low-and-slow abuse</strong></td>
+            <td>Rate limiting and bot/WAF signals can assist.</td>
+            <td>Render explicitly notes slow and targeted requests may reach the app.</td>
+            <td>Our Adaptive Traffic Monitoring layer watches changes in request velocity, distribution, cost and behavior rather than only raw volume.</td>
+            <td class="status">Design underway</td>
+            <td>Simulate distributed traffic below simple per-IP thresholds.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Operational Rule</h2>
+    <p>
+      Every new feature should get a quick pass through this checklist before it is considered production-ready.
+      If a new threat appears during research or testing, add a row rather than relying on memory.
+    </p>
+
+    <h2>Useful Platform Boundaries</h2>
+    <ul>
+      <li><strong>Cloudflare:</strong> strongest at edge/network filtering, WAF, rate controls, bot signals, request enforcement and protected media delivery.</li>
+      <li><strong>Render:</strong> protected application hosting, Cloudflare-backed inbound DDoS protection, load balancing, health checks and deployment/runtime controls.</li>
+      <li><strong>Us:</strong> authentication, authorization, tenant isolation, session policy, safe upload/processing, cache correctness, secrets, business logic, logging and recovery.</li>
+    </ul>
+
+    <h2>References</h2>
+    <ul>
+      <li><a href="https://render.com/docs/ddos-protection">Render - DDoS Protection</a></li>
+      <li><a href="https://render.com/articles/how-render-handles-ddos-attacks">Render - How Render Handles DDoS Attacks</a></li>
+      <li><a href="https://render.com/docs/web-services">Render - Web Services</a></li>
+      <li><a href="https://render.com/docs/uptime-best-practices">Render - Uptime Best Practices</a></li>
+      <li><a href="https://developers.cloudflare.com/ddos-protection/best-practices/proactive-defense/">Cloudflare - Proactive DDoS Defense</a></li>
+      <li><a href="https://developers.cloudflare.com/waf/rate-limiting-rules/">Cloudflare - Rate Limiting Rules</a></li>
+      <li><a href="https://developers.cloudflare.com/waf/rate-limiting-rules/best-practices/">Cloudflare - Rate Limiting Best Practices</a></li>
+      <li><a href="https://owasp.org/API-Security/">OWASP - API Security Project</a></li>
+      <li><a href="https://owasp.org/www-project-top-ten/">OWASP - Top 10 Web Application Security Risks</a></li>
+    </ul>
+
+    <p style="margin-top:28px;">
+      <a href="index.html">&larr; Back to R2 / Media Infrastructure</a>
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <small>&copy; <span id="year"></span> GIA Reports</small>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
