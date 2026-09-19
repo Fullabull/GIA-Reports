@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Cloudflare? - MeScreen Infrastructure Notes</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #17212b;
+    --panel2: #1e2b37;
+    --text: #e8eef3;
+    --muted: #a9bac7;
+    --accent: #70d7b1;
+    --accent2: #87b8ff;
+    --warn: #ffd27a;
+    --line: #304252;
+    --good: #9ae6b4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.58;
+  }
+  main {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 28px 22px 70px;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1.05;
+  }
+  h2 {
+    margin-top: 42px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 { margin-top: 26px; }
+  a { color: var(--accent2); }
+  .subtitle { color: var(--muted); font-size: 1.08rem; margin-bottom: 28px; }
+  .lead, .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin: 18px 0;
+  }
+  .lead {
+    border-left: 5px solid var(--accent);
+    font-size: 1.08rem;
+  }
+  .good { color: var(--good); font-weight: 700; }
+  .warn { color: var(--warn); font-weight: 700; }
+  .small { color: var(--muted); font-size: .93rem; }
+  code {
+    background: #0b1218;
+    color: #d9f6eb;
+    padding: .1em .35em;
+    border-radius: 5px;
+  }
+  pre {
+    overflow-x: auto;
+    background: #0b1218;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    color: #dce8ef;
+    line-height: 1.45;
+  }
+  ul { padding-left: 1.35rem; }
+  li { margin: .55rem 0; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+    gap: 16px;
+    margin: 18px 0;
+  }
+  .grid .card { margin: 0; }
+  .label {
+    display: inline-block;
+    font-weight: 800;
+    font-size: .75rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 999px;
+    margin-bottom: 7px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+  th, td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--panel2); }
+  footer {
+    margin-top: 56px;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Why Cloudflare?</h1>
+  <div class="subtitle">MeScreen infrastructure notes - why we are comfortable putting Cloudflare at the edge, what it does for us, and what remains our responsibility.</div>
+
+  <div class="lead">
+    <strong>The short version:</strong> We are not choosing Cloudflare merely because it has a very large network.
+    We are choosing it because the company has repeatedly demonstrated automatic mitigation of enormous real-world attacks,
+    its protection is distributed throughout the edge rather than dependent on one central scrubbing point, it gives us a
+    programmable security layer in Workers, and R2 lets us eliminate a conventional public media origin altogether.
+  </div>
+
+  <h2>1. Why Cloudflare earns a place near the top of the list</h2>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Battle tested</div>
+      <h3>Real attacks, not just capacity claims</h3>
+      <p>Cloudflare reported automatically mitigating 47.1 million DDoS attacks during 2025. Its 2025 Q4 report describes attacks exceeding 200 million HTTP requests per second and a 31.4 Tbps network-layer attack, which Cloudflare says was detected and mitigated automatically.</p>
+    </div>
+    <div class="card">
+      <div class="label">Distributed defense</div>
+      <h3>Autonomous protection at the edge</h3>
+      <p>Cloudflare's home-grown <code>dosd</code> system runs on every server throughout its global network and can detect and mitigate attacks without waiting for centralized consensus. A global system watches across the whole network for widely distributed attacks.</p>
+    </div>
+    <div class="card">
+      <div class="label">State awareness</div>
+      <h3>flowtrackd</h3>
+      <p><code>flowtrackd</code> adds stateful traffic analysis alongside <code>dosd</code>. Cloudflare uses it in advanced systems that learn normal traffic patterns and identify sophisticated TCP and DNS attacks.</p>
+    </div>
+    <div class="card">
+      <div class="label">Transparency</div>
+      <h3>They publish the ugly stuff too</h3>
+      <p>Cloudflare publishes detailed incident reports when its own systems fail. After major 2025 outages it launched its "Fail Small" engineering program and reported completing the program in May 2026. Trust is helped by knowing how a vendor fails, not by pretending it never does.</p>
+    </div>
+  </div>
+
+  <h2>2. The architecture advantage for MeScreen</h2>
+
+  <pre>Viewer
+   |
+   v
+Cloudflare Edge
+   |
+   +-- DDoS protection / WAF / rate controls
+   |
+   v
+Worker  &lt;-- authentication, tenant policy, cache logic
+   |
+   v
+Private R2
+</pre>
+
+  <p>The important part of this diagram is what is <em>missing</em>: there does not have to be a conventional public-facing video origin server sitting behind Cloudflare waiting for someone to discover its IP address. R2 buckets are private by default, and the Worker can be our programmable gatekeeper.</p>
+
+  <p><strong>Architectural principle:</strong> Cloudflare's edge is the permanent front door. The Worker is our programmable gatekeeper. R2 is never the public front door.</p>
+
+  <h2>3. What Cloudflare protects against</h2>
+
+  <table>
+    <thead>
+      <tr><th>Threat</th><th>Cloudflare role</th><th>Our role</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Layer 3 / Layer 4 floods</td><td>Automatic DDoS mitigation at the edge.</td><td>Mostly configuration and verification.</td></tr>
+      <tr><td>UDP floods / reflection</td><td>Managed network-layer DDoS rules detect and mitigate UDP-based attacks.</td><td>Make sure any intentional high-volume UDP application is deliberately designed and tested so its valid traffic profile is understood.</td></tr>
+      <tr><td>Layer 7 HTTP floods</td><td>Heuristics, WAF, rate limiting and adaptive DDoS systems can filter large-volume attacks.</td><td>Protect expensive endpoints and understand normal application behavior.</td></tr>
+      <tr><td>Credential stuffing / API abuse</td><td>Can assist with WAF, bot and rate-control tools.</td><td><strong>Still substantially our responsibility.</strong></td></tr>
+      <tr><td>Token theft / replay</td><td>Provides a good edge enforcement point.</td><td>Use short-lived credentials, session controls, absolute expiry and careful authorization.</td></tr>
+      <tr><td>Hotlinking / bandwidth theft</td><td>Workers and edge rules can enforce policy.</td><td>Design playback authorization and tenant rules correctly.</td></tr>
+      <tr><td>Bad deployments / cache-key mistakes</td><td>Cloudflare cannot save us from our own logic.</td><td><strong>Entirely our job.</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. UDP: good technology, but intentional architecture</h2>
+
+  <p>Cloudflare does not treat UDP as inherently malicious. It protects large amounts of legitimate UDP traffic and explicitly mitigates UDP reflection and flood attacks. The important design issue is that UDP has no TCP-style handshake, so legitimate high-volume UDP can look much more like an attack if its application behavior is not known.</p>
+
+  <p>For a future custom UDP ingest service, Cloudflare Spectrum can proxy arbitrary TCP and UDP applications through Cloudflare's edge, but custom protocol use is an Enterprise-level product. That is something to evaluate when MeScreen reaches the point where a purpose-built UDP ingest path is economically justified.</p>
+
+  <p>For the first large archive migration, the simpler strategy is parallel R2 multipart upload over HTTPS: multiple parts in flight at once, automatic retries of failed parts, resumability, and support for objects up to 5 TiB.</p>
+
+  <h3>A very timely R2 feature: Local Uploads</h3>
+  <p><span class="warn">Beta as of September 18, 2026.</span> R2 Local Uploads can write object data to storage near the uploader and asynchronously copy it to the bucket's primary location. Cloudflare specifically describes it as a way to improve upload performance and reliability when clients are far from the bucket. It works with <code>PutObject</code> and multipart <code>UploadPart</code>, and Cloudflare currently charges no additional fee for enabling it beyond ordinary R2 operation costs.</p>
+
+  <h2>5. Why we still want Adaptive Traffic Monitoring</h2>
+
+  <div class="lead">
+    Cloudflare and Render should absorb the brute-force network attack. <strong>Adaptive Traffic Monitoring watches for the attack that looks enough like a real user to get through.</strong>
+  </div>
+
+  <p>Our monitor should therefore be considered an <strong>application-awareness layer</strong>, not our primary DDoS shield. It can watch normal traffic velocity and detect deviations such as sudden endpoint-specific spikes, unusually expensive request patterns, authentication abuse, repeated errors, suspicious user-agent/IP behavior, or a rapidly changing request distribution.</p>
+
+  <p>A useful response ladder is:</p>
+  <pre>Normal
+  |
+  v
+Observe baseline
+  |
+  +-- modest anomaly --------&gt; increase logging / shorten windows
+  |
+  +-- strong anomaly --------&gt; tighten endpoint rate limits
+  |
+  +-- severe anomaly --------&gt; challenge / temporary block / degrade expensive features
+  |
+  +-- sustained attack -------&gt; operator alert + Cloudflare rule escalation
+</pre>
+
+  <p>The monitor should log the real client identity available through trusted proxy headers, request endpoint, response status, response time, resource cost where practical, and Cloudflare request identifiers. Its purpose is not simply "requests per minute"; it is to recognize when the <em>shape</em> of legitimate-looking traffic changes.</p>
+
+  <h2>6. What if somebody discovers our server IP?</h2>
+
+  <p>For an ordinary Render web service, this concern is smaller than it would be on a conventional VPS. Render documents that the application's HTTP port is <strong>not directly reachable from the public internet</strong>. Public traffic reaches the Render load balancer first, and all inbound Render web-service traffic passes through Cloudflare for DDoS protection.</p>
+
+  <p>So discovering an underlying instance address is not equivalent to discovering a routable Apache/nginx origin that can simply be attacked directly.</p>
+
+  <p>There is, however, another bypass worth remembering: a Render service has its own <code>onrender.com</code> hostname. If our custom MeScreen hostname is protected by rules in <em>our</em> Cloudflare account, somebody who knows the Render hostname may bypass those particular account-level rules and go directly to Render's edge. They still encounter Render's Cloudflare-backed DDoS protection, but our application should not assume every incoming request passed through our own Cloudflare policy layer.</p>
+
+  <p>That is another reason Adaptive Traffic Monitoring and application-level rate controls remain valuable.</p>
+
+  <h2>7. Why Render?</h2>
+
+  <div class="lead">
+    Render does not replace Cloudflare in our design. It gives our application server a second protected hosting layer, while removing much of the traditional server-management burden.
+  </div>
+
+  <ul>
+    <li><strong>Every public Render web service already receives built-in DDoS protection.</strong> Render says it uses Cloudflare behind the scenes and includes this protection automatically on all plans.</li>
+    <li><strong>Layer 3/4 floods are handled before the app.</strong> Render specifically lists SYN floods and UDP reflection as traffic that Cloudflare drops before it reaches application compute.</li>
+    <li><strong>Large obvious Layer 7 floods also receive edge filtering.</strong></li>
+    <li><strong>Targeted application-layer abuse remains ours.</strong> Render explicitly calls out credential stuffing, abusive API requests, expensive queries and slow requests as application responsibilities.</li>
+    <li><strong>The actual service port is not directly public.</strong> Render's load balancer forwards inbound requests to it.</li>
+    <li><strong>Render forwards useful tracing information.</strong> It recommends logging the <code>CF-Ray</code> identifier and using <code>x-forwarded-for</code> for the real client IP.</li>
+    <li><strong>Higher-tier Render plans can add inbound IP rules</strong> for web services if we later need tighter network allowlisting.</li>
+  </ul>
+
+  <p><strong>Therefore:</strong> we should keep Adaptive Traffic Monitoring, but we do not need to pretend our Python application is a miniature Cloudflare. Let Cloudflare and Render stop the packet floods. Our code concentrates on the attacks only the application can truly understand.</p>
+
+  <h2>8. Current working strategy</h2>
+
+  <pre>Media storage:       Private Cloudflare R2
+Delivery:            Cloudflare edge + Worker
+Small video:         Plain MP4 / HTML5 video where appropriate
+Large video:         Derived adaptive streaming later
+Bulk onboarding:     Parallel multipart HTTPS uploads
+Migration safety:    Manifest + checksums + restartability + verification
+Upload optimization: Evaluate R2 Local Uploads (Beta)
+App hosting:         Render
+Network DDoS:        Cloudflare / Render
+Application abuse:   Adaptive Traffic Monitoring + application rate controls
+Long-term model:     tenant -&gt; asset -&gt; original -&gt; renditions
+</pre>
+
+  <footer>
+    <h2>Primary references</h2>
+    <ul>
+      <li><a href="https://developers.cloudflare.com/ddos-protection/about/">Cloudflare - About DDoS Protection</a></li>
+      <li><a href="https://developers.cloudflare.com/ddos-protection/about/components/">Cloudflare - DDoS Protection Components</a></li>
+      <li><a href="https://blog.cloudflare.com/ddos-threat-report-2025-q4/">Cloudflare - 2025 Q4 DDoS Threat Report</a></li>
+      <li><a href="https://blog.cloudflare.com/code-orange-fail-small-complete/">Cloudflare - Code Orange: Fail Small</a></li>
+      <li><a href="https://developers.cloudflare.com/r2/objects/upload-objects/">Cloudflare R2 - Upload Objects / Multipart Upload</a></li>
+      <li><a href="https://developers.cloudflare.com/r2/buckets/local-uploads/">Cloudflare R2 - Local Uploads (Beta)</a></li>
+      <li><a href="https://render.com/docs/ddos-protection">Render - DDoS Protection</a></li>
+      <li><a href="https://render.com/articles/how-render-handles-ddos-attacks">Render - How Render Handles DDoS Attacks</a></li>
+      <li><a href="https://render.com/docs/web-services">Render - Web Services</a></li>
+      <li><a href="https://render.com/docs/uptime-best-practices">Render - Uptime Best Practices</a></li>
+      <li><a href="https://render.com/docs/inbound-ip-rules">Render - Inbound IP Rules</a></li>
+    </ul>
+    <p>Prepared for the MeScreen / R2 Video Strategy project. Updated September 2026.</p>
+  </footer>
+</main>
+</body>
+</html>
