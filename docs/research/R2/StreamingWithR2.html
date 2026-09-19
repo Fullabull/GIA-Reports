@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Streaming Video With Cloudflare R2 - An Introduction</title>
+  
+  <style>
+    /* ==========================================================================
+       1. Variables & Global Reset
+       ========================================================================== */
+    :root {
+      --bg: #0f1320;
+      --fg: #e6e9ef;
+      --muted: #a8b0c0;
+      --accent: #7cc4ff;
+      --accent2: #ffd36e;
+      --good: #74e6a0;
+      --warn: #ffd36e;
+      --bad: #ff8f8f;
+      --line: #2a3248;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, Helvetica, sans-serif;
+      background: radial-gradient(1200px 800px at 70% -10%, #1b2035 0%, var(--bg) 40%, #0a0d16 100%);
+      color: var(--fg);
+      line-height: 1.58;
+    }
+
+    /* ==========================================================================
+       2. Typography & Layout
+       ========================================================================== */
+    .wrap {
+      max-width: 1100px;
+      margin: 36px auto 60px;
+      padding: 0 20px;
+    }
+
+    header {
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      line-height: 1.15;
+      margin: 0 0 7px;
+    }
+
+    h2 {
+      font-size: 1.38rem;
+      margin: 0 0 12px;
+      color: #fff;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin: 0 0 8px;
+      color: #fff;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .lead {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .small {
+      font-size: .88rem;
+      color: var(--muted);
+    }
+
+    code {
+      background: #0c101b;
+      border: 1px solid var(--line);
+      padding: 2px 5px;
+      border-radius: 5px;
+      color: #d9e7ff;
+    }
+
+    ul, ol {
+      margin: 8px 0 5px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    /* ==========================================================================
+       3. Navigation & Links
+       ========================================================================== */
+    .crumb {
+      margin-bottom: 12px;
+      font-size: .9rem;
+    }
+
+    .crumb a {
+      text-decoration: none;
+    }
+
+    .topic {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .topic:hover {
+      border-color: #496080;
+      background: rgba(124, 196, 255, .035);
+    }
+
+    /* ==========================================================================
+       4. Cards, Containers & Grids
+       ========================================================================== */
+    .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .025), rgba(255, 255, 255, 0));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .23);
+      margin: 18px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 15px 16px;
+      background: rgba(255, 255, 255, .018);
+    }
+
+    .flow {
+      background: #0c101b;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 10px 0;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #dce4f3;
+    }
+
+    /* Card Left-Border Accents */
+    .focus { border-left: 4px solid var(--accent); }
+    .strategy { border-left: 4px solid var(--accent2); }
+    .warning { border-left: 4px solid var(--bad); }
+    .good { border-left: 4px solid var(--good); }
+
+    /* Custom Highlight Boxes */
+    .verdict {
+      border: 1px solid #3a4767;
+      background: rgba(124, 196, 255, .055);
+      border-radius: 13px;
+      padding: 14px 16px;
+    }
+
+    .callout {
+      border: 1px solid #5f5530;
+      background: rgba(255, 211, 110, .06);
+      border-radius: 13px;
+      padding: 14px 16px;
+    }
+
+    .goodbox {
+      border: 1px solid #355946;
+      background: rgba(116, 230, 160, .055);
+      border-radius: 13px;
+      padding: 14px 16px;
+    }
+
+    /* ==========================================================================
+       5. Interactive Collapsible (Details / Summary)
+       ========================================================================== */
+    .detail-card {
+      padding: 0;
+    }
+
+    .detail-card details {
+      padding: 18px 20px;
+    }
+
+    .detail-card summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .detail-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-title {
+      display: block;
+      font-size: 1.38rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #fff;
+    }
+
+    .summary-title::after {
+      content: '  ›';
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .detail-card details[open] .summary-title::after {
+      content: '  ⌄';
+    }
+
+    .detail-intro {
+      display: block;
+      color: var(--muted);
+      margin: 7px 0 0;
+    }
+
+    .detail-body {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    /* ==========================================================================
+       6. Badges, Tags & Utilities
+       ========================================================================== */
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 9px;
+      margin: 2px 5px 2px 0;
+      background: rgba(255, 255, 255, .025);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    .pill {
+      display: inline-block;
+      border: 1px solid #355946;
+      background: rgba(116, 230, 160, .07);
+      color: #9df0bc;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: .78rem;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .flow-emphasis {
+      display: inline-block;
+      color: #b4f5cb;
+      font-weight: 800;
+      border: 1px solid #355946;
+      background: rgba(116, 230, 160, .08);
+      border-radius: 7px;
+      padding: 3px 7px;
+    }
+
+    .coming {
+      opacity: .72;
+    }
+
+    /* ==========================================================================
+       7. Tables
+       ========================================================================== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: .93rem;
+    }
+
+    th, td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      color: #fff;
+      background: rgba(255, 255, 255, .035);
+    }
+
+    td:first-child {
+      font-weight: 650;
+    }
+
+    /* ==========================================================================
+       8. Media Queries & Print Modes
+       ========================================================================== */
+    @media (max-width: 820px) {
+      .wrap {
+        padding: 0 12px;
+        margin-top: 22px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      table {
+        font-size: .84rem;
+      }
+      th, td {
+        padding: 8px 6px;
+      }
+      h1 {
+        font-size: 1.65rem;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+      }
+      .card, .mini, .verdict, .callout, .goodbox {
+        box-shadow: none;
+        border-color: #888;
+        background: #fff;
+      }
+      .lead, .small {
+        color: #444;
+      }
+      h2, h3 {
+        color: #000;
+      }
+      th {
+        color: #000;
+        background: #eee;
+      }
+      a {
+        color: #000;
+      }
+    }
+  </style>
+</head>
+<body><div class="wrap">
+<div class="crumb"><a href="index.html">&larr; GIA Reports</a></div>
+<header><h1>Streaming Video With Cloudflare R2 - An Introduction</h1><p class="lead">What R2 does, what Cloudflare Stream does, and why anyone would deliberately choose the do-it-yourself route</p></header>
+
+<section>
+  <h2>Cloudflare: The Foundation</h2>
+
+  <p>
+    Both Cloudflare R2 and Cloudflare Stream run on Cloudflare's global network.
+    Before comparing them, it is important to understand what Cloudflare itself
+    brings to the project.
+  </p>
+
+  <p>
+    Cloudflare provides the Internet-facing infrastructure that helps keep media
+    fast, available, and protected. Its network automatically detects and mitigates
+    DDoS attacks before they can overwhelm the application or media origin, while
+    its global edge network places content close to viewers around the world.
+    Cloudflare also provides security tools such as firewall rules, rate limiting,
+    bot detection, and managed challenges when additional protection is needed.
+  </p>
+
+  <p>
+    This means we do not have to build our own global delivery network or DDoS
+    defense system. Those capabilities are already part of the Cloudflare platform.
+    The decision that follows is therefore not whether to use Cloudflare, but
+    <strong>how to use it: Cloudflare Stream or our own R2-based media delivery system.</strong>
+  </p>
+</section>
+
+<section class="card strategy">
+<h2>Cloudflare R2 vs Cloudflare Stream</h2>
+<p><strong>Cloudflare R2 and Cloudflare Stream are two different Cloudflare products.</strong></p>
+<p><strong>Cloudflare Stream</strong> is a managed video platform. Give it a video and Cloudflare can encode it, create multiple quality levels, package it for adaptive playback, store it, deliver it, provide playback URLs and a player, and report video analytics.</p>
+<p><strong>Cloudflare R2</strong> is object storage. It stores files and serves files. It does <em>not</em> automatically turn a large video into a streaming-video system.</p>
+<div class="callout"><!--<strong>Important distinction:</strong>--> We can absolutely <em>stream video from R2</em>. That does not mean we are using the Cloudflare product named <em>Stream</em>.</div>
+</section>
+
+<section class="card focus">
+<h2>The 30-second explanation</h2>
+<div class="grid">
+<div class="mini"><h3>Cloudflare Stream</h3><p><strong>Upload the video. Cloudflare does most of the video work.</strong></p><p>Stream automatically encodes and delivers adaptive-bitrate video, currently supporting H.264 renditions from 360p through 1080p.</p></div>
+<div class="mini"><h3>Cloudflare R2 + Workers</h3><p><strong>We do the video work. Cloudflare stores and delivers the results.</strong></p><p>We encode and package the video ourselves, upload the resulting files to R2, and use a Worker when we want authorization or custom delivery logic.</p></div>
+</div>
+</section>
+
+<section class="card detail-card">
+<details>
+<summary><span class="summary-title">A bit more detail</span><span class="detail-intro">Click for a few basic definitions and the essential comparison.</span></summary>
+<div class="detail-body">
+
+<div class="callout">
+<strong>What is a Cloudflare "Worker?"</strong><br>
+A Worker is a small program that runs on Cloudflare's network and handles a request before the requested file reaches the viewer. In our media system, the Worker checks whether the viewer is allowed to watch, looks for a cached copy of the requested HLS segment, retrieves it from R2 when necessary, and sends the response back to the viewer.<br><br>
+</div>
+<br>
+<div class="callout">
+<strong>What is a Cloudflare "Bucket?"</strong><br>
+A bucket is just a flat container for files (called "objects"). Think of it as a top-level folder that can hold an unlimited number of files, but with no real subfolders - everything inside is addressed by a unique key (like <code>photos/beach.jpg</code>) in a single flat namespace.
+</div>
+<br>
+<div class="callout">
+<strong>What do we mean by "media workflow"?</strong><br>
+It is the process that turns a finished master recording into something a customer can securely watch: prepare the video, encode the quality levels, package it for adaptive streaming, upload it to R2, authorize the viewer, deliver it through the player, and record useful viewer events.
+</div>
+<br>
+<!--<section class="card good"> -->
+<section>
+<h2>What is HLS?</h2>
+<p>A browser <em>can</em> play one large MP4 file, but long-form video becomes much easier to deliver when it is packaged as <strong>HLS (HTTP Live Streaming)</strong>.</p>
+<p>Instead of asking for one enormous video file, an HLS-capable player reads a small playlist and fetches a sequence of small media segments as playback proceeds.</p>
+<div class="flow">master playlist (.m3u8)
+        |
+        +--> 1080p playlist --> higher-quality option
+        +-->  720p playlist --> baseline
+        +-->  360p playlist --> slow-network fallback</div>
+<p>If we create several quality levels, the player can switch between them as connection conditions change. That is <strong>adaptive-bitrate streaming</strong>.</p>
+<p><strong>For this introduction, our baseline is 720p with 10-second segments.</strong> 720p provides excellent viewing quality for ordinary web and mobile playback while keeping the payload smaller than 1080p. We can still offer 1080p when a larger screen or the content itself makes the extra detail worthwhile, and 360p remains available when network conditions require a lighter stream.</p>
+<div class="verdict"><strong>Why HLS fits R2 so well:</strong> the finished playlists and media segments are ordinary files. We create them ahead of time, store them in R2, and let Cloudflare deliver whichever pieces the player requests.</div>
+<p class="small">Our media is packaged as CMAF / fragmented MP4, which also leaves open the option to add MPEG-DASH later without re-encoding the underlying media segments.</p>
+</section>
+
+
+
+<p></p>
+<br><center><h2>Comparison Table - R2 and Stream</h2></center>
+<table><thead><tr><th>Capability</th><th>R2 + Workers</th><th>Cloudflare Stream</th></tr></thead><tbody>
+<tr><td>Store video</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Automatic transcoding</td><td><strong>No.</strong> We handle it.</td><td><strong>Yes.</strong></td></tr>
+<tr><td>Multiple quality levels</td><td>We choose and create them.</td><td>Created automatically.</td></tr>
+<tr><td>Custom authorization</td><td><strong>Completely ours.</strong> Our application defines the membership and entitlement rules.</td><td>Protected playback is supported within Stream's model.</td></tr>
+<tr><td>Built-in player</td><td>No. We choose the player - for example Video.js.</td><td>Yes.</td></tr>
+<tr><td>Analytics</td><td>Custom. Version 1 captures viewer events; a dedicated analytics release is targeted for Q4 2026.</td><td>Built in.</td></tr>
+<tr><td>Egress charge</td><td><strong>No Internet egress (bandwidth) charges from R2.</strong></td><td>Delivery is charged by minutes watched.</td></tr>
+<tr><td>Who owns the complexity?</td><td><strong>We do.</strong></td><td><strong>Cloudflare does.</strong></td></tr>
+</tbody></table>
+</div>
+
+</details>
+</section>
+
+<section class="card good">
+<h2>R2 + Workers architecture is ideal for a media workflow</h2>
+
+
+<p>Using R2 means <strong>we</strong> are building the media workflow - but the heavy storage and delivery foundation still runs on Cloudflare's global network, the same network used by Cloudflare Stream.</p>
+
+<p>We own and control that workflow, and Cloudflare provides the large-scale infrastructure underneath it: storage, edge execution, caching and global delivery.</p>
+
+<p>The Cloudflare R2 foundation provides <strong>unlimited data storage per R2 bucket</strong> and <strong>unlimited objects per bucket</strong>. Workers run across Cloudflare's global network and scale automatically, with no general requests-per-second limit.</p>
+
+<p>This means a major increase in viewers will not sidetrack us with infrastructure-related issues. Cloudflare absorbs that delivery growth within the same basic architecture.</p>
+
+<br><center><h2>Media Workflow for Video on Demand</h2></center>
+<div class="flow">Viewer
+   |
+   v
+Cloudflare network
+   |
+   v
+Worker checks:
+   Is this person signed in?
+   Are they allowed to watch this content?
+   |
+   +--> NO  --> deny access
+   |
+   +--> YES
+          |
+          +--> Cache HIT  --> serve HLS segment <----------------------+
+          |                                                            ^
+          +--> Cache MISS --> fetch segment from R2                    |
+                                 |                                     |
+                                 +--> store clean copy in cache -------+
+                                 |
+                                 v
+                              Viewer
+</div>
+
+<p class="goodbox"><strong>The important architectural point:</strong> our application can stay focused on membership, authorization and the business rules that drive our business while Cloudflare carries the storage and request-delivery load.</p>
+
+<!--<p class="small"><strong>This scalability discussion concerns the video storage and delivery layer only.</strong> Standard application authentication, billing, membership, administration, etc. have their own scalability concerns - but these are all lightweight workloads compared with the simultaneous distribution of thousands of large video files to our viewers.</p> -->
+
+</section>
+
+<section class="card focus">
+<h2>What happens to costs when viewership grows 10X?</h2>
+
+<div class="flow">1,000 viewers
+     |
+     v
+10,000 viewers
+
+Same R2 objects
+Same HLS playlists and segments
+Same Worker architecture
+<span class="flow-emphasis">Many more requests handled by Cloudflare</span></div>
+
+<p><strong>The infrastructure does not change just because the audience grows 10X or more - the usage does.</strong> More viewers mean more requests, more Worker activity, and potentially more R2 reads. But R2 does not charge bandwidth fees for Internet delivery. <strong>You only pay for storage and requests - not for the number of gigabytes sent to viewers.</strong></p>
+
+<p>Caching improves the picture even further. Popular HLS segments can be served directly from Cloudflare's edge cache instead of being read from R2 for every viewer. R2 is only asked for the segment again when Cloudflare does not already have a usable cached copy.</p>
+
+<p><strong>R2 storage</strong> is billed solely by the amount of data stored - gigabytes - there is no charge for "hours of video" in the library. Gigabytes. That's it.</p>
+
+<p>So the practical growth question for an R2-based business model is unusually simple: <strong>"As viewing increases, how will storage and request charges increase?"</strong><a href="#r2-costs"> More on this below.</a></p> 
+</section>
+
+<section class="card strategy">
+<h2>Reasons to choose R2 + Workers over Stream</h2>
+<ul>
+<li><strong>R2 is dramatically cheaper.</strong> Pennies per gigabyte-month, not dollars accumulating against every hour of video as it is stored and watched.</li>
+<li><strong>R2 does not charge an Internet egress fee.</strong> More video delivered does not create an R2 bandwidth bill.</li>
+<li><strong>R2 allows us to completely own authentication and authorization.</strong> Our application is the only authority deciding who may watch - there are no outside parties.</li>
+<li><strong>R2 eliminates video-platform lock-in.</strong> Our HLS assets are standard files that we control and can move wherever we choose, whenever we choose.</li>
+<li><strong>R2 allows us to completely control video quality for our audience.</strong> We choose the codecs, resolutions, bitrates, rendition ladder and encoding priorities.</li>
+<li><strong>R2 allows us to completely control video delivery for our audience.</strong> We have the freedom to shape our delivery system in ways that substantially reduce reads - and the monthly R2 bill.</li>
+<li><strong>R2 lets us favor quality without fearing a bandwidth penalty.</strong> For this project, 720p is our baseline viewing quality, with 1080p available as a higher-quality option when it is beneficial. On many video delivery systems, higher resolutions cost more because the larger files mean more data is being delivered, or because the provider charges more for the higher-resolution version. But with R2 + Workers, larger file sizes do not have the same effect on delivery cost. When HLS segment durations are equal, which is the norm in VOD delivery today, 720p and 1080p generate essentially the same number of reads, and since R2 bills reads - not bandwidth - the delivery request cost is essentially the same. We can therefore choose video quality for the right reason - the viewing experience - instead of deliberately lowering it just to control a bandwidth bill. And even better - since we control the delivery system - we can package higher-resolution video in longer HLS segments where appropriate, reducing the number of reads and potentially making the higher-quality version less expensive to deliver.
+</li>
+</ul>
+<br>
+<p class="verdict"><strong>The trade:</strong> We willingly accept more technical responsibility in exchange for dramatically improved ownership and economics.</p>
+</section>
+
+<section class="card focus">
+<h2>When Cloudflare Stream is the smarter answer</h2>
+<p>Stream is attractive when the business would rather pay for simplicity than operate a video pipeline. Cloudflare handles upload, encoding, adaptive delivery and video-specific infrastructure, and supports both on-demand and live video.</p>
+<p>As of September 2026, Cloudflare's published Stream pricing is based on <strong>minutes stored</strong> and <strong>minutes delivered</strong>: storage capacity is sold at $5 per 1,000 stored minutes per month, and delivery is $1 per 1,000 minutes delivered. Encoding and ingress are included.</p>
+<p class="callout"><strong>In plain English:</strong> If we do not want to become our own tiny video engineering department, Stream is the way forward.</p>
+</section>
+
+<section class="card good">
+<h2>When R2 + Workers is the smarter answer</h2>
+<p>R2 is attractive when the majority of your business workflow produces Video on Demand for your customers and providing it at the lowest practical cost is important. It becomes compelling when you also want to keep all of your media assets "in-house" and safely under your control.</p>
+<p>For Standard R2 storage, Cloudflare currently lists $0.015 per GB-month, Class B reads at $0.36 per million operations, and imposes no bandwidth fees. HLS creates more read requests than one monolithic file, but the operation price is low enough that the meaningful cost comparison depends on the actual library size, viewing hours, encoding ladder and audience behavior. <a href="#r2-costs"> More on this below.</a></p>
+<p class="verdict"><strong>There is no universal winner.</strong> Stream provides convenience with confidence for those willing to pay for it. R2 provides total control on a shoestring budget for those with the confidence to leverage it. The right answer depends on the abilities and priorities of the customer.</p>
+</section>
+
+<section class="card detail-card">
+<details>
+<summary><span class="summary-title">What about Amazon, Google or Microsoft?</span><span class="detail-intro">Click for other major cloud alternatives.</span></summary>
+<div class="detail-body">
+<p><strong>They can all be used to build a streaming video app.</strong> This is not about capability - it is about cost-and-fit.</p>
+<table>
+<thead><tr><th>Provider</th><th>Comparable building blocks</th><th>Practical difference</th></tr></thead>
+<tbody>
+<tr><td>Cloudflare</td><td>R2 + Workers + Cloudflare Cache</td><td>R2 does not charge Internet egress bandwidth.</td></tr>
+<tr><td>Amazon AWS</td><td>S3 + CloudFront + CloudFront Functions / Lambda@Edge</td><td>AWS can do the same job, but traditional S3 and CloudFront pricing can include data-transfer charges. CloudFront also offers flat-rate plans, so actual AWS economics depend on the plan and workload.</td></tr>
+<tr><td>Google Cloud</td><td>Cloud Storage + Cloud CDN / Media CDN + application or edge logic</td><td>Google charges for outbound data delivery under its storage and CDN pricing models.</td></tr>
+<tr><td>Microsoft Azure</td><td>Blob Storage + Front Door / CDN + application or edge logic</td><td>Azure also charges for Internet egress after its included allowance.</td></tr>
+</tbody>
+</table>
+<!--<div class="callout"><strong>For non-technical readers:</strong> Amazon, Google and Microsoft can all do the job. R2 is especially attractive for video because Cloudflare does not charge Internet egress from R2, so a large viewing audience does not automatically create a per-gigabyte bandwidth bill.</div> -->
+<!--<p class="small">This does not mean AWS, Google Cloud or Azure can never be cheaper. Pricing plans and workloads differ, and Amazon now offers flat-rate CloudFront plans. Our choice is based on the economics and fit of this particular video architecture.</p> -->
+<p><strong>Other names you may encounter:</strong> Mux, Vimeo/Uscreen, Bunny Stream and Cloudflare Stream are closer to managed video platforms. They solve more of the video workflow for you and therefore belong in a different comparison from raw object storage plus programmable delivery.</p>
+</div>
+</details>
+</section>
+
+
+
+<section class="card warning detail-card">
+<details>
+<summary>
+<span class="summary-title">Important distinction - Video on Demand (VOD) and Live Video are different processes</span>
+<span class="detail-intro">Click to see why recorded and live video require different workflows.</span>
+</summary>
+
+<div class="detail-body">
+
+<p><strong>Video on Demand is primarily a storage-and-delivery process. Live Video is a real-time processing-and-delivery process.</strong></p>
+
+<div class="grid">
+
+<div class="mini">
+<h3>Video on Demand (VOD)</h3>
+<div class="flow">Create it
+   |
+Process it
+   |
+Store it
+   |
+--- time can pass ---
+   |
+Viewer requests it
+   |
+Deliver it</div>
+<p>Everything is known before anybody presses Play. We can transcode every rendition, build the playlists and segments, check the result, and only then publish it.</p>
+</div>
+
+<div class="mini">
+<h3>Live Video</h3>
+<div class="flow">Camera produces video NOW
+   |
+Encoder pushes continuously
+   |
+Process it NOW
+   |
+Package it NOW
+   |
+Deliver it NOW
+   |
+Viewer watches</div>
+<p>The system must ingest, process, package and distribute video while the source is still arriving. Playlists are changing and failure recovery matters in real time.</p>
+</div>
+
+</div>
+
+<p><strong>The initial version of this R2 Streaming Video application offers Video on Demand - available with adaptive playback quality comparable to major services such as YouTube, Vimeo and Cloudflare Stream - using a dramatically lower-cost storage-and-delivery model.</strong></p>
+
+<p>Live broadcasting may use a separate managed service - for example YouTube Live or Cloudflare Stream. When a live broadcast ends, the finished recording can be processed into HLS and moved into the R2 VOD library just like any other recorded video.</p>
+
+<div class="callout"><strong>A later release will focus specifically on Live Video.</strong></div>
+
+</div>
+</details>
+</section>
+
+<section class="card focus" id="r2-costs">
+<h2>So what actually makes R2 cost money?</h2>
+
+<p>R2 separates two things that are often lumped together in a traditional video-delivery bill:</p>
+
+<div class="callout"><strong>Requests are operations; bandwidth is payload.</strong></div>
+
+<p>With Standard R2, Cloudflare charges for the amount of data we store and for certain operations performed on that data. A read is a Class B operation. The first 10 million Class B operations each month are included, and additional reads currently cost <strong>$0.36 per million</strong>. But Cloudflare does <strong>not</strong> charge R2 bandwidth fees based on how many gigabytes those reads deliver to viewers.</p>
+
+<div class="goodbox"><strong>Our baseline for the examples on this page:</strong> 720p Video on Demand with approximately <strong>10-second HLS segments</strong>. One hour of video therefore contains about <strong>360 media segments</strong>. The resolution determines how large those segments are; the segment duration determines how many segment requests the player makes.</div>
+
+<p>This is where HLS becomes important to the cost model. HLS does not normally deliver one giant video file. It breaks the video into many small media segments that the player requests as the viewer watches.</p>
+
+<div class="flow">1-hour newscast
+     |
+     v
+3,600 seconds / 10-second segments
+     |
+     v
+about 360 segment requests per complete viewing
+     |
+     v
+1,000,000 complete views
+     |
+     v
+about 360 MILLION segment requests</div>
+
+<p class="goodbox"><strong>The ballpark number:</strong> suppose every one of those 360 million segment requests had to read the segment from R2 - a deliberately pessimistic scenario with no useful cache hits at all. After the monthly free allowance, the R2 Class B read charge would be only about <strong>$126</strong> for one million complete views of a one-hour program.</p>
+
+<p>That is the <strong>R2 read cost</strong>, not the entire delivery bill. In our design, each authorized media request also passes through a Cloudflare Worker. At current Workers Paid pricing, 360 million requests would add about <strong>$105 in request overage</strong>, plus the $5 monthly Workers plan, before CPU usage. In an intentionally brutal no-cache example, the combined R2-read and Worker-request portion therefore lands around <strong>$236</strong>, plus storage and any CPU overage.</p>
+
+<p>Caching improves the R2 side considerably. When a popular HLS segment is already in Cloudflare's cache, the Worker can serve that cached copy without performing another R2 read. The Worker still handles the viewer's request and authorization, but R2 is not asked to retrieve the same segment again.</p>
+
+<div class="verdict"><strong>For scale:</strong> one million complete views of a one-hour video equals 60 million delivered viewing minutes. At Cloudflare Stream's published rate of $1 per 1,000 minutes delivered, that would be <strong>$60,000 in Stream delivery charges</strong>. This is not an apples-to-apples product comparison - Stream also supplies managed encoding, packaging, playback infrastructure and other conveniences - but it shows why the R2 cost model is so attractive for high-volume Video on Demand.</div>
+
+<p class="small"><strong>And now the obvious question:</strong> why does one one-hour viewing create roughly 360 requests instead of one? That is what HLS does.</p>
+</section>
+
+<section class="card good">
+<h2>What does caching actually save us?</h2>
+
+<p>A cache hit means Cloudflare already has the requested HLS segment close to the viewer, so the Worker can serve that cached copy <strong>without reading the same segment from R2 again.</strong></p>
+
+<div class="callout">
+<strong>Every cache hit avoids another R2 read.</strong><br>
+Caching does not eliminate the Worker request in our design - the Worker still checks authorization - but it can dramatically reduce how often Cloudflare has to go back to R2 for the video itself.
+</div>
+
+<p>Using our 720p / 10-second baseline, imagine <strong>one million people each watching a complete one-hour newscast.</strong> That produces about <strong>360 million segment requests.</strong></p>
+
+<table>
+<thead>
+<tr>
+<th>Cache hit rate</th>
+<th>R2 reads</th>
+<th>Approx. R2 read cost</th>
+<th>Savings vs. no useful cache</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0%</td>
+<td>360 million</td>
+<td><strong>$126.00</strong></td>
+<td>-</td>
+</tr>
+<tr>
+<td>50%</td>
+<td>180 million</td>
+<td><strong>$61.20</strong></td>
+<td>$64.80</td>
+</tr>
+<tr>
+<td>80%</td>
+<td>72 million</td>
+<td><strong>$22.32</strong></td>
+<td>$103.68</td>
+</tr>
+<tr>
+<td>90%</td>
+<td>36 million</td>
+<td><strong>$9.36</strong></td>
+<td>$116.64</td>
+</tr>
+<tr>
+<td>95%</td>
+<td>18 million</td>
+<td><strong>$2.88</strong></td>
+<td>$123.12</td>
+</tr>
+<tr>
+<td>99%</td>
+<td>3.6 million</td>
+<td><strong>$0.00</strong></td>
+<td>$126.00</td>
+</tr>
+</tbody>
+</table>
+
+<p class="goodbox"><strong>The number to remember:</strong> one million complete views of a one-hour program could generate about <strong>$126</strong> in R2 read charges with no useful caching at all. At a 90% cache-hit rate, that same R2 read bill falls to about <strong>$9.36</strong>.</p>
+
+<p>And scale that down to a more immediate business example: <strong>10,000 people watching a complete one-hour newscast produces about 3.6 million segment requests.</strong> That is still below R2's current monthly allowance of 10 million free Class B reads - even before caching helps.</p>
+
+<p>Cloudflare's edge network makes this especially attractive for Video on Demand. Popular segments can be served repeatedly from locations close to viewers instead of being fetched from R2 again and again. The more popular a piece of content becomes, the more valuable that cache can become.</p>
+
+<p class="verdict"><strong>The practical point:</strong> R2 is already inexpensive without caching. Edge caching makes an already inexpensive delivery model even more efficient as audience size grows.</p>
+</section>
+
+<section class="card focus">
+<h2>What actually happens with our R2 approach?</h2>
+<div class="flow">Source/master video
+        |
+        v
+      FFmpeg (a free utility, universally used to prepare videos for streaming)
+        |
+        +--> 360p HLS playlist + segments  (fallback)
+        +--> 720p HLS playlist + segments  (baseline)
+        +--> 1080p HLS playlist + segments (higher-quality option)
+        |
+        v
+ Cloudflare R2 bucket
+        |
+        v
+ Cloudflare Worker / access check
+        |
+        v
+ HLS-capable web player (for example Video.js)</div>
+<p>The player reads the master playlist for the selected video, chooses an appropriate quality level, downloads a few small segments, and then, while the viewer watches, keeps requesting more segments. If bandwidth changes, the adaptive player dynamically switches renditions, usually with no noticeable interruption.</p>
+<p><strong>This is real streaming video -</strong> we simply built the packaging pipeline ourselves instead of buying Cloudflare Stream's managed pipeline.</p>
+</section>
+
+
+<section class="card strategy">
+<h2>A useful mental model</h2>
+<div class="grid">
+<div class="mini"><h3>FFmpeg = the video factory</h3><p>It creates the quality levels we want and packages them into HLS playlists and small media segments.</p></div>
+<div class="mini"><h3>R2 = the warehouse</h3><p>It holds the master video, playlists, segments, thumbnails, audio, or any other objects we decide to store.</p></div>
+<div class="mini"><h3>Workers = the gatekeeper</h3><p>A Worker can enforce access, map friendly URLs to R2 objects, handle headers, and return the files an authorized viewer is allowed to request.</p></div>
+<div class="mini"><h3>Cloudflare = the delivery network</h3><p>Cloudflare carries the requests across its distributed network and caches popular HLS assets close to viewers so repeated viewing can avoid unnecessary trips back to R2.</p></div>
+<div class="mini"><h3>HLS = the adaptive streaming protocol</h3><p>Its playlists tell the player which quality levels and small media segments are available and where to request them.</p></div>
+<div class="mini"><h3>Web player = the audience view</h3><p>An HLS-capable player on our site - for example <a href="https://videojs.org/">Video.js</a> - reads the playlists, requests segments, displays controls, and plays the video for the viewer.</p></div>
+</div>
+<!-- <p class="verdict"><strong>Cloudflare Stream is the managed alternative:</strong> it supplies the video encoding, packaging, storage, delivery and playback machinery. Our application can still remain responsible for deciding who is entitled to watch.</p> -->
+</section>
+
+<section class="card good detail-card">
+<details>
+<summary><span class="summary-title">Why R2 works so well for audio</span><span class="detail-intro">Click to see the simpler audio precedent.</span></summary>
+<div class="detail-body">
+<p>R2's Workers API supports ranged reads (specific segments, "substrings") of stored objects (our audio and video files). When a player needs only part of a file, the Worker can request and serve that portion rather than reading the entire object.</p>
+<p>That already works very well for audio:</p>
+<div class="flow">One complete audio file stored in R2:
+
+[========================================================]
+
+Player seeks to a new position:
+
+                         [=====]
+                           ^
+                           |
+              only this byte range is requested
+
+R2 does not need to read and return the entire file.</div>
+<!--<p class="goodbox"><strong>Video can use the same underlying capability, but properly packaged HLS goes further:</strong> instead of treating a long recording as one enormous object and relying heavily on byte-range requests, HLS divides it into small media segments that the player requests as needed. <strong>For our initial release, HLS provides that adaptive streaming layer.</strong></p>-->
+<p> Video can use the same underlying capability, and properly packaged HLS goes further: instead of treating a long recording as one enormous object and relying heavily on byte-range requests, HLS divides it into small media segments that the player requests as needed.<!-- <strong>For our initial release, HLS provides that adaptive streaming layer.</strong></p> -->
+</div>
+</details>
+</section>
+
+<section class="card warning">
+<h2>Why one giant MP4 becomes less attractive</h2>
+<p>A browser can play an MP4 from R2 and can use HTTP range requests to seek within it. For short videos, that may be perfectly adequate.</p>
+<p>Long video changes the economics and behavior. Cloudflare currently documents a <strong>512 MB maximum cacheable file size for Free, Pro and Business plans</strong>. A large MP4 above that limit cannot receive the same single-object edge-cache benefit.</p>
+<p>HLS avoids that problem naturally: the video is divided into many small segment files, each comfortably below the cache-size limit. Seeking also becomes a matter of requesting different segments rather than repeatedly addressing byte ranges inside one enormous object.</p>
+<div class="callout"><strong>Important:</strong> The 512 MB number is a CDN cacheable-file limit, not an R2 object-size limit and not a statement that R2 cannot store large video files.</div>
+</section>
+
+<section class="card warning">
+<h2>What R2 + Workers does NOT magically solve</h2>
+<ul>
+<li>It does not decide which video resolutions we should produce.</li>
+<li>It does not transcode the master video for us.</li>
+<li>It does not create an adaptive-bitrate ladder for us.</li>
+<li>It does not create HLS playlists and segments unless our pipeline does that work.</li>
+<li>It does not supply a complete video analytics product.</li>
+<li>It does not turn object storage into a turnkey live-streaming service.</li>
+<li>It does not design our authentication, entitlement or membership rules.</li>
+</ul>
+<p><strong>That is the recurring theme of this series:</strong> R2 gives us excellent building blocks. We are choosing to assemble them.</p>
+</section>
+
+<section class="card focus detail-card">
+<details>
+<summary><span class="summary-title">Analytics are designed in from Version 1</span><span class="detail-intro">Click to see how viewer behavior is preserved from day one.</span></summary>
+<div class="detail-body">
+<p>Version 1 begins recording important viewer events from the start - plays, pauses, viewing progress, completion, seeking, playback errors and other useful actions.</p>
+<p>The first release does not need a full analytics dashboard. What matters is that the underlying event history is already being preserved, so valuable early behavior is not lost while the platform is young.</p>
+<p>Those events can later support reports such as watch time, completion rates, popular content, viewing trends, playback quality, individual viewing history and member engagement.</p>
+<p class="goodbox"><strong>User behavior analytics are important to us and they deserve their own release - we are targeting Q4 2026.</strong></p>
+</div>
+</details>
+</section>
+
+
+
+<section class="card">
+<h2>Streaming With R2 - planned reference pages</h2>
+<p class="small">This page is the front door. The series can grow one practical topic at a time without turning any one page into a textbook.</p>
+<div class="grid">
+<div class="mini"><h3>R2 vs Cloudflare Stream <span class="pill">YOU ARE HERE</span></h3><p>What each product does and why the distinction matters.</p></div>
+<div class="mini coming"><h3>Recorded vs Live Video</h3><p>Why recorded delivery and live broadcasting are different processes, and where a managed live provider may fit.</p></div>
+<div class="mini coming"><h3>HLS - An Introduction</h3><p>Master playlists, rendition playlists, segments, adaptive bitrate, and why we use them.</p></div>
+<div class="mini coming"><h3>Encoding With FFmpeg</h3><p>Turning one master video into the quality levels and HLS files we want to publish.</p></div>
+<div class="mini coming"><h3>How We Organize R2</h3><p>Bucket layout, object names, manifests, thumbnails, masters and derived media.</p></div>
+<div class="mini coming"><h3>What the Worker Does</h3><p>Authorization, signed access, headers, object delivery and the line between application logic and storage.</p></div>
+<div class="mini coming"><h3>The Browser Player</h3><p>Video.js, HLS.js and other player choices; how the page loads HLS, switches quality, seeks, and handles errors.</p></div>
+<div class="mini coming"><h3>Publishing a Video</h3><p>The complete path from master file to encoded assets to R2 to a playable page.</p></div>
+<div class="mini coming"><h3>What Does a 10X Increase in Viewership Actually Cost?</h3><p>A worked cost model using storage, R2 operations, Workers, caching, viewing hours and realistic audience behavior.</p></div>
+<div class="mini coming"><h3>Video Analytics - What We Can Measure and How <span class="pill">Q4 2026</span></h3><p>Turning the viewer events captured from Version 1 into useful content, playback and member-engagement reporting.</p></div>
+<div class="mini coming"><h3>Troubleshooting</h3><p>What to check when upload, authorization, playlists, segments, seeking or playback misbehave.</p></div>
+</div>
+</section>
+
+<section class="card">
+<h2>Official Cloudflare references</h2>
+<p class="small">Cloudflare products and prices change. The claims on this page were checked against Cloudflare documentation in September 2026.</p>
+<ul>
+<li><a href="https://developers.cloudflare.com/stream/">Cloudflare Stream overview</a></li>
+<li><a href="https://developers.cloudflare.com/stream/pricing/">Cloudflare Stream pricing</a></li>
+<li><a href="https://developers.cloudflare.com/r2/pricing/">Cloudflare R2 pricing</a></li>
+<li><a href="https://developers.cloudflare.com/r2/platform/limits/">Cloudflare R2 limits</a></li>
+<li><a href="https://developers.cloudflare.com/workers/platform/limits/">Cloudflare Workers limits and scaling</a></li>
+<li><a href="https://developers.cloudflare.com/cache/interaction-cloudflare-products/r2/">Cloudflare caching with R2</a></li>
+<li><a href="https://developers.cloudflare.com/r2/api/workers/workers-api-reference/">R2 Workers API and ranged reads</a></li>
+<li><a href="https://developers.cloudflare.com/cache/concepts/default-cache-behavior/">Cloudflare CDN cache behavior and cacheable file limits</a></li>
+<li><a href="https://videojs.org/">Video.js - open-source web video player</a></li>
+</ul>
+</section>
+
+</div></body></html>
