@@ -1145,7 +1145,7 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-08-28.145018';
+      const TOOL_VERSION = '2026-09-20.062239';
       const FILTER_HISTORY_LIMIT = 20;
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
@@ -2577,6 +2577,42 @@
           },
           keepalive: true
         }).catch(function () {});
+      }
+
+      function makeTelemetryLoadId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+          return window.crypto.randomUUID();
+        }
+
+        return Date.now().toString(36) + '-' +
+               Math.random().toString(36).slice(2);
+      }
+
+      function getLastResourceTiming(resourceUrl) {
+        try {
+          const absoluteUrl = new URL(resourceUrl, window.location.href).href;
+          const entries = performance.getEntriesByName(absoluteUrl, 'resource');
+          return entries.length ? entries[entries.length - 1] : null;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function getResourceCacheState(resourceTiming) {
+        if (!resourceTiming) return 'unknown';
+
+        const transferSize = Number(resourceTiming.transferSize) || 0;
+        const encodedBodySize = Number(resourceTiming.encodedBodySize) || 0;
+
+        if (transferSize === 0) {
+          return 'local';
+        }
+
+        if (encodedBodySize > 0 && transferSize < encodedBodySize) {
+          return 'validated';
+        }
+
+        return 'network';
       }
 
       window.sendTelemetry = sendTelemetry;
@@ -4532,67 +4568,144 @@
 
         const segmentUrl = SEARCH_SEGMENT_BASE_URL + segment.zip;
         const fetchOptions = forceFresh ? { cache: 'no-cache' } : undefined;
-        const response = fetchOptions
-          ? await fetch(segmentUrl, fetchOptions)
-          : await fetch(segmentUrl);
+        const metrics = {
+          zip: segment.zip,
+          bytes: null,
+          files: null,
+          fetchHeadersMs: null,
+          bodyReadMs: null,
+          zipOpenMs: null,
+          textExtractMs: null,
+          transferSize: null,
+          encodedBodySize: null,
+          decodedBodySize: null,
+          cacheState: 'unknown'
+        };
 
-        if (!response.ok) {
-          throw new Error('HTTP ' + response.status + ' while fetching ' + segment.zip);
-        }
+        let stage = 'fetch';
 
-        const zipBuffer = await response.arrayBuffer();
-        const zip = await JSZip.loadAsync(zipBuffer);
-        const manifestFiles = Array.isArray(segment.files) ? segment.files : [];
-        const metadataByName = new Map();
+        try {
+          const fetchStarted = performance.now();
+          const response = fetchOptions
+            ? await fetch(segmentUrl, fetchOptions)
+            : await fetch(segmentUrl);
 
-        for (const metadata of manifestFiles) {
-          if (metadata && metadata.name) {
-            metadataByName.set(metadata.name.replace(/\\/g, '/').split('/').pop(), metadata);
-          }
-        }
+          metrics.fetchHeadersMs = Math.round(performance.now() - fetchStarted);
 
-        const segmentFiles = [];
-        const entries = Object.keys(zip.files);
-
-        for (const entryName of entries) {
-          const entry = zip.files[entryName];
-          if (entry.dir) {
-            continue;
-          }
-
-          const baseName = entryName.replace(/\\/g, '/').split('/').pop();
-          const metadata = metadataByName.get(baseName);
-
-          if (!metadata) {
-            throw new Error('Manifest metadata missing for ' + baseName);
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status + ' while fetching ' + segment.zip);
           }
 
-          const rawText = await entry.async('string');
-          const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-          const yearMatch = metadata.name.match(/^(\d{4})/);
+          stage = 'body';
+          const bodyStarted = performance.now();
+          const zipBuffer = await response.arrayBuffer();
+          metrics.bodyReadMs = Math.round(performance.now() - bodyStarted);
+          metrics.bytes = zipBuffer.byteLength;
 
-          segmentFiles.push({
-            name: metadata.name,
-            display: metadata.display || metadata.name,
-            url: metadata.url || '',
-            text: normalizedText,
-            year: yearMatch ? parseInt(yearMatch[1], 10) : 0
-          });
+          const resourceTiming = getLastResourceTiming(segmentUrl);
+          if (resourceTiming) {
+            metrics.transferSize = Number(resourceTiming.transferSize) || 0;
+            metrics.encodedBodySize = Number(resourceTiming.encodedBodySize) || 0;
+            metrics.decodedBodySize = Number(resourceTiming.decodedBodySize) || 0;
+            metrics.cacheState = getResourceCacheState(resourceTiming);
+          }
+
+          stage = 'zip-open';
+          const zipStarted = performance.now();
+          const zip = await JSZip.loadAsync(zipBuffer);
+          metrics.zipOpenMs = Math.round(performance.now() - zipStarted);
+
+          const manifestFiles = Array.isArray(segment.files) ? segment.files : [];
+          const metadataByName = new Map();
+
+          for (const metadata of manifestFiles) {
+            if (metadata && metadata.name) {
+              metadataByName.set(metadata.name.replace(/\\/g, '/').split('/').pop(), metadata);
+            }
+          }
+
+          const segmentFiles = [];
+          const entries = Object.keys(zip.files);
+
+          stage = 'text-extract';
+          const textStarted = performance.now();
+
+          for (const entryName of entries) {
+            const entry = zip.files[entryName];
+            if (entry.dir) {
+              continue;
+            }
+
+            const baseName = entryName.replace(/\\/g, '/').split('/').pop();
+            const metadata = metadataByName.get(baseName);
+
+            if (!metadata) {
+              throw new Error('Manifest metadata missing for ' + baseName);
+            }
+
+            const rawText = await entry.async('string');
+            const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const yearMatch = metadata.name.match(/^(\d{4})/);
+
+            segmentFiles.push({
+              name: metadata.name,
+              display: metadata.display || metadata.name,
+              url: metadata.url || '',
+              text: normalizedText,
+              year: yearMatch ? parseInt(yearMatch[1], 10) : 0
+            });
+          }
+
+          metrics.textExtractMs = Math.round(performance.now() - textStarted);
+          metrics.files = segmentFiles.length;
+
+          if (typeof segment.count === 'number' && segmentFiles.length !== segment.count) {
+            throw new Error(
+              segment.zip + ' contained ' + segmentFiles.length +
+              ' files; manifest expected ' + segment.count
+            );
+          }
+
+          window.GIASearchArchive.files.push(...segmentFiles);
+          window.GIASearchArchive.segmentsLoaded += 1;
+
+          return metrics;
+
+        } catch (err) {
+          err.giaTelemetryStage = stage;
+          err.giaTelemetrySegment = metrics;
+          throw err;
         }
-
-        if (typeof segment.count === 'number' && segmentFiles.length !== segment.count) {
-          throw new Error(
-            segment.zip + ' contained ' + segmentFiles.length +
-            ' files; manifest expected ' + segment.count
-          );
-        }
-
-        window.GIASearchArchive.files.push(...segmentFiles);
-        window.GIASearchArchive.segmentsLoaded += 1;
       }
 
       async function loadSearchArchive() {
         const archive = window.GIASearchArchive;
+        const loadStarted = performance.now();
+        const loadId = makeTelemetryLoadId();
+        const segmentMetrics = [];
+
+        let firstReadyMs = null;
+        let manifestMetrics = {
+          fetchHeadersMs: null,
+          bodyReadMs: null,
+          parseMs: null,
+          totalMs: null
+        };
+
+        function sendLoadTelemetry(eventName, extra) {
+          sendTelemetry(Object.assign({
+            mtime: new Date().toISOString(),
+            event: eventName,
+            loadId: loadId,
+            toolVersion: TOOL_VERSION,
+            firstReadyMs: firstReadyMs,
+            totalLoadMs: Math.round(performance.now() - loadStarted),
+            manifest: manifestMetrics,
+            segments: segmentMetrics.slice(),
+            filesLoaded: archive.files.length,
+            filesExpected: archive.totalFiles
+          }, extra || {}));
+        }
 
         archive.loaded = false;
         archive.complete = false;
@@ -4608,14 +4721,31 @@
         let manifest;
 
         try {
+          const manifestStarted = performance.now();
+
+          const manifestFetchStarted = performance.now();
           const manifestResponse = await fetch(SEARCH_MANIFEST_URL, { cache: 'no-store' });
+          manifestMetrics.fetchHeadersMs =
+            Math.round(performance.now() - manifestFetchStarted);
+
           if (!manifestResponse.ok) {
             throw new Error(
               'HTTP ' + manifestResponse.status + ' while fetching search_manifest.json'
             );
           }
 
-          manifest = await manifestResponse.json();
+          const manifestBodyStarted = performance.now();
+          const manifestText = await manifestResponse.text();
+          manifestMetrics.bodyReadMs =
+            Math.round(performance.now() - manifestBodyStarted);
+
+          const manifestParseStarted = performance.now();
+          manifest = JSON.parse(manifestText);
+          manifestMetrics.parseMs =
+            Math.round(performance.now() - manifestParseStarted);
+
+          manifestMetrics.totalMs =
+            Math.round(performance.now() - manifestStarted);
 
           if (!manifest || !Array.isArray(manifest.segments) || manifest.segments.length === 0) {
             throw new Error('search_manifest.json contains no search segments.');
@@ -4639,6 +4769,11 @@
           basicPanelEl.classList.add('ready');
           setBasicSearchEnabled(true);
           updateStatusBar();
+
+          sendLoadTelemetry('LOAD_FAILED', {
+            failureStage: 'manifest',
+            failureReason: err && err.message ? err.message : String(err)
+          });
           return;
         }
 
@@ -4648,12 +4783,18 @@
           try {
             // Segment 1 is open-ended and changes as new reports arrive.
             // Closed historical segments are allowed to use the browser cache.
-            await loadSearchSegment(segment, index === 0);
+            const metrics = await loadSearchSegment(segment, index === 0);
+            segmentMetrics.push(metrics);
+
           } catch (err) {
             console.error(err);
             archive.loading = false;
             archive.loadFailed = true;
             archive.failureMessage = err.message;
+
+            if (err && err.giaTelemetrySegment) {
+              segmentMetrics.push(err.giaTelemetrySegment);
+            }
 
             if (!archive.loaded) {
               // First segment failed: Basic Search has no local corpus, but
@@ -4664,17 +4805,24 @@
             }
 
             updateStatusBar();
+
+            sendLoadTelemetry('LOAD_FAILED', {
+              failureStage: err && err.giaTelemetryStage
+                ? ('segment-' + index + '-' + err.giaTelemetryStage)
+                : ('segment-' + index),
+              failureReason: err && err.message ? err.message : String(err)
+            });
             return;
           }
 
           if (!archive.loaded) {
             archive.loaded = true;
+            firstReadyMs = Math.round(performance.now() - loadStarted);
             searchRowEl.classList.add('ready');
             basicPanelEl.classList.add('ready');
             setBasicSearchEnabled(true);
             updateSelectionCount();
             searchInputEl.focus();
-
           }
 
           if (index < manifest.segments.length - 1) {
@@ -4685,6 +4833,8 @@
         archive.loading = false;
         archive.complete = true;
         updateStatusBar();
+
+        sendLoadTelemetry('LOAD_COMPLETE');
 
         if (pendingSavedSearch) {
           if (serverCheckPromise) {
