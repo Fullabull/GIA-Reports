@@ -1145,7 +1145,7 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-09-20.062239';
+      const TOOL_VERSION = '2026-09-20.130753';
       const FILTER_HISTORY_LIMIT = 20;
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
@@ -2311,30 +2311,58 @@
       }
 
       async function executeBasicFind(query) {
+        const startedAt = performance.now();
         const step = makeBasicSearchStep(query);
         window.GIASearchRecipe = [];
         clearFilterUndoHistory();
 
-        await Promise.resolve(runFindSearch(query, step));
-        rememberExecutedStep(step);
+        try {
+          const result = await Promise.resolve(runFindSearch(query, step));
+          sendSearchTelemetryRecord('find', 1, startedAt, result);
+          rememberExecutedStep(step);
+        } catch (err) {
+          sendSearchTelemetryRecord('find', 1, startedAt, {
+            ok: false,
+            where: 'client',
+            corpusFiles: getSearchSourceFiles(step.giaOnly === true).length,
+            resultFiles: null,
+            failureReason: err && err.message ? err.message : String(err)
+          });
+          throw err;
+        }
       }
 
       async function executeBasicReSearch(query, freshScope) {
+        const startedAt = performance.now();
         const step = makeBasicSearchStep(query);
 
         clearFilterUndoHistory();
         logGIAAction('research', query);
 
-        if (freshScope) {
-          window.GIASearchRecipe = [];
-          await Promise.resolve(runFindSearch(query, Object.assign({}, step, {
-            suppressLog: true
-          })));
-        } else {
-          await Promise.resolve(runSearch(query, step));
-        }
+        try {
+          let result;
 
-        rememberExecutedStep(step);
+          if (freshScope) {
+            window.GIASearchRecipe = [];
+            result = await Promise.resolve(runFindSearch(query, Object.assign({}, step, {
+              suppressLog: true
+            })));
+          } else {
+            result = await Promise.resolve(runSearch(query, step));
+          }
+
+          sendSearchTelemetryRecord('research', 1, startedAt, result);
+          rememberExecutedStep(step);
+        } catch (err) {
+          sendSearchTelemetryRecord('research', 1, startedAt, {
+            ok: false,
+            where: 'client',
+            corpusFiles: getSearchSourceFiles(step.giaOnly === true).length,
+            resultFiles: null,
+            failureReason: err && err.message ? err.message : String(err)
+          });
+          throw err;
+        }
       }
 
       function flashWrap(direction) {
@@ -2613,6 +2641,45 @@
         }
 
         return 'network';
+      }
+
+      function sendSearchTelemetryRecord(mode, terms, startedAt, result) {
+        result = result || {};
+
+        const ok = result.ok !== false;
+        const record = {
+          mtime: new Date().toISOString(),
+          event: ok ? 'SEARCH_COMPLETE' : 'SEARCH_FAILED',
+          loadId: window.GIATelemetryLoadId || null,
+          toolVersion: TOOL_VERSION,
+          mode: mode,
+          where: result.where || 'client',
+          elapsedMs: Math.round(performance.now() - startedAt),
+          corpusFiles: Number.isFinite(result.corpusFiles) ? result.corpusFiles : null,
+          resultFiles: Number.isFinite(result.resultFiles) ? result.resultFiles : null,
+          terms: terms,
+          ok: ok
+        };
+
+        if (!ok && result.failureReason) {
+          record.failureReason = result.failureReason;
+        }
+
+        sendTelemetry(record);
+      }
+
+      function countAdvancedTerms(payload) {
+        if (!payload || !Array.isArray(payload.rows)) return 0;
+
+        return payload.rows.reduce(function (count, row) {
+          return count + (
+            row &&
+            typeof row.term === 'string' &&
+            row.term.trim()
+              ? 1
+              : 0
+          );
+        }, 0);
       }
 
       window.sendTelemetry = sendTelemetry;
@@ -3644,7 +3711,12 @@
 
             updateStatusBar();
             updateReSearchState();
-            return;
+            return {
+              ok: true,
+              where: 'client',
+              corpusFiles: sourceFiles.length,
+              resultFiles: 0
+            };
           }
 
           // Fresh Find/Search or live filter with zero matches.
@@ -3663,7 +3735,12 @@
 
           updateStatusBar();
           updateReSearchState();
-          return;
+          return {
+            ok: true,
+            where: 'client',
+            corpusFiles: sourceFiles.length,
+            resultFiles: 0
+          };
         }
 
         matches.sort(function(a, b) {
@@ -3783,6 +3860,13 @@
           setFilterResultsAvailable(false);
         }
         updateReSearchState();
+
+        return {
+          ok: true,
+          where: 'client',
+          corpusFiles: sourceFiles.length,
+          resultFiles: totalFileMatches
+        };
       }
 
       function buildAdvancedPayload() {
@@ -4152,6 +4236,8 @@
       // Find/ReSearch and must not alter the results that are already on screen.
 
       async function runServerSearch(payload, options) {
+        let telemetryCorpusFiles = null;
+
         try {
           options = options || {};
 
@@ -4159,6 +4245,8 @@
           const sourceFiles = Array.isArray(options.sourceFiles)
             ? options.sourceFiles
             : getSearchSourceFiles(giaOnly);
+
+          telemetryCorpusFiles = sourceFiles.length;
 
           const allFiles = window.GIASearchArchive.files || [];
           const allFileNames = new Set(allFiles.map(function (file) {
@@ -4283,7 +4371,12 @@
             updateStatusBar();
             updateReSearchState();
 
-            return;
+            return {
+              ok: true,
+              where: 'server',
+              corpusFiles: sourceFiles.length,
+              resultFiles: 0
+            };
           }
 
           const groupedByFile = {};
@@ -4439,10 +4532,26 @@
           } else {
             setFilterResultsAvailable(false);
           }
+
+          return {
+            ok: true,
+            where: 'server',
+            corpusFiles: sourceFiles.length,
+            resultFiles: totalMatchedFiles
+          };
+
         } catch (err) {
           console.error("runServerSearch ERROR:", err);
           resultsEl.style.display = 'block';
           resultsEl.textContent = 'Search error. Check console.';
+
+          return {
+            ok: false,
+            where: 'server',
+            corpusFiles: telemetryCorpusFiles,
+            resultFiles: null,
+            failureReason: err && err.message ? err.message : String(err)
+          };
         }
       }
 
@@ -4682,6 +4791,7 @@
         const archive = window.GIASearchArchive;
         const loadStarted = performance.now();
         const loadId = makeTelemetryLoadId();
+        window.GIATelemetryLoadId = loadId;
         const segmentMetrics = [];
 
         let firstReadyMs = null;
@@ -4993,8 +5103,32 @@
           window.GIASearchRecipe = [];
         }
 
-        await runAdvancedPayload(payload);
-        rememberExecutedStep(makeAdvancedSearchStep(payload));
+        const startedAt = performance.now();
+
+        try {
+          const result = await runAdvancedPayload(payload);
+          sendSearchTelemetryRecord(
+            'advanced',
+            countAdvancedTerms(payload),
+            startedAt,
+            result
+          );
+          rememberExecutedStep(makeAdvancedSearchStep(payload));
+        } catch (err) {
+          sendSearchTelemetryRecord(
+            'advanced',
+            countAdvancedTerms(payload),
+            startedAt,
+            {
+              ok: false,
+              where: 'client',
+              corpusFiles: getSearchSourceFiles(false).length,
+              resultFiles: null,
+              failureReason: err && err.message ? err.message : String(err)
+            }
+          );
+          throw err;
+        }
       });
 
       btnAdvancedToggleEl.addEventListener('click', function () {
