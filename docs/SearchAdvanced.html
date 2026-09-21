@@ -1145,7 +1145,7 @@
 
       appendConsoleLog('INFO', ['========== PAGE LOAD ==========', window.location.href]);
 
-      const TOOL_VERSION = '2026-09-20.130753';
+      const TOOL_VERSION = '2026-09-21.034437';
       const FILTER_HISTORY_LIMIT = 20;
       const SEARCH_MANIFEST_URL = '/GIA-Reports/docs/search/search_manifest.json';
       const SEARCH_SEGMENT_BASE_URL = '/GIA-Reports/docs/search/';
@@ -2616,6 +2616,27 @@
                Math.random().toString(36).slice(2);
       }
 
+      function getOrCreateTelemetryClientId() {
+        const key = 'GIASearchClientId';
+
+        try {
+          let clientId = localStorage.getItem(key);
+
+          if (!clientId) {
+            clientId = makeTelemetryLoadId();
+            localStorage.setItem(key, clientId);
+          }
+
+          return clientId;
+        } catch (err) {
+          // If localStorage is unavailable, keep a stable ID for this page only.
+          return makeTelemetryLoadId();
+        }
+      }
+
+      const GIA_TELEMETRY_CLIENT_ID = getOrCreateTelemetryClientId();
+      window.GIAClientId = GIA_TELEMETRY_CLIENT_ID;
+
       function getLastResourceTiming(resourceUrl) {
         try {
           const absoluteUrl = new URL(resourceUrl, window.location.href).href;
@@ -2651,6 +2672,7 @@
           mtime: new Date().toISOString(),
           event: ok ? 'SEARCH_COMPLETE' : 'SEARCH_FAILED',
           loadId: window.GIATelemetryLoadId || null,
+          clientId: GIA_TELEMETRY_CLIENT_ID,
           toolVersion: TOOL_VERSION,
           mode: mode,
           where: result.where || 'client',
@@ -2660,6 +2682,10 @@
           terms: terms,
           ok: ok
         };
+
+        if (Number.isFinite(result.serverMs)) {
+          record.serverMs = result.serverMs;
+        }
 
         if (!ok && result.failureReason) {
           record.failureReason = result.failureReason;
@@ -4375,7 +4401,8 @@
               ok: true,
               where: 'server',
               corpusFiles: sourceFiles.length,
-              resultFiles: 0
+              resultFiles: 0,
+              serverMs: Number.isFinite(data.serverMs) ? data.serverMs : null
             };
           }
 
@@ -4537,7 +4564,8 @@
             ok: true,
             where: 'server',
             corpusFiles: sourceFiles.length,
-            resultFiles: totalMatchedFiles
+            resultFiles: totalMatchedFiles,
+            serverMs: Number.isFinite(data.serverMs) ? data.serverMs : null
           };
 
         } catch (err) {
@@ -4807,6 +4835,7 @@
             mtime: new Date().toISOString(),
             event: eventName,
             loadId: loadId,
+            clientId: GIA_TELEMETRY_CLIENT_ID,
             toolVersion: TOOL_VERSION,
             firstReadyMs: firstReadyMs,
             totalLoadMs: Math.round(performance.now() - loadStarted),
