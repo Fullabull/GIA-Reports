@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Search and Security</title>
+  <style>
+    :root{
+      --bg:#0f1320;
+      --fg:#e6e9ef;
+      --muted:#a8b0c0;
+      --accent:#7cc4ff;
+      --accent2:#ffd36e;
+      --card:#161b2b;
+      --line:#2a3248;
+      --green:#5fe38a;
+      --red:#ff8d8d;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial,Helvetica,sans-serif;
+      background:radial-gradient(1200px 800px at 70% -10%,#1b2035 0%,var(--bg) 40%,#0a0d16 100%);
+      color:var(--fg);
+      line-height:1.6;
+    }
+
+    .wrap{
+      max-width:980px;
+      margin:40px auto;
+      padding:0 20px 40px;
+    }
+
+    h1{
+      font-size:1.9rem;
+      margin:0 0 6px;
+    }
+
+    h2{
+      margin:20px 0 10px;
+    }
+
+    h3{
+      margin:18px 0 8px;
+      color:var(--accent2);
+    }
+
+    p{
+      margin:0 0 14px;
+    }
+
+    ul{
+      margin:8px 0 14px 1.25rem;
+      padding:0;
+    }
+
+    li{
+      margin:4px 0;
+    }
+
+    code{
+      background:#0b0e18;
+      border:1px solid var(--line);
+      padding:2px 6px;
+      border-radius:6px;
+      overflow-wrap:anywhere;
+    }
+
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px 20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      margin:18px 0;
+    }
+
+    .toc a{
+      display:block;
+      margin:5px 0;
+    }
+
+    .lead,
+    .meta,
+    .muted{
+      color:var(--muted);
+    }
+
+    .k{
+      color:var(--accent2);
+      font-weight:700;
+    }
+
+    .good{
+      color:var(--green);
+      font-weight:700;
+    }
+
+    .warning{
+      color:var(--accent2);
+      font-weight:700;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+      margin:14px 0;
+    }
+
+    .mini{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px 16px;
+    }
+
+    .mini h3{
+      margin-top:0;
+    }
+
+    .sig-columns{
+      columns:2;
+      column-gap:28px;
+    }
+
+    .sig-columns li{
+      break-inside:avoid;
+    }
+
+    .callout{
+      border-left:4px solid var(--accent);
+      padding:10px 14px;
+      background:rgba(124,196,255,.06);
+      border-radius:0 10px 10px 0;
+      margin:14px 0;
+    }
+
+    a{
+      color:#5fe38a;
+      text-decoration:none;
+    }
+
+    a:hover{
+      color:#7dffad;
+      text-decoration:underline;
+    }
+
+    a:visited{
+      color:#4fcf7b;
+    }
+
+    @media (max-width:700px){
+      .grid{grid-template-columns:1fr}
+      .sig-columns{columns:1}
+    }
+
+    @media print{
+      body{background:#fff;color:#000}
+      .card,.mini{box-shadow:none;border-color:#888}
+      a{color:#000;text-decoration:underline}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <header>
+      <h1>Search and Security</h1>
+      <p class="lead">
+        How the GIA Search system is built, monitored, and protected.
+        This page describes the controls currently in place and the work
+        continuing behind them.
+      </p>
+    </header>
+
+    <div class="card">
+      <h2>Summary</h2>
+      <p>
+        GIA Search is not just a search box placed on top of a collection of reports.
+        It is a monitored application with client-side caching, server-side search,
+        performance telemetry, administrative diagnostics, request filtering,
+        attack-signature detection, persistent security logging, and Cloudflare-backed
+        client identification.
+      </p>
+      <p>
+        The goal is straightforward: make hundreds of reports fast and useful to search,
+        while keeping obvious hostile traffic away from the application and leaving enough
+        evidence behind to understand failures, attacks, and performance problems when they occur.
+      </p>
+    </div>
+
+    <div class="card toc">
+      <h2>On this page</h2>
+      <a href="#search">1) Search architecture</a>
+      <a href="#monitoring">2) Performance and failure monitoring</a>
+      <a href="#security">3) Request security layer</a>
+      <a href="#signatures">4) Current blocked signatures</a>
+      <a href="#admin">5) Administrative security</a>
+      <a href="#logging">6) Security and audit logs</a>
+      <a href="#next">7) Continuing expansion</a>
+    </div>
+
+    <div class="card" id="search">
+      <h2>1) Search architecture</h2>
+
+      <p>
+        The search corpus is divided into multiple compressed archive segments instead of
+        loading one giant historical file every time Search opens.
+      </p>
+
+      <div class="grid">
+        <div class="mini">
+          <h3>Historical archives</h3>
+          <p>
+            Older report archives are allowed to remain in the browser cache and can be reused
+            locally on later visits instead of being downloaded again.
+          </p>
+        </div>
+
+        <div class="mini">
+          <h3>Newest archive</h3>
+          <p>
+            The newest archive can be reused from cache, but the browser revalidates it so
+            newly published material is not silently missed.
+          </p>
+        </div>
+
+        <div class="mini">
+          <h3>Client-side search</h3>
+          <p>
+            Normal searches operate against the loaded corpus in the browser for fast interaction.
+          </p>
+        </div>
+
+        <div class="mini">
+          <h3>Server-side search</h3>
+          <p>
+            More complex searches can use the Render application, allowing Search to handle work
+            that would be awkward or expensive to perform entirely in the browser.
+          </p>
+        </div>
+      </div>
+
+      <p>
+        This design keeps ordinary Search responsive while still allowing the system to scale into
+        more complex search and diagnostic work.
+      </p>
+    </div>
+
+    <div class="card" id="monitoring">
+      <h2>2) Performance and failure monitoring</h2>
+
+      <p>
+        Search records structured performance information so slowdowns can be diagnosed instead
+        of guessed at. Measurements include load timing, archive cache behavior, search timing,
+        server processing time, failures, browser family, and anonymous browser-profile identifiers.
+      </p>
+
+      <p>
+        Administrative statistics summarize the data with averages, medians, 90th-percentile
+        measurements, maximums, cache behavior, browser counts, and failure rates. Date-range
+        exports allow performance history to be retained for comparison over time.
+      </p>
+
+      <div class="callout">
+        <span class="k">Why this matters:</span>
+        when Search feels slow, the system can distinguish browser/cache behavior,
+        network delivery, and server processing instead of treating "slow" as one mystery.
+      </div>
+
+      <p>
+        External JavaScript and CSS resources used by Search are pinned and protected with
+        Subresource Integrity where appropriate. Search also installs an early resource-failure
+        guard so a blocked, missing, or corrupted external resource can be recorded in
+        <code>client-errors.log</code>.
+      </p>
+    </div>
+
+    <div class="card" id="security">
+      <h2>3) Request security layer</h2>
+
+      <p>
+        Public requests pass through a server-side security layer before normal application
+        processing. Requests matching blocked rules are rejected with HTTP 410.
+      </p>
+
+      <p>
+        Client identity is based on Cloudflare's <code>CF-Connecting-IP</code> value rather than
+        trusting the first value supplied in <code>X-Forwarded-For</code>. This was tested directly:
+        a forged X-Forwarded-For address was ignored, while the server continued to record the
+        actual connecting address.
+      </p>
+
+      <h3>General request controls</h3>
+      <ul>
+        <li>Persistent IP blocklist enforcement.</li>
+        <li>Requests with no User-Agent are rejected.</li>
+        <li>Disabled crawler categories are rejected.</li>
+        <li>Known offensive scanner User-Agents are rejected.</li>
+        <li>Directory-traversal markers are rejected.</li>
+        <li>Known attack paths and query signatures are rejected.</li>
+      </ul>
+
+      <h3>Bot and crawler policy</h3>
+      <p><span class="good">Allowed:</span></p>
+      <ul>
+        <li>Googlebot</li>
+        <li>Googlebot-Image</li>
+        <li>Google-InspectionTool</li>
+        <li>Bingbot</li>
+        <li>DuckDuckBot</li>
+        <li>Baiduspider</li>
+        <li>YandexBot</li>
+        <li>Twitterbot</li>
+        <li>LinkedInBot</li>
+        <li>Slackbot</li>
+        <li>facebookexternalhit</li>
+      </ul>
+
+      <p><span class="warning">Currently blocked:</span></p>
+      <ul>
+        <li>AhrefsBot</li>
+        <li>SemrushBot</li>
+        <li>MajesticBot</li>
+        <li>UptimeRobot</li>
+        <li>Pingdom</li>
+      </ul>
+
+      <h3>Known attack/scanner User-Agents</h3>
+      <ul class="sig-columns">
+        <li>sqlmap</li>
+        <li>nikto</li>
+        <li>nmap</li>
+        <li>masscan</li>
+        <li>zgrab</li>
+        <li>wpscan</li>
+        <li>acunetix</li>
+        <li>nessus</li>
+        <li>openvas</li>
+      </ul>
+
+      <h3>Directory traversal markers</h3>
+      <ul>
+        <li><code>../</code></li>
+        <li><code>%2e%2e/</code></li>
+        <li><code>%2e%2e%2f</code></li>
+      </ul>
+    </div>
+
+    <div class="card" id="signatures">
+      <h2>4) Current blocked signatures</h2>
+
+      <p>
+        The current static signature table contains more than one hundred known probe and attack
+        patterns grouped by what they are attempting to find or exploit.
+      </p>
+
+      <h3>WordPress / PHP / database probes</h3>
+      <ul class="sig-columns">
+        <li><code>wp-login.php</code></li>
+        <li><code>/wp-admin</code></li>
+        <li><code>/wp-includes</code></li>
+        <li><code>/wp-content</code></li>
+        <li><code>/wp-config.php</code></li>
+        <li><code>/wp-json/wp/v2/users</code></li>
+        <li><code>/wp-trackback.php</code></li>
+        <li><code>/wp-signup.php</code></li>
+        <li><code>/wp-cron.php</code></li>
+        <li><code>/wp-content/debug.log</code></li>
+        <li><code>/xmlrpc.php</code></li>
+        <li><code>wlwmanifest.xml</code></li>
+        <li><code>/phpmyadmin</code></li>
+        <li><code>/pma</code></li>
+        <li><code>/mysql</code></li>
+        <li><code>/myadmin</code></li>
+        <li><code>/adminer.php</code></li>
+        <li><code>/adminer/</code></li>
+        <li><code>/php-info.php</code></li>
+        <li><code>/info.php</code></li>
+        <li><code>/test.php</code></li>
+      </ul>
+
+      <h3>Configuration / credential probes</h3>
+      <ul class="sig-columns">
+        <li><code>/.env</code></li>
+        <li><code>.env.</code></li>
+        <li><code>/.env.local</code></li>
+        <li><code>/.env.production</code></li>
+        <li><code>/.env.backup</code></li>
+        <li><code>/.env.staging</code></li>
+        <li><code>/.env.dev</code></li>
+        <li><code>/.git</code></li>
+        <li><code>/.svn</code></li>
+        <li><code>/.hg</code></li>
+        <li><code>/.ssh/</code></li>
+        <li><code>/id_rsa</code></li>
+        <li><code>/server.key</code></li>
+        <li><code>/private_key.pem</code></li>
+        <li><code>docker-compose</code></li>
+        <li><code>dockerfile</code></li>
+        <li><code>web.config</code></li>
+        <li><code>.htaccess</code></li>
+        <li><code>.htpasswd</code></li>
+        <li><code>config.php</code></li>
+        <li><code>config.yml</code></li>
+        <li><code>config.json</code></li>
+        <li><code>database.yml</code></li>
+        <li><code>database.php</code></li>
+        <li><code>settings.py</code></li>
+        <li><code>settings.php</code></li>
+        <li><code>secrets.yml</code></li>
+        <li><code>secrets.json</code></li>
+        <li><code>credentials.json</code></li>
+        <li><code>/credentials</code></li>
+        <li><code>/secrets</code></li>
+        <li><code>/.aws</code></li>
+      </ul>
+
+      <h3>Infrastructure / diagnostic probes</h3>
+      <ul class="sig-columns">
+        <li><code>/server-status</code></li>
+        <li><code>/server-info</code></li>
+        <li><code>/nginx_status</code></li>
+        <li><code>/actuator</code></li>
+        <li><code>/actuator/health</code></li>
+        <li><code>/actuator/env</code></li>
+        <li><code>/actuator/dump</code></li>
+        <li><code>/metrics</code></li>
+        <li><code>/prometheus</code></li>
+        <li><code>/grafana</code></li>
+        <li><code>/solr</code></li>
+        <li><code>/elasticsearch</code></li>
+        <li><code>/_cat/</code></li>
+        <li><code>/_cat/indices</code></li>
+        <li><code>/jolokia/</code></li>
+        <li><code>/heapdump</code></li>
+        <li><code>/latest/meta-data</code></li>
+        <li><code>/console</code></li>
+        <li><code>/debug/</code></li>
+        <li><code>/trace</code></li>
+        <li><code>/v2/</code></li>
+        <li><code>appsettings.json</code></li>
+      </ul>
+
+      <h3>Other CMS probes</h3>
+      <ul class="sig-columns">
+        <li><code>/administrator/</code></li>
+        <li><code>/sites/default/settings.php</code></li>
+        <li><code>/typo3/</code></li>
+        <li><code>/bitrix/</code></li>
+        <li><code>/umbraco/</code></li>
+        <li><code>/concrete/</code></li>
+        <li><code>/app/etc/local.xml</code></li>
+        <li><code>/downloader/</code></li>
+      </ul>
+
+      <h3>Common webshell probes</h3>
+      <ul class="sig-columns">
+        <li><code>shell.php</code></li>
+        <li><code>cmd.php</code></li>
+        <li><code>c99.php</code></li>
+        <li><code>r57.php</code></li>
+        <li><code>b374k.php</code></li>
+        <li><code>webshell.php</code></li>
+        <li><code>backdoor.php</code></li>
+        <li><code>eval.php</code></li>
+        <li><code>system.php</code></li>
+        <li><code>exec.php</code></li>
+        <li><code>upload.php</code></li>
+        <li><code>filemanager.php</code></li>
+        <li><code>webadmin.php</code></li>
+      </ul>
+
+      <h3>Basic attack patterns</h3>
+      <ul class="sig-columns">
+        <li><code>/cgi-bin/</code></li>
+        <li><code>test-cgi</code></li>
+        <li><code>printenv</code></li>
+        <li><code>%00</code></li>
+        <li><code>/etc/passwd</code></li>
+        <li><code>/etc/shadow</code></li>
+      </ul>
+
+      <h3>Router / IoT exploit probes</h3>
+      <ul>
+        <li><code>/boaform</code></li>
+        <li><code>/hnap1</code></li>
+      </ul>
+    </div>
+
+    <div class="card" id="admin">
+      <h2>5) Administrative security</h2>
+
+      <ul>
+        <li>The <code>/admin</code> area is session protected.</li>
+        <li>Admin passwords are checked using a password hash rather than plaintext comparison.</li>
+        <li>Five failed login attempts from the same client IP trigger a 15-minute lockout.</li>
+        <li>Admin sessions use a 20-minute lifetime.</li>
+        <li>The administrative block-IP POST path requires a CSRF token.</li>
+        <li>Admin file browsing is limited to explicitly allowed <code>logs</code> and <code>admin</code> directories.</li>
+        <li>Resolved-path checks prevent administrative file browsing from escaping those approved locations.</li>
+      </ul>
+
+      <p class="muted">
+        The persistent IP blocklist is already enforced. Administrative tooling for adding
+        addresses to that blocklist is still being expanded.
+      </p>
+    </div>
+
+    <div class="card" id="logging">
+      <h2>6) Security and audit logs</h2>
+
+      <p>
+        Security decisions are not limited to console output. Blocked requests and administrative
+        security events are written to persistent <code>security.log</code>, while administrative
+        activity is written to <code>audit.log</code>.
+      </p>
+
+      <p>Security records include:</p>
+      <ul>
+        <li>UTC timestamp</li>
+        <li>event type</li>
+        <li>trusted client IP</li>
+        <li>HTTP method</li>
+        <li>request path</li>
+        <li>matched rule or event detail</li>
+        <li>User-Agent where applicable</li>
+      </ul>
+
+      <p>
+        Log fields are sanitized before being written so tabs, carriage returns, and newlines
+        cannot be used to manufacture extra columns or fake log records.
+      </p>
+
+      <div class="callout">
+        A simple test request for <code>/wp-login.php</code> was rejected with HTTP 410 and
+        produced a persistent <code>BLOCK_SIGNATURE</code> record containing the timestamp,
+        actual client address, requested path, matched WordPress rule, and curl User-Agent.
+      </div>
+    </div>
+
+    <div class="card" id="next">
+      <h2>7) Continuing expansion</h2>
+
+      <p>
+        The current rule set is a starting layer, not the finish line.
+        The system has accumulated a very large body of hostile and automated request traffic
+        over time, and that history provides a much larger pool of real-world behavior to analyze.
+      </p>
+
+      <p>
+        Future work will continue turning observed attack traffic into better classification,
+        logging, diagnostics, and defensive rules. In other words: what is shown on this page
+        is the visible tip of a much larger iceberg.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Current status</h2>
+      <p class="meta">
+        Search and security architecture summary - current as of 2026-09-22.
+        This is a technical overview for readers, not a complete disclosure of every internal
+        implementation detail.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
