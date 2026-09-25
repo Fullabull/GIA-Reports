@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Sep-24</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Sep-24 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>The Think Tank - Silence Is Not Consent
+        <br>Episode Two
+        <br>2026-Sep-24
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/watch?v=hNeZx3tPMwI"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/watch?v=hNeZx3tPMwI"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260924_Think-Tank.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Tank opens the September 24 2026 Think Tank with Ground Commander&#x27;s approach to the Matrix: recognize that it isn&#x27;t real, refuse the Machine&#x27;s triggers, and connect directly to Source. He then walks through the four types of law Kim has described. Natural Law is not the John Locke version found online. It is a holographic book kept in the quantum mapping system, a blueprint for a thriving world in harmony with Source. It also works through natural consequences and the conscience, which he says is why soldiers resisted killing until they were conditioned out of it. Draconian Law dates to the flood about 16,500 years ago, when the Draco offered to rebuild the planet under martial law. Its two principles are that they must announce their plans, often through movies, and that our silence is our consent. Tank adds that the phrase &quot;Our silence is not our consent&quot; went into the Declaration of Independence rewrite. He connects this to programming and conditioning by repetition, which is how history like the Tartarian Empire is erased.<br>
+<br>
+Monarch Law puts everything under a hidden, false king, and it harvests people&#x27;s lifeforce through endless work. Statutory Law is slave law for ordinary people and does not bind the hierarchy above it. He illustrates it by contrasting Pizzagate with a 2017 New Jersey prosecution. His remedy is to withdraw consent, because government draws its power from the governed. He also urges listeners to gather on UNN, free of censorship, and to live by the spirit of the law until Natural Law is the only law that governs.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000113">00:01:13 - Beating the Matrix from the inside.</a></li>
+<li><a href="#t-000335">00:03:35 - The four types of law that govern the planet.</a></li>
+<li><a href="#t-000459">00:04:59 - Natural Law</a></li>
+<li><a href="#t-001104">00:11:04 - Draconian Law and the great flood.</a></li>
+<li><a href="#t-001341">00:13:41 - Our silence is not our consent.</a></li>
+<li><a href="#t-001732">00:17:32 - Mind control by repetition; erasing the Tartarian Empire.</a></li>
+<li><a href="#t-002024">00:20:24 - Monarch Law and the hidden king.</a></li>
+<li><a href="#t-002248">00:22:48 - Statutory Law</a></li>
+<li><a href="#t-002330">00:23:30 - Same words, different laws.</a></li>
+<li><a href="#t-002503">00:25:03 - Withdraw your consent.</a></li>
+<li><a href="#t-002725">00:27:25 - Natural consequences and the conscience.</a></li>
+<li><a href="#t-002957">00:29:57 - Taking action</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000014">00:00:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan Rowe:  Good evening, and welcome to the Think Tank. My name is Steffan Rowe, more commonly known as Tank. And here on the Think Tank, we discuss challenging topics, ideas, and even opinions to try to find meaning and purpose and definitely solutions so that we can all take inspired action that we can use to shape the world. Now with that in mind, with me as always is Loura Rowe. How are you today?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000040">00:00:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura Rowe:  I am very good, Mr. Rowe. How are you?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000043">00:00:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  I am good. I am excited to finally get through this next show. We have recorded several shows without a glitch, and now all of a sudden we&#x27;re having some technical issues. So that must mean that we&#x27;re on the right track, is my belief about that. So I&#x27;m very encouraged that we&#x27;ve recorded several times! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000104">00:01:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  It&#x27;s okay. We will get there. We are persistent. (Tank: That&#x27;s right.) Continue.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000113">00:01:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Well, nothing could bring me more joy than to say things that the Deep State doesn&#x27;t want me to say. So I&#x27;m thrilled to be here on the Think Tank. Now, that being said, what we would like to talk about today, you know, something was said by Ground Command a while back. Recently, she said this, I&#x27;ll repeat this first part. She was talking about how we&#x27;re kind of taking this new approach, right? That we know that we live in this simulated reality, right? But we&#x27;re actually in the reality. And she&#x27;s been working on this with several others to take down many forces, AIs, and they kind of pop back up. You know, these people, they disappear and suddenly they reappear. And so where she&#x27;s found it to be most effective is to actually go inside of this Matrix AI/Simulation and use quantum entanglement with Source to overcome it - in my comprehension of this - to overcome it from the inside out, okay? Now, what excites me about that the most is it&#x27;s one of the first times I ever heard Ground Command really initiate this charge of the people to overcome this, or to bypass the influence of the Machine, so to speak, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000238">00:02:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  And so to do that, she talks about, first you have to realize that it&#x27;s not real. That the Machine is working on your weakest points of your insecurities, your triggers, and trying to come at you with these things and cause all types of issues in what might seem like just mundane life, but really it&#x27;s the Machine trying to trigger you - so that you can&#x27;t see what&#x27;s happening and bypass it, right? Bypass it and really connect directly to Source, allow that energy to flow in and out of you and to other people and to basically push out all of the Simulation and artificial realities and have this just be a natural world. Now, does that sound about right from what you&#x27;ve heard as well?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000325">00:03:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  Yes, sir. Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000328">00:03:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Okay. So now I thought about this, I was really asking Source, like please give me some guidance. I want to make sure that I&#x27;m in harmony with what you&#x27;d have me to do, right? So with that in mind, one of the things He put on my mind was something else that Kimberly Ann Goguen had said before, which was talking about these four types of law that basically govern the planet, okay? So these four types of law that she talked about is: first is Natural Law. Then there&#x27;s Draconian Law, Monarch Law, and Statutory Law, okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000406">00:04:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, a lot of people are familiar with the idea of Natural Law - that you see on the internet, right? Natural Law going kind of back to the fundamental founding principles, allegedly, of the Constitution. And John Locke kind of talked about every human being has the right to life, liberty, and property, right? That no one should be able to interfere with those things, right? To do no harm to someone&#x27;s life or to their freedom or to their property, right? That&#x27;s kind of a fundamental principle that a lot of people are familiar with that&#x27;s been reduced down to just &quot;do no harm,&quot; which is also in the medical, you know, credo and their vows they take [Hippocratic Oath] when they become doctors, right? But it&#x27;s the same principle for law.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000459">00:04:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, that&#x27;s one concept of Natural Law that most people are kind of familiar with. Now that&#x27;s Natural Law the way it&#x27;s described on the internet. However, what we were told is that, in reality, that there&#x27;s this holographic Natural Law book that has nothing to do with the things that we might be familiar with, right? So it might just be a cleverly designed distraction, perhaps, or a misdirect, designed by the Matrix, the Machine, or the Deep State - whatever you want to call it. So with that in mind, this holographic book, what it actually does is give you the blueprints for the planet to explain what plants that you plant together in the same field, and what trees should grow together, and how we should interact with one another. All types of things to basically explain how to create and foster a thriving, living environment in harmony with what is natural and connecting to Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000600">00:06:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  That&#x27;s what the actual Natural Law is. It&#x27;s actually this holographic book. Now, what&#x27;s interesting about this is, this holographic book - there&#x27;s not many people that have access to it, in large part because, from what I understand, it kind of exists within the quantum mapping system. And it&#x27;s kept away from the Deep State and others who would take it and essentially they would reverse everything natural in it and make it unnatural - because that&#x27;s what they do, right? They reverse everything and instead of being for everyone&#x27;s gain, they use it for their personal gain. Instead of it being a reflection or an expression of Source, it becomes an expression of something else. They make everything the opposite.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000643">00:06:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  And Mr. Rowe, do you think that this holographic book will be public knowledge or will we be able to access it at one point?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000654">00:06:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  I hope so. I mean, look, this is like a dream of mine. And I understand - please, for those out there who really have a deeper understanding of this, that really all these things are within us and we can access them at any time and that type of thing. However, at this point in my understanding of things, I don&#x27;t have that ability to just access it. However, I look forward to a time when I can. And I can just go through the Natural Law book and see like, &quot;Oh, this works and that works and this is how it should be and create communities based on Natural Law that are thriving inside of an environment that&#x27;s thriving on the earth.&quot; I love that idea. And not only that, but historical archives and real history, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000736">00:07:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  It was actually on UNN. Kim has actually started that. I think she shot some shows, but eventually she&#x27;s going to go to the real history of the planet, right? Which - what a monumental task - to try to explain the real history, when everything that you know is kind of a lie, right? But all that excites me. And I would also, I realize though, to really grasp those things, I&#x27;d have to, at the same time, ask Source, like, &quot;I&#x27;m gonna need an upgrade on my ability to comprehend that kind of information,&quot; right? But I really do love that, I think that&#x27;s very exciting. You know... I was a history minor in my undergrad work, and I do believe that history is told from many perspectives. And, you know, if you don&#x27;t know where you came from, it&#x27;s hard to know where you&#x27;re going, right? And this is kind of what the Deep State has taken from us, and so... not the Deep State, but, well, I guess the Deep State in part - but the Illuminati, this hierarchy, the AI - all of these factors that love to use us as batteries but hate us as a personality... I don&#x27;t know, as existing Celestial beings on the planet. So all we are is essentially a part that they&#x27;re enslaving, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000852">00:08:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  That&#x27;s the reality, I guess. But with that being said, that&#x27;s Natural Law, right? So Natural Law still governs. Now, this also fascinates me too, right, because sometimes people... we have this perception that right now is the smartest and most advanced humanity has ever been. But there&#x27;s plenty of evidence to show that that&#x27;s not true, right? So you can imagine with Natural Law, if things right now are not as healthy as they could be, right? Now we know this - I remember speaking to the farmers in Denmark and they were saying that the actual soil is depleted by 63%. That&#x27;s how much of the nutrients are depleted. And with all the activities going on and the way that the Deep State does things so unnaturally, they&#x27;re constantly creating these... manufacturing crises with the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000943">00:09:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  The planet will just thrive and overcome it. However, because it&#x27;s so constant and consistent, they&#x27;re constantly poisoning the earth, the planet isn&#x27;t thriving the way it can, right? So with that being said, this Natural Law book would basically explain how to do that. And if that was the intention of leadership, then imagine the world that we&#x27;ll actually exist in and create and thrive with. So that to me is very fascinating. I would certainly love to have access to that at some point in the future.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001016">00:10:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  And it&#x27;s exciting!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001017">00:10:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Yeah, I think so. It&#x27;s really exciting. I mean, who doesn&#x27;t want to know these incredible things? Not only that. One of my biggest gripes over the years has been, you know, you take every aspect of what we are: you lie to us about who we are, where we came from, what our history is, what the potential is that exists within us. You shorten our lifespan so we don&#x27;t even have a chance to discover the full aspect of it - the full scope of what we can do or who we are - and we never really get to reconnect because they did these things, right? So we just kind of recycle and recycle and recycle, and that&#x27;s how they&#x27;ve used it, right? This kind of ongoing rebirthing into the planet, right? So it&#x27;s exciting for that to change, absolutely.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001104">00:11:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  So the next type of... now the reason - please keep in mind, we&#x27;re talking about these laws because I think it&#x27;s really important if you understand how they work, right - the other side. You can look at these things, see them more often, and then ultimately realize that they&#x27;re not real and bypass them, okay? So the next thing is Draconian Law. Now Draconian Law, I think it goes back to Rome [Athens] is kind of where, like, where people talk about it, right? Like where it originates, but not really. That&#x27;s what people talk about on the internet - if you looked it up on like Wikipedia. But the reality is, at some point about 16,500 years ago, this whole planet was flooded. I think the water-moon crashed into the planet and caused this great flood. And so the Draconians, right - the Draco - came in and took over. And basically said, &quot;Hey, we&#x27;ll rebuild your planet for you, but we have to put the planet under Martial Law,&quot; and the five remaining tribes (that were of humans) on the planet basically agreed. They gave up their rights. They gave up their, you know, a sense of their freedom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001211">00:12:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now with that, my understanding is it would appear they submitted to this Draconian Law. Okay. So I would call that actually a martial law or a type of martial law, right? So a military control law. Now, with that being said, I&#x27;m going to talk about the two principles that I&#x27;m most familiar with. The first one is they have to tell us what they&#x27;re doing, okay? They have to basically tell us. Now, this is how all law works, by the way - all law works this way. You have to put it in the newspaper to make it official, right? You have to report it - officially - for it to be legit. Draconian Law works the same way. They have to tell us, right? So before they can do these horrible things to us, they have to tell us they&#x27;re doing them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001257">00:12:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, we are familiar with this from movies, television shows. But very rarely do you see them come out and say, &quot;Okay, we&#x27;re about to poison all of you so we can enslave you,&quot; right? They don&#x27;t actually do that. They just put out all these things. Like, the year before the pandemic hit the whole world and kind of changed everything. You know what? There was like 12 or 15 movies on pandemics and how it was going to destroy the planet and, you know, take everyone apart. There&#x27;s even cartoons about it. So they were telling you what they were going to do - and because we did nothing, or because our silence was our consent - now that&#x27;s the next part.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001341">00:13:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  They have to tell you. And our silence is our consent. And you kind of get that from - if you go back to, like, Plato - he talks about how our silence implies agreement. So by staying silent - even to actions - we are essentially saying we agree with it. Now, is it that we really agree with it? No! We don&#x27;t actually agree with it. And I&#x27;ll tell you - this actually happened - we rewrote the Declaration of Independence. We actually rewrote this document to be current. And at one point, when I was working with Kim, she had me rewrite this. We rewrote this, and it was brought up by - she hasn&#x27;t mentioned him by name so I won&#x27;t - but by someone she was very close with who passed recently. And what he said was - he read it through and he said, &quot;This is good.&quot; He said, &quot;However, the one thing you need to add there is: Our silence is not our consent.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001439">00:14:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  In other words, you can no longer use that. So that&#x27;s how real that very simple term is, right? And we did, we implemented that into this declaration. Now, imagine - it&#x27;s such a powerful, simplistic principle - but in reality, they do this to us all the time. And because we don&#x27;t take action, because we don&#x27;t speak up, because our actions reflect compliance, they take it as, &quot;Okay, then that&#x27;s what we&#x27;re going to do.&quot; And that&#x27;s what happens all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001515">00:15:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  So Tank, you said before, they put this information out and we did nothing. And then ultimately means our silence is our consent. But this is the question that I have for you: What are you supposed to do if it&#x27;s been put in the movie, and everyone&#x27;s just going to look at you going, &quot;It&#x27;s just a movie. You can&#x27;t do anything about it; it&#x27;s just for entertainment.&quot; So, you said we did nothing, but what could we have done, in your opinion?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001547">00:15:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  I&#x27;ve got to be honest, it&#x27;s diabolical, right? How would you know? So the first trick, like there&#x27;s this movie called The Usual Suspects. And the main bad guy - who&#x27;s also the key storyteller - is actually Keyser Soze, and he&#x27;s referred to as the Devil in the underworld. And the thing that he says is, &quot;The greatest trick the Devil ever pulled is to make people believe he didn&#x27;t exist.&quot; So that&#x27;s kind of what they do to us with movies and all types of entertainment, right? They&#x27;ll say all these things, and then basically we think, &quot;Well, that&#x27;s not real. That doesn&#x27;t exist.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001634">00:16:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  So we tell our kids that so they&#x27;re not scared at night and don&#x27;t have nightmares, right? But in reality, these things - some version of these things - I think almost everything you see in the movies does exist. It is based on something real. And they&#x27;re telling us that. Now, what can you do about it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001651">00:16:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Honestly, the real challenge is - once we know and we see it - what I would say right now is we have to literally make it so it&#x27;s not real and bypass it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001706">00:17:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  And what do you mean by that? We need to make it that it&#x27;s not real.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001710">00:17:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Well, because they might be telling us what they&#x27;re going to do, right? So I suppose on some level within ourselves saying, &quot;I do not consent to this.&quot; Or, &quot;I withdraw my consent for this to take place.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001725">00:17:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  Energetically, you&#x27;re talking about? (Tank: I&#x27;m sorry?) Energetically, you&#x27;re talking about? Or are we supposed to go and put it on the news [laughing].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001732">00:17:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Well, I think energetically, I think energetically we&#x27;ll do it, right? Everything starts with energy. And then I think eventually... well not even eventually, you can see very powerful shifts and changes where there&#x27;s a response. So I believe, in part, that&#x27;s doing something. Actually listening to what you&#x27;re hearing - listen carefully - like, &quot;care fully&quot; - about what you&#x27;re listening and ask yourself, what is this trying to tell you? Because this is kind of the basis for mind control, right? It&#x27;s programmed repetition and conditioning. So you have programming, which is a little more aggressive, like kind of MK-Ultra type stuff. Then you have conditioning, which is just, it becomes part of the culture.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001816">00:18:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  The first people to really accidentally - and lovingly and for good reasons - kind of mind control us, kind of starts with our parents, right? They&#x27;re telling us how to act, how to think, you know, what God is. And of course, we love our parents, we know nothing else. We eat that all up. And I&#x27;m not saying that that&#x27;s bad, I&#x27;m just saying that&#x27;s kind of the first opportunity that we have in this world and we&#x27;re learning all these things so we take it all as fact. And then what happens is, whoever told them, it only takes one generation to get it wrong, right? So you take one generation and you indoctrinate them with erroneous principles and they repeat it to the next generation like it&#x27;s fact. And so now you don&#x27;t have to erase anything, it&#x27;s just gone. Because no one believes what has always been right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001904">00:19:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  That&#x27;s how you erase the Tartarian Empire, right? There&#x27;s actual records of the CIA, on CIA.gov - where you can see and it talks about the Tartarian Empire being eliminated - all records of the Tartarian Empire being eliminated. Which to me is absolutely fascinating - I want to know more about it because they eliminated it. Why did you try to keep it from us if it didn&#x27;t matter? It must matter, it must be important, right? I find that kind of thing to be absolutely fascinating.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001935">00:19:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  And I&#x27;m saying, I believe that these things - these laws - are actually a form of programming in and of themselves, kind of like the way the AI responds and reacts to things, just like you were putting in a code. These are laws. You&#x27;ve heard Kim talk about these different Covenants that even Source was bound by. So laws, or actual laws that can&#x27;t be broken, are very important, right? And it&#x27;s a big deal, because - it seems to me, anyways - that this is how the Matrix is ultimately programmed. All right? So does that make sense? Am I making sense or am I too far off topic?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002014">00:20:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  Yes, sir, you were just talking about Draconian Law.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002017">00:20:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Okay. So that&#x27;s Draconian Law. That&#x27;s something that everybody should just pay attention to because it&#x27;s around you all the time, and I think it will help.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002024">00:20:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, the next thing is Monarch Law. Now, Monarch Law really is kind of the opposite of what we think of as law. And these laws are all kind of existing simultaneously. Not really with the monarchy that we&#x27;re all familiar with, but maybe like the Dark Nobility. But the idea with the monarchy is everything is subject to the ruler, right? So every person is a citizen, a slave, a subject, a serf. They&#x27;re in some ways... even the land belongs to the &quot;lord,&quot; or the leader of that, the ruler. And so Monarch Law kind of exists that way. Everything is for the king, so to speak, or this artificial king. So, there&#x27;s really only one king on this planet, and that&#x27;s Source. All other kings are charlatans; they&#x27;re just pretending to be kings.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002113">00:21:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  So Monarch Law, it appears, kind of caters to that idea of this monarchy that exists. And this is kind of, in a sense, part of the Order - in the underworld, like the Merovingians and things like that. And this becomes their... they&#x27;re ruling over this, and everything serves them. And that&#x27;s exactly what the Elite and the Deep State want. So keep that in mind as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002136">00:21:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Even whenever you hear these things going on - what is their goal, all the time? To constantly keep you subjected and keep you subservient, following orders, contributing in a meaningful way to the system - but not so much that you get too much - just enough so you&#x27;re just above the poverty level. You can work all the time, a majority of your day is spent working and sleeping. And then you have a few moments to relax, where you&#x27;re trying to recover all of your lifeforce and energy that you&#x27;ve just given away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002209">00:22:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  That&#x27;s how they set it up. Intentionally, constantly harvesting our lifeforce, our energy, our vitality so that we can just kind of slowly coast down this path of, you know, not being the best version of ourselves. So I think Monarch Law, when you talk about it, not a lot of people say, &quot;Where&#x27;s the monarchy?&quot; Well, I think it&#x27;s kind of a hidden monarchy that is taking place and the ones giving orders and telling them what to do behind the scenes, which might even refer to these 12 kings that Kim recently talked about, which I don&#x27;t fully understand yet to talk about, but I find it to be a fascinating subject.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002248">00:22:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Okay. Now, the final law is Statutory Law. Statutory Law is a law that we&#x27;re all familiar with - that we thought was the highest level of government - was just the regular government. But in reality, these are all slave laws. And you know this is true because you&#x27;ve watched people... you&#x27;ve watched people use certain things - who are governed by Statutory Law, like regular people like you and me - and they do something, and then, under the letter of that law, they prosecute them to the fullest extent: they&#x27;re doing life in prison for using certain language, which might be appropriate. But then the hierarchy who sits above it and is governed by different laws uses the exact same language.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002330">00:23:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  This actually happened with Pizzagate, by the way. I&#x27;m sorry I&#x27;m being vague. But this happened with Pizzagate, where you had Hillary Clinton and some of these other guys running this child pedophilia, rape, and murder ring inside of Washington, D.C. And they used very specific pedophile language in the way they referred to the kids, right? Then they got no penalty. They completely ignored everything they did like it didn&#x27;t matter.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002400">00:24:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  But in New Jersey, which is, you know, 10 miles from, it&#x27;s not even 10 miles. It&#x27;s just outside the Washington, D.C. limits, right there in New Jersey, you had a man who used the exact same language who was - should be - prosecuted, and he was making arrangements to traffic children, we&#x27;ll say, okay? The same language is used. Why was one prosecuted and one wasn&#x27;t if the law is blind and just and all these things? Well, Statutory Law isn&#x27;t - it&#x27;s slave law that you and I are subjected to - and it&#x27;s very obvious when you look at it that others are not. So you see very clearly that certain people sit outside of that - because they&#x27;re not what you are. They believe themselves to be above you. And they have had their entire life, their entire existence has been feeding that narrative - that they are above you, and they&#x27;re more important than you, and they matter and you don&#x27;t. So you are governed by Statutory Law and they sit above it.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: Steffan appears to be referring to the 2017 Stephen Salamak case. Salamak lived in Lodi, New Jersey - roughly 230 miles from Washington, D.C., not just outside the District. A federal complaint says Salamak used &quot;Cheese Pizza&quot; as a reference to child pornography and discussed a potential meeting with an undercover officer&#x27;s purported 8-year-old daughter.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002503">00:25:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Those are the things I think are really important to understand, and apply, if just some of the things I think are important when it comes to the law. To actually start to think about, wait, is my silence my consent? And are my actions loud enough to speak in a way that shows, &quot;No, I do not consent to that, I withdraw my consent, I will not participate in the system.&quot; Is that how we bypass the Matrix? And we recognize, &quot;No, your law is not real. It doesn&#x27;t govern me.&quot; Because this is a principle that this applies to all these things: the governed... the government draws its power from the governed, okay? So in other words, if the governed - being us - withdraw our power from the government, the government has no power. Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002557">00:25:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  And it doesn&#x27;t matter what the government is. We outnumber them 1,000 to one. The second we are in agreement is where our power really comes in, because you can see very clearly this is where we are most powerful. But what ends up happening is we end up debating things and nuances and details that maybe just don&#x27;t matter. Maybe they&#x27;re not as important as we think. The real thing that actually matters is understanding that I and you and everyone around me is an expression of God. That Source... we are a Celestial being with an incredibly powerful spirit, soul, body. The essence, energy, consciousness, frequency, and matter that exists within us is all from God. Recognize that&#x27;s in us. And you know, I love the term &quot;Namaste,&quot; right? I&#x27;m not really a yogi or anything, but Namaste means the spirit in me honors the spirit in you, right? That&#x27;s the literal translation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002656">00:26:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now I love the idea when I think about, well, that&#x27;s the world we kind of want to live in, right? Where the spirit in me does honor the spirit in you, right? Where it respects you and is not doing harm to you and appreciates you. And in like manner, that is also how your spirit treats me. So when it comes to laws, really, we&#x27;re the ones who decide what laws have power and what laws do not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002725">00:27:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, Natural Law, the best I can understand it, you can&#x27;t really avoid it, right? Because Natural Law has natural consequences. Like if you plant the wrong food next to each other, they don&#x27;t grow right. I&#x27;m sure it applies to things like, if you strike somebody, there&#x27;s a good chance you&#x27;re going to get hit back, right? It&#x27;s kind of a basic principle. So things like that. So there&#x27;s natural consequences built in, right? Even with our conscience, right? If you&#x27;ve ever done something that violated your conscience, that&#x27;s - in my opinion - an expression of Natural Law. I imagine that&#x27;s partially our connection to the way we as humans work, that we&#x27;re connected to this Natural Law. And it&#x27;s put right within us to let us know innately, &quot;Well, that&#x27;s wrong.&quot; Like I know lying is wrong and I know cheating is wrong, right? I know murder is wrong. We innately know that, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002819">00:28:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  The point is that people don&#x27;t naturally want to hurt each other, believe it or not. And I saw this one time on Black Mirror [TV series, &quot;Men Against Fire&quot; episode], and they were saying how in World War I [World War II], it was like 88% of the soldiers never hit anybody when they fired their rifles - they fired the rifles above the soldiers on the other side - because it was so against their nature to hurt them. And it wasn&#x27;t until Vietnam - when they were experimenting with LSD and Agent Orange and putting it in the air, where they started to see demons, and they actually started to see people (maybe in part for what they were, in part maybe for what they weren&#x27;t), but they seemed like zombies; they didn&#x27;t seem human anymore - that the kill rate flipped. Now the kill rate went up to like 80%. Like 80% of the people that were in the Vietnam War killed somebody, at some point. They made contact with a bullet, right? Those aren&#x27;t exact numbers, but they are something like that, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002922">00:29:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  So now imagine, if that kind of thing is true, it&#x27;s like, to make us be less of an expression, less amazing than what we&#x27;re meant to be, they had to create things and then have us violate our own conscience, do things that we would never do - and this is how they program us, right? So to overcome that programming, let&#x27;s look right into the face of that, and overcome and bypass it, just by acknowledging the things. So the more we&#x27;re acquainted with what is happening, the easier it becomes to overcome.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002957">00:29:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  So one of the things that you said was that we could take action. You said that before. My question to you is, how do we do that if we get silenced or we get removed from different platforms or, you know, obviously we&#x27;re all divided, because if we were all united, I think we would be further along in this process, in my opinion. And I think we&#x27;re getting there. However, what do you do to take action? And also bearing in mind we&#x27;re in simulation but also, you know, they&#x27;re not gone yet. The government is still in the public eye, still the government. So how do we bypass that? How do we get through that? Or what are the ideas that we could do?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003056">00:30:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Anybody, in my opinion, anyone who&#x27;s a conspiracy realist - not somebody just diving in on everything and doesn&#x27;t have details - but someone who really wants to know the truth. Somebody who actually is like, &quot;Wait a minute, I know this part. What I don&#x27;t understand is this.&quot; They want the actual truth, and you want the real behind-the-scenes of what&#x27;s happening. Everybody should be on United Network, unitednetwork.earth is the actual website - unitednetwork.earth will give you more insight into these things than literally any place else in the world. I can say that with absolute, full confidence: this is the inner circle of the inner circle. If you want to understand what&#x27;s going on, go in and dive into the archives and learn. That&#x27;s one thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003140">00:31:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  Now, as you bring people together in a common place, because in that environment on UNN, you are bringing people and that&#x27;s not being governed or dictated by a bunch of censorship. So you can ask any questions you want. You can deal with anything you want. You&#x27;re not being told what to do. That&#x27;s really important. You need a safe place for people to actually talk about things that they just don&#x27;t understand, and be able to ask questions like, &quot;Why can&#x27;t we talk about this?&quot; &quot;Why has everyone else banned this?&quot; Or talk about their discoveries - on whatever X subject you want to put there - that is banned and being censored in the entire world. That&#x27;s happening - because they want to control the narrative, right? Laws are for control, right? These different things are to control you. So you have to look at those things and understand. Now, Loura, you studied law, and you told me there&#x27;s loopholes for everything, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003236">00:32:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Loura:  Absolutely everything, that&#x27;s correct.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003239">00:32:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  So when you look at these things, they&#x27;re talking about the letter of the law, right? That you can go in and manipulate it to the letter. And that&#x27;s what they&#x27;ve done. They&#x27;ve justified their behavior by working to the letter of the law. But in reality, we want to focus on the spirit of the law. Let&#x27;s understand the value of these principles. Let&#x27;s see what they&#x27;re trying to do to us, and let&#x27;s bypass all of them and get back to Natural Law. And really allow Natural Law to be the only law that actually governs us. What is best for us to thrive in all ways? So I think that&#x27;s essential that we focus on that. That we actually look for ways that we can be in harmony and in perfect alignment with Source. And I&#x27;m just giving you these as an example as a starting point because understanding these things I think genuinely helps. And if you put a little thought into it, I promise you&#x27;ll see the value in it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003333">00:33:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Steffan:  All right, everybody, that&#x27;s all we have from Think Tank today. Thank you so much for tuning in, and please stay with us. I want you to always keep this in mind, that you were made to be amazing, and you have an obligation to be just that. There&#x27;s a reason why we come together. We&#x27;re looking for common ground. And sometimes that means we don&#x27;t even have to agree. But we need to find a place where we can all thrive together. And if we just take responsibility for ourselves and one another, this world will be a better place. So everybody, let&#x27;s go change the world together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003402">00:34:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003414">00:34:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of podcast.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/watch?v=hNeZx3tPMwI" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
