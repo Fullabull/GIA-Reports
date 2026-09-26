@@ -284,3 +284,15 @@ on("decreaseImage", "click", () => adjustImageSize("decrease"));
         showHeader();
     });
 })();
+
+// -----------------------------
+// Report page view logging
+// -----------------------------
+(function () {
+    const img = new Image();
+
+    img.src =
+        "https://lance-exteriors-app/report-hit?page=" +
+        encodeURIComponent(window.location.href) +
+        "&_=" + Date.now();
+})();
