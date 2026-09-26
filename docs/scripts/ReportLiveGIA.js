@@ -292,7 +292,7 @@ on("decreaseImage", "click", () => adjustImageSize("decrease"));
     const img = new Image();
 
     img.src =
-        "https://lance-exteriors-app/report-hit?page=" +
+        "https://lance-exteriors-app.onrender.com/report-hit?page=" +
         encodeURIComponent(window.location.href) +
         "&_=" + Date.now();
 })();
