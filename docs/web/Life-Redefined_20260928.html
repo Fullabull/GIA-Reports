@@ -1,0 +1,2400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Sep-28</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Sep-28 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Life Redefined - Your Body Knows First
+        <br>Karen Sherwood
+        <br>2026-Sep-28
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20260928_Life-Redefined.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the September 28 2026 Life Redefined report by introducing Karen Sherwood, a leadership educator and consultant with more than 30 years in human development and 16 years working with the science of differentiation, widely known as Human Design and applied in business through BG5. Rather than a conventional interview, Kim becomes the subject of her own annual cycle analysis, which she calls her &quot;birthday report.&quot; Karen explains that the chart rests on birth date, time, and location -- the imprint of the neutrino stream at birth, not astrology. The analysis returns a person to their design, completes the lessons of the past year, and prepares for the cycle ahead. Part One covers the design itself.<br>
+<br>
+Karen identifies Kim&#x27;s career type as a Classic Builder whose process is step by step: waiting to respond, following her intuitive gut, and moving when the timing is right. Conviction is a core strength; satisfaction signals alignment and frustration signals drift. Kim counters that Deep State viewers will study this report for what makes her tick, and that they strike hardest when she is most aligned -- the No Joy Program.<br>
+<br>
+Karen describes the white, open areas of Kim&#x27;s design as places where outside influence is received and amplified. When her motivation of hope slips into guilt, the shadows follow: overcommitting and the urge to prove herself, emotional overwhelm from absorbing others&#x27; feelings, scattered focus, and pressure to act before the correct moment. Her design is logical rather than emotional, and her body knows before her mind does. Kim relates this to her practice of never making major decisions in anger, stepping away when needed, and using music, the gym, and walks with her dog to return to herself.<br>
+<br>
+Kim&#x27;s Life Work theme is service through correction and perfecting. Operating with a personal focus, her path involves facing her own challenges, researching, and gaining new perspectives to transform herself and then guide others. Rather than carrying the load alone, she fulfills her purpose through bonding, collaboration, and co-creation. Karen highlights Kim&#x27;s gift of critical awareness, which pinpoints the source of a weakness, challenges what is out of alignment, and weighs multiple opinions to find what is truly valuable. That drive requires stillness to receive insights, and it serves to clear whatever stands in the way of joyous vitality and pure Source Energy. Kim ties it to Harmony with the Divine Plan.<br>
+<br>
+Karen describes her public role as Pioneer and Messenger: learning through trial and error, identifying what is not working, and communicating practical solutions. Eight of her 26 life aspects (31%) fall in communication and action expression, and others project the rescuer role onto her, creating expectations she is not designed to fulfill. Her ideal environment is Passive Mountains -- &quot;rare air&quot; offering distance, calm, and a 360-degree view of power structures without pressure to act. Kim describes building her own &quot;mountain&quot; amid chaos with headphones, credits her move from Durango, and tells of reading operatives who offer friendship. Her digestion is Hot Thirst, meaning warm food and drink. Karen closes on hope as connection to Source and guilt as disconnection. Part Two continues with the annual cycle itself.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000045">00:00:45 - Kim sits down with Karen Sherwood.</a></li>
+<li><a href="#t-000330">00:03:30 - Human Design, BG5, and the annual cycle.</a></li>
+<li><a href="#t-001549">00:15:49 - Pioneer and Messenger.</a></li>
+<li><a href="#t-001752">00:17:52 - Trust the gut</a></li>
+<li><a href="#t-002330">00:23:30 - Conviction -- and a million Deep State viewers.</a></li>
+<li><a href="#t-003310">00:33:10 - The shadows</a></li>
+<li><a href="#t-003952">00:39:52 - Emotions that aren&#x27;t yours.</a></li>
+<li><a href="#t-004730">00:47:30 - Bright shiny objects and the &quot;you issue&quot; pile.</a></li>
+<li><a href="#t-005349">00:53:49 - Your body knows first.</a></li>
+<li><a href="#t-005858">00:58:58 - Life Work</a></li>
+<li><a href="#t-010604">01:06:04 - Tribal Leadership</a></li>
+<li><a href="#t-011615">01:16:15 - Passive Mountains</a></li>
+<li><a href="#t-012555">01:25:55 - Hope vs. guilt.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  We have our body intelligence, and our body actually knows much quicker than our mind does. Then, we have our mind intelligence, and our mind intelligence thinks it knows, but your body intelligence - your body is going to tell you way before your mind even catches up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000017">00:00:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator:  Life is constantly changing and the old answers are not enough. Life Redefined sits down with the visionaries, healers, farmers, inventors, and scientists to find solutions, engaging in conversations no one else is having. Join us as we explore the answers, the ideas, the possibilities, and redefine the world we live in. This is Life Redefined.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000045">00:00:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I&#x27;m sitting down today with Karen Sherwood: a leader, an educator, and consultant with more than 30 years of experience in leadership and human development. For more than 16 years, Karen has studied and worked with the science of differentiation. She has dedicated her work to helping individuals, leaders, and organizations better understand their natural strengths, navigate change, and create more human-centered ways of living and working. Through this work, she brings a unique perspective to leadership, career development, team dynamics, and personal transformation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000125">00:01:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So today is going to be a little different. Karen and I will be talking about, I guess, my annual cycle. So it&#x27;s kind of... I call it the birthday report. So I&#x27;m kind of excited to get together with Karen and you&#x27;re all going to learn a lot about me today. And I&#x27;m going to learn a lot about me. And I haven&#x27;t heard this before, so this is going to be kind of interesting and fun for me. So when getting to know Karen - what she does and how she helps people - I noticed on her site that she does this birthday cycle, as I call it, but it&#x27;s called your annual cycle. And she recommends that you do this annual cycle analysis report about three months before your birthday to help you navigate the upcoming year. So this isn&#x27;t just for leadership in companies - this is also on a personal level. And it can be even about you and your personal career or your life in general.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000220">00:02:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So potential challenges in current relationships - and that&#x27;s not just personal, that&#x27;s also business and with people that you work with. And challenges as well as possible successes for the upcoming year. So, I&#x27;m a little bit late this year, as my birthday is at the end of this month, but I thought it would be fun to do this with all of you watching, so that I could share my experiences with all of you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000247">00:02:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So when I asked Karen if it was like astrology, you know, I&#x27;ve heard a lot of psychic readers, and they tell you all about the palm readers, and they tell you all about your life. And she said, no, it was basically based on energy cycles and the person themselves. And so, Karen, just take a minute before we get started doing a deep dive into my life. Could you tell us a little bit more about the annual cycle analysis that you do with most all of the individuals that you work with as you get started? And, I guess, what can we expect to learn about myself? [Laughing.] And what everybody else is going to learn about me too, today?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000330">00:03:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  I&#x27;m really, really looking forward to this, Kim. Thank you so much for the opportunity to be able to work with you on this. The science of differentiation, many people know it as Human Design. I do - in a sense - the business application, which is called BG5. But it actually is much - I feel - it&#x27;s much larger than that. And ultimately, it is allowing people, first and foremost, to have the permission to simply be themselves. So part of the thing that we&#x27;re going to start off with is - in the annual cycle - it&#x27;s returning back to yourself. We live in cycles of beginnings, middles, ends; beginnings, middles, ends; that&#x27;s just the way that life works. And when one cycle comes to an end, in a sense we return to ourselves... complete what happened in the last cycle. Because if you don&#x27;t complete what happened in the last cycle, you will bring those same lessons forward into the new cycle.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000431">00:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  The more you can complete the last cycle - and that&#x27;s why we typically recommend, three months before - because you&#x27;re right in that sort of, you&#x27;ve just hit (in a sense) the climax of your year. And then this is, if you take a look at a storyline, it&#x27;s kind of like the piece in between, before the next chapter starts. And so it&#x27;s a huge opportunity to complete everything that&#x27;s happened in the past year. So again, you can let that go, and that you can step fully into the new year. So that&#x27;s what we will take a look at.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000503">00:05:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  We will take a look at three things. One, we will return you to yourself. So taking a look in general, just about your design and some key things to just pay attention to realign yourself with who you are. We often say your design does you. Like, you already... everybody already knows their design, however there&#x27;s a lot of pieces that we forgot. Because there are shadows that get in the way. There are things that can be confusing that throw us off track. So, it&#x27;s realigning with yourself first - so then we can take a more objective look at the past, complete that, so we can move forward into the future. So that&#x27;s what the annual cycle is about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000545">00:05:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  That&#x27;s really interesting. So I&#x27;m going to get to know myself [laughing] - and so are all of you!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000552">00:05:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  But it&#x27;s just an interesting approach. And I kind of, in my life, I always feel like I&#x27;m always learning about myself. And I recognize things that I do, that maybe served me in the past and maybe don&#x27;t serve me anymore. And you know, there&#x27;s people that come into your life for a reason and a season, and I feel that everybody that you meet teaches you something. Whether it&#x27;s about yourself or even ways of doing things. But for me, it&#x27;s pretty open. I&#x27;ve had a lot of life experiences that are probably a little abnormal for people, and I&#x27;ve done my best to not live there. I mean, I&#x27;m like, &quot;Well, that happened.&quot; And sometimes it takes you a little bit of time to get over it and get past it and that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000644">00:06:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  But I&#x27;m always looking to understand where I went wrong. I always think, &quot;Well, gee, I did something wrong.&quot; Or, &quot;How did I not see this about my friend, my partner, my relationship ahead of time?&quot; And another aspect of that, too, is raising a child. To understand - and this is one of the things we talked about in our... we chatted for a little while the other day so that I could kind of get to know better what Karen does - and we talked about raising kids and grandkids. And times are different, and things change from when you were a kid, as an example - I know they&#x27;ve changed since I was a kid.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000732">00:07:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And how we can kind of better grow and learn. And we&#x27;re going to talk about that in our next interview, and talk about transitions - and the transitions that are happening in the world, too, and how we can navigate those. But this one here, I thought, would be a great example of where everybody can kind of start. And hopefully, Karen will teach us a few things - you know, tips and tricks - throughout this report, using me as an example. I&#x27;m laughing. But I&#x27;m fascinated with what you do, Karen, and how you do it. And so I&#x27;ve very much been looking forward to this now since we first spoke. And so, I guess, here we go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000818">00:08:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  All right. (Kim: It&#x27;s gonna be...) You ready to jump in?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000819">00:08:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  ...Kim on full display! I am. I am.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000824">00:08:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, I did put together a presentation. It just also helps with the visuals as well because sometimes when you can see it, you can take it in - and there are other things you are taking in at a deeper level when you can also see the information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000837">00:08:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Also, this becomes a report as well. And one of the reasons why I put so much detail into the reports, or into the presentation, is so that I can then give you a copy of it so that you can review it. Because we are going to be talking about a lot of stuff and we are actually just going to scratch the surface. As I was putting it together, I was like, &quot;I should add this! I should add this!&quot; And then I&#x27;m like, &quot;Wait, it&#x27;s going to be too much.&quot; I have to calm it down a little bit because there&#x27;s so much information and so much that you can look at. So I want to give you those pieces that are really truly relevant and important right now. And understanding yourself is really the first key piece. That&#x27;s what we&#x27;re going to dive into first. What I&#x27;d love to do is share my screen so we can walk through it and you can see the visuals as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000928">00:09:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-28.PNG" alt="WSR_2026-09-28-LifeRedefined-28" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000929">00:09:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, welcome to your annual cycle analysis.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000934">00:09:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yaay!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000936">00:09:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, as I mentioned, what we are going to explore is we&#x27;re going to first explore your natural brilliance. And really how to navigate as yourself in the upcoming year. You also mentioned kids and partnerships and everything else - one of the things that is really fascinating about this as well is that what it does is it really brings, if you will, what is invisible to the surface. So we can actually see the mechanics of how we operate. And imagine not only understanding how you yourself operate, but understanding how your kid operates, or how your partner operates, or how your business colleagues operate. Because when we can see those hidden dynamics behind the scene, we can also see how we can work better together. And not only that, stay aligned with who we truly are as we&#x27;re working together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001034">00:10:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So that&#x27;s what we&#x27;re going to do first. And then, as I mentioned before, we&#x27;re going to take a look at completing the past year&#x27;s lessons. So bringing the past to a powerful close. And then we&#x27;ll take a look at the lesson plan for the coming year. So opening up the possibilities for the coming year, kind of knowing what to expect, and how to ground yourself moving forward, as yourself, as you step into the new year. So that&#x27;s what we&#x27;re going to explore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001100">00:11:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-29.PNG" alt="WSR_2026-09-28-LifeRedefined-29" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001102">00:11:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So we&#x27;re gonna start by, again, taking a look at your natural brilliance. And I don&#x27;t know if you have any questions about that before we jump in?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001109">00:11:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So I&#x27;m assuming when you say &quot;natural brilliance&quot; - everybody is naturally brilliant in some way. And identifying where that is a strength for you and where it can be a weakness, I guess, is what we&#x27;re going to talk about, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001123">00:11:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yes, exactly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001125">00:11:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So, everybody, she&#x27;s not saying I&#x27;m just naturally brilliant.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001128">00:11:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  [Laughing.] Yes I am! I&#x27;m saying you&#x27;re naturally brilliant, but EVERYONE has their own unique brilliance. That is what the &quot;science of differentiation&quot; is - my brilliance is going to be different from your brilliance that is going to be different from everyone else&#x27;s brilliance - that&#x27;s the science of differentiation: how we are uniquely ourselves and how we are uniquely different.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001154">00:11:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  It&#x27;s interesting because we all have, in a sense, our own limitations, if you will. So, what we&#x27;re going to take a look at, in a sense, are also, quote-unquote, your &quot;limitations,&quot; but your limitations are your brilliance. You cannot do everything. And there is no one person on the planet that can do everything. We are naturally designed to connect, collaborate, and work together. And each of us - if we take a look at ourselves as little puzzle pieces - each of us carries a piece of the puzzle. And by yourself, you only have this little piece of the puzzle, but when you connect with another person and another person and you have the right pieces fitting together, you start to see more than you could ever see just as an individual.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001240">00:12:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And I agree with you 150%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001243">00:12:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. However, if you&#x27;re this puzzle piece and you&#x27;re trying to be this puzzle piece, it doesn&#x27;t work - you have to be YOUR puzzle piece; you have to be YOUR unique brilliance. And that&#x27;s really the key.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001256">00:12:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And recognizing that in one another, too. (Karen: Exactly.) You know, if you&#x27;re working in a group - or even in friend groups - that what everybody brings to the table is important. And understanding what they bring to the table - and embracing that, too. That there&#x27;s no one person that knows everything, including myself - and if I did, you know, we&#x27;d be in a much better position by now! [Hearty chuckle.] But truly, I feel that the guidance and the intuition, at least for me, is the most important thing. And the right information comes at the right time sometimes. And sometimes that causes upheaval and sometimes that propels you forward. And I&#x27;m sure you probably have these experiences, Karen, that I know that... you know, I&#x27;ll sit on this problem for a week, and I&#x27;ll just say, &quot;Look, I just can&#x27;t touch this right now. Because it just doesn&#x27;t feel right. There&#x27;s something wrong here and I&#x27;m missing something.&quot; And then I&#x27;ll get a call out of the blue - from somebody I haven&#x27;t talked to in a long time - that&#x27;ll say, &quot;Hey, did you forget to turn the lights on?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001404">00:14:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And all of a sudden, that&#x27;ll spark something in me - and it&#x27;s got nothing to do with lights, and my problem doesn&#x27;t have to do with electricity - it&#x27;s just, all of a sudden... it&#x27;s probably an underlying frequency or something of that person. They&#x27;re just meant to kind of trigger that experience. And I&#x27;m like, &quot;Oh, there&#x27;s the solution! Yaay!&quot; So... and then you&#x27;re thanking them, and they don&#x27;t even know why you&#x27;re thanking them. They&#x27;re thinking, &quot;Oh, you&#x27;re going to save $0.02 on your electric bill, Kim. That&#x27;s great.&quot; And that&#x27;s really not what I&#x27;m trying to say [laughing].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001437">00:14:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So. One of the important things that I think, for people, is that you really do listen. And embrace the people that are in your life, that enrich your life. And maybe sometimes the lesson is to let some people go sometimes, even when it&#x27;s uncomfortable. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001459">00:14:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. And it&#x27;ll be interesting to see that - because that is part of your past lesson plan, and your lesson plan moving forward. So, it&#x27;s interesting that you bring that up as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001508">00:15:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Oh, dear. Okay!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001511">00:15:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, let&#x27;s dive in! Let&#x27;s take a look, again, at your natural brilliance and sort of the overall theme. Again, everyone has their own natural brilliance. I feel like part of my job is just giving you permission to be yourself. Because again, our design is our design. But if we are not aware of it, then we can&#x27;t really fully step into the brilliance of who you are. When you can see it and when you can really recognize that, &quot;Oh! I have always recognized this but I didn&#x27;t have words to put it into that kind of context.&quot; That makes everything come alive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001549">00:15:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, the overall theme is your being of service. That is your Life Work theme. And being of service as a Pioneer and as a Messenger. That is your overall life&#x27;s work, and part of navigating life and being yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001606">00:16:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-01.PNG" alt="WSR_2026-09-28-LifeRedefined-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001607">00:16:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, this is what a chart looks like. I know it&#x27;s a little overwhelming. There&#x27;s all kinds of stuff in here. It&#x27;s based on three pieces of data. It&#x27;s based on your birth date, birth time, and birth location. Oftentimes with businesses, I often talk - because they do all kinds of personal assessment tools, or team assessment tools where you have to answer all of these questions - this is based on three pieces of factual data that do not change. In essence, it is the imprint of the neutrino stream the moment that we are born. (Kim: Interesting.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001646">00:16:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so, as we take a look at the essence of what your design is - here you can see career type as a classic builder. I also call it a step-by-step builder. One of the ways you operate is - not like &quot;speeding ahead&quot; - it is step by step by step by step. It&#x27;s sort of like following breadcrumbs. And I&#x27;ve heard you speak about this a lot, Kim. It&#x27;s like you don&#x27;t know until you know. And it&#x27;s part of how you&#x27;re designed. So you just follow the next breadcrumb, and then you wait for your intuition to say, &quot;Okay, now which direction?&quot; Then you wait for the next direction and then you go there. So it is, in a sense, step by step by step, and it&#x27;s really truly trusting your intuition. What you were saying earlier is spot on in how you make decisions. And that&#x27;s one of the key things, is how do you make decisions? Because in essence, the decisions create everything in our life. You know, whatever we choose at every moment puts us in and puts us on a specific trajectory.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001751">00:17:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-02.PNG" alt="WSR_2026-09-28-LifeRedefined-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001752">00:17:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, specifically how you make decisions is: you wait to respond, and you trust your intuitive gut. In the design itself, you can see that this is the gut, if you will, and you can see what it&#x27;s connected to. This is a little more technical, but the 34 and the 57, this is your personal power. This is trusting your personal power in the moment. So it&#x27;s responding and trusting your intuitive gut. And if it&#x27;s not there, it&#x27;s not there. And like you said, it&#x27;s waiting until, in a sense, the timing is right, and then you know. Your gut will also let you know if you have the energy to commit or move things forward or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001834">00:18:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-03.PNG" alt="WSR_2026-09-28-LifeRedefined-03" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001835">00:18:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, one of the things that&#x27;s interesting about the gut is it only answers, in a sense, yes-no questions. And what I mean by that is you may feel an uh-huh, like a yes, or it could show up in many different ways in your body. It may be like, pulling you forward, or it may be an excitement. For each individual person it feels a little bit different depending on what your design is. But you will feel kind of like a uh-huh, like it&#x27;s a yes. Or you can feel like a mm-mm, like it&#x27;s a no. And then you may also feel like hmmm - and this is a &quot;no for now.&quot; Sometimes you need to ask people in a different [way], or have some people ask you in a different way, or you can feel that the timing&#x27;s not quite right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001919">00:19:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-04.PNG" alt="WSR_2026-09-28-LifeRedefined-04" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001920">00:19:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So it&#x27;s waiting for that right timing. If you get a hmmm... it&#x27;s like it&#x27;s there, but I&#x27;m not sure if it&#x27;s a yes or a no. And I know it&#x27;s - so it&#x27;s always a &quot;no for now&quot; if there&#x27;s the hmmm - because it&#x27;s waiting for that activation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001935">00:19:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Or something&#x27;s not quite right about the whole picture. You know, maybe there&#x27;s 10 things involved in this decision, or 10 people, or in some cases, 8 billion people... and I&#x27;m like, ehh, you know, something is off about this. This is not the direction we need to go - I&#x27;m not feeling good about this. And sometimes, believe it or not, I could be in conversations - here, there, and elsewhere - and they&#x27;ll tell me that there&#x27;s a plan. &quot;We&#x27;re gonna move tonight, and there&#x27;s a plan.&quot; And just by them actually saying that makes me uncomfortable. And it&#x27;s not because I&#x27;m a control freak and I&#x27;m like, &quot;Oh, I need to be involved, and I need to be here,&quot; because I recognize the fact that there are limitations when you&#x27;re here and when you&#x27;re elsewhere. But I also recognize when I&#x27;m like, everything in my... gut, so to speak, is going, &quot;Oooh, you are going to have to clean up this mess when this is over... Here we go.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002042">00:20:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And I&#x27;m like, &quot;All right, well, [you] do you. We&#x27;ll see you tomorrow.&quot; And then I&#x27;m like, &quot;Okay, that didn&#x27;t work out very well now.&quot; And that&#x27;s where we&#x27;re going to go from here. And they&#x27;re very devastated sometimes. And just because they&#x27;re not people - you know, they might be a different species from somewhere - doesn&#x27;t necessarily mean we don&#x27;t all sometimes make decisions that might be right, wrong, or indifferent. But sometimes even the most difficult things show you something. You know, it&#x27;s, &quot;Oh, I wouldn&#x27;t have noticed that if that hadn&#x27;t happened.&quot; So it could be a &quot;No, we don&#x27;t go forward,&quot; or it could be a warning sign to brace yourself for impact here, because this is not going to be good - and then, at the end of the day, you&#x27;re like, &quot;Oh, that had to happen.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002145">00:21:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And this is kind of where the trust, for me, in the Creator comes in, because I just know - even things that have happened in my life that have been so bad or felt so bad at the time - turned out for mine or everyone&#x27;s best good. Even though we went through this tough thing, eventually things always work out in accordance with a plan that could only have been divinely designed, really. Because I certainly wouldn&#x27;t have thought about it in that way, especially when all your flags are flying, like you said.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002228">00:22:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. And that&#x27;s part of... at the beginning I said you&#x27;re a Pioneer, and a Messenger. And part of being the Pioneer is that you also operate in sort of a trial-and-error process. What I mean by that is, sometimes you have to make those mistakes, and there is actually no such thing as &quot;mistakes&quot; in your world because exactly what you just said is, sometimes it has to be a little bit messy to understand, &quot;Oh okay, this is what&#x27;s really underneath it.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002302">00:23:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Absolutely. 100%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002302">00:23:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yep, exactly. And one of the things I wanted to talk about is just a few of your strengths as well. Like... in a sense, I call them your &quot;superhero powers&quot; because it&#x27;s the things that you can truly rely on 24-7. And if you are relying on those things, your gut is naturally going to intuitively know when things are right, when things are correct.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002329">00:23:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-05.PNG" alt="WSR_2026-09-28-LifeRedefined-05" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002330">00:23:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  One is conviction. And I&#x27;ll just show it on the map, too, just so that people can see where it is in the map. This connection of the 10 and the 34, this is like following what feels truly aligned. And your convictions are your convictions, no matter what anyone says. And what&#x27;s going to throw you off and where things are not going to work is if you&#x27;re not following your convictions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002404">00:24:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  OK.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002405">00:24:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  When you&#x27;re following your convictions, everything lines up. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002411">00:24:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  So convictions in this case aren&#x27;t necessarily, &quot;It&#x27;s my way or the highway,&quot; kind of thing. It&#x27;s just... &quot;My intuition is telling me this is wrong, guys,&quot; or something. And sometimes it&#x27;s a really big red flag, and I&#x27;m like, &quot;Wait a minute, you shouldn&#x27;t go in there. This isn&#x27;t going to end well.&quot; And/or &quot;Maybe now is not the time to have this conversation.&quot; But when I&#x27;m really truly feeling it, I have to - I do feel the need, oftentimes, even when it&#x27;s bad - to speak the truth, as I feel it anyway. And the delivery might not always be perfect, but sometimes you feel like you&#x27;ve got to just... &quot;Look, this is what everything I know is saying to me - do what you need to do, but I&#x27;m out,&quot; kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002511">00:25:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And your convictions are also what centers you as well. Because it&#x27;s also (in a sense) how you use your power, and how you behave in that moment. That is correct. That is aligned.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002523">00:25:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002524">00:25:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And convictions can be bigger as well. Your conviction in the restoration of the planet - that&#x27;s a huge conviction. No one&#x27;s going to throw you off that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002538">00:25:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Well, yes, they are, actually, Karen. Why, yes, they are. They really like to. Yeah. Never say &quot;never,&quot; and never say &quot;no one&quot; - because I&#x27;m telling you, right now - there&#x27;s going to be a million people that will watch this report from the Deep State. And they&#x27;re going to be like, &quot;Oh, now we know what makes her tick!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002605">00:26:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  But here&#x27;s the thing, when you know how you tick, I&#x27;m also going to show you what your shadows are. Now, yes, they take advantage of the shadows, yes. However, when you&#x27;re aligned with your conviction, they can&#x27;t touch you. That&#x27;s the thing. When you are aligned with your strengths, no one can touch you. Because those are, in a sense, your superhero powers that, when you&#x27;re truly aligned - it&#x27;s like fine-tuning an instrument, right? These are the strings of your instrument, and when those strings are in tune, like you are playing the music that you are here and designed to play, nobody can stop you. Nobody can get in your way. And this is true for everyone. You&#x27;re gonna have a different design than Kim, but when you are truly aligned with the strengths that you have in your design, no one can throw you off track.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002700">00:27:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  No, absolutely. I think that those are the days where everything feels right in the world, when you&#x27;re really... You know, a lot of people have asked me when these true connections start to reestablish themselves and there isn&#x27;t influence of other things, what is that going to feel like? And how will I know? And it&#x27;s the same way I think we know, even in the current state that we&#x27;re in. When you are doing what makes you happy, your heart literally sings. And it&#x27;s interesting that we see these two things tied together here in this chart, because that&#x27;s the way it feels for me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002744">00:27:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  When I&#x27;m... literally the information comes in - you can call it gut instinct - intuition comes in and I&#x27;m following it to the letter and everything just flows. It&#x27;s like somebody parted the Deep State sea and my life is just finally going on track. And then it&#x27;s almost like sometimes they recognize it, because then it&#x27;s like, &quot;Oh, you are walking through this parted sea. OK, I get it. Tsunami, please. No Joy Program.&quot; So yeah, very interesting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002824">00:28:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-06.PNG" alt="WSR_2026-09-28-LifeRedefined-06" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002825">00:28:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And what you just said is really key. Where we have on here... it is the key indicators. We have the key indicators. There&#x27;s satisfaction. And what I don&#x27;t see here is frustration - but satisfaction is actually the key. And it&#x27;s for your particular type. There are different types of key indicators depending on different types, but for you specifically, it&#x27;s that deep sense of satisfaction. When you feel satisfaction, you know you&#x27;re on track. Like you said, when your heart is singing, when it&#x27;s like everything is aligned, that&#x27;s actually when you know that things are aligned, and in a sense, no one can touch you at that point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002908">00:29:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, on the other side is frustration. Frustration is a key indicator that something&#x27;s a little bit off. There&#x27;s something... there may be a shadow that is getting in the way; there may be something that you are focusing on that you shouldn&#x27;t be focusing on; you may be tiptoeing around people and not confronting the truth; you may be trying to overcompensate or trying to prove yourself. Those will all kind of lead to this feeling of, you know, not being satisfied or being frustrated.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002944">00:29:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, how you get back on track is returning back to that gut response, returning back to that feeling of - even if you can generate, like, a satisfaction... you often talk about listening to music or something that can bring you that little piece of joy that can realign your system really quickly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003005">00:30:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  It does. 30 minutes of music, and it doesn&#x27;t matter... well, it does matter what kind, I guess. I just listen to all types of music. So sometimes it&#x27;s classical music. Sometimes it&#x27;s hard rock. Sometimes it&#x27;s dance music. And it kind of sets me, in 30 minutes or less, a little bit more grounded and a little bit more balanced. And if you add a walk in nature or something to that, or with my dog, all is right with the world for me. And that&#x27;s not going to be the same for everybody, I assume, but for me, that absolutely works.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003041">00:30:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And very interesting about the shadow side of things, because I even find this in people that are around you. And maybe this is a Deep State thing, or maybe it&#x27;s actually just the way the energy flows. And if it&#x27;s flowing in the wrong direction - maybe on behalf of the Deep State - or it&#x27;s flowing in the wrong direction for me, it&#x27;s almost like regular people. You know, these are people that are maybe not listening to this report, that may not be even people that know anything about what I do. I might run into somebody at the store and all of a sudden they just start yelling at me profusely, you know, because I took the last tomato or something, and I&#x27;m like, &quot;Well, you weren&#x27;t even near the tomatoes, I&#x27;m sorry. Did you, would you want the tomato?&quot; You know, &quot;Oooh, tomatoes, oh! I&#x27;m in a crisis!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003142">00:31:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And they start, and you&#x27;re like, wow, is that somebody trying to trigger the shadow aspect of myself and they want me to fight over a tomato? I&#x27;m not going to fight this 80-year-old man over a tomato. It&#x27;s not going to happen. Or, you&#x27;re singing the most perfect tune and all of a sudden you open up the Community Chat here some days and you&#x27;re like, wow, what&#x27;s happening here? Everybody is so negative today, what happened? Is it an event? Is there something going on in the world? And I start looking around and I&#x27;m like, &quot;No, I don&#x27;t really see that.&quot; But it&#x27;s just a way, I think - of the unfortunate situation in life that we live, where we&#x27;re at - where they do know about your shadow self or the shadow side of things. And they just are going to poke that bear - in the best of times when you&#x27;re just living your purpose - and knock you right down.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003246">00:32:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  The other thing I&#x27;ve found too is when you are singing your purpose and you just know it, you know, with everything that&#x27;s in your being, whatever that response is for you, I find that that&#x27;s when they&#x27;ll hit you the hardest too. And you have a way to overcome that, right, Karen?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003307">00:33:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  I do. I do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003309">00:33:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-07.PNG" alt="WSR_2026-09-28-LifeRedefined-07" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003310">00:33:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Part of it is knowing what your design is. So I&#x27;m going to talk about your shadows here for a moment. Think of everything that&#x27;s colored. When you look at your design, everything that is colored in is, in a sense, what you are broadcasting, what you are putting out there naturally. And then anything that is white in your design - we are going to take a look at these three things in particular - anything that is white in your design is in a sense like a window, like what you are receiving from outside. And so, think of if what you are receiving from outside - whether it be news, whether it be a story that somebody told you, whatever it is - it can impact you, in a way. And most people are trying to live from their shadows and not from what&#x27;s defined in their design.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003359">00:33:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And if you&#x27;re living from your shadows, then nothing works. Because you&#x27;re trying to be who you&#x27;re not. And so the shadows are a great way to program you. This is where we take in everything, and this is where the distortion field happens. The distortion field happens when you take in information from these open functions, and then it distorts your perception. And then it - in a sense - puts your instrument out of tune. And then your instrument is out of tune, and then you get other perceptions that puts it even more out of tune.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003442">00:34:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, part of the reason why we&#x27;re out of tune - and how do we get back in tune? - is, first of all, being aware of what triggers us. Being aware of what the shadows are so you can identify them really quickly. Whatever that influence is, whether it&#x27;s another person, whether it&#x27;s the Deep State, whether it&#x27;s broadcast, whatever that influence is, this is where they can get to you. And like you said, even when you&#x27;re on a high, if they can manipulate and get information into that shadow to have you not believe in yourself, to have you overcompensate, to distract you - this is where it happens. So when you stay true to yourself, and what is truly defined in you, you can stay grounded. But the problem is that we don&#x27;t even know what our design is - that&#x27;s why it&#x27;s hidden. We don&#x27;t even know what it is, so we don&#x27;t even know how to fight it. So, one of the ways that you can fight it is: understanding what your design is allows you to know what is really truly you - and what is happening on the outside that is not you that you can let go of.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003555">00:35:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Very interesting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003556">00:35:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, one of the big things is how you&#x27;re motivated - and you&#x27;re here to be motivated by hope. Then there is something called transference. Transference is: if you are motivated by guilt, you are off track. So again, it&#x27;s a few little keynotes that you can notice, that like, do you have hope for the future? Or are you feeling like, &quot;Oh my goodness! Things are messy - nothing is happening. This happened and this happened.&quot; And then feel guilty. What that does is triggers all of your other shadows. What that triggers is, first of all, the willpower. This is the willpower function here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003637">00:36:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-08.PNG" alt="WSR_2026-09-28-LifeRedefined-08" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003638">00:36:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  It&#x27;s inconsistent, so you end up overcompensating, you can end up overcommitting, you may have difficulty following through, you may feel like, oh, I&#x27;m not good enough, I&#x27;m not smart enough, I&#x27;m not fast enough, I&#x27;m not... whatever &quot;enough&quot; is, you feel like you&#x27;re not enough.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003656">00:36:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, one of the things that can happen, this is how you operate individually. If, for example, you come into a... the person at the grocery store, let&#x27;s say he has willpower defined, you&#x27;re going to take in that energy because that&#x27;s what he&#x27;s broadcasting. And then, you know, it may impact you in a way that you&#x27;re like, whoa. Why do I all of a sudden feel like I have to overcommit? Or prove myself, or prove that I&#x27;m not selfish in taking the last tomato? Whatever that happens to be.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003727">00:37:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I know. It was terrible, Karen. Terrible. No, I&#x27;m just kidding.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003733">00:37:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  But it can trigger that, right? And so little incidents, it can be with a complete stranger, it can be within our relationships, it can be our kids, right? You know, if you start feeling... then you start feeling guilty, like, &quot;Oh, I shouldn&#x27;t have done that,&quot; and then you try to overcompensate in some other way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003751">00:37:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, one of the things that you&#x27;ll notice is that it&#x27;s completely open, so sometimes you don&#x27;t even know, like, why is it that people need to - this is also known as the ego, too - so, like, why do people have these big egos? And why do I feel like I have to compete? Or, why are they competing with me? This is where people think they need to be first, or the best, or have control. In a sense, you don&#x27;t even really understand those dynamics - you can see those dynamics, but that&#x27;s not what motivates you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003828">00:38:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-09.PNG" alt="WSR_2026-09-28-LifeRedefined-09" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003829">00:38:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And ultimately, how you get back on track is trusting your decision-making strategy. And your decision-making strategy is to follow that instinctual gut response. So following that instinctive response, because what happens is it throws you off track with how you make decisions. And then, if it throws you off track with how you make decisions, then you&#x27;re not making the right decisions at the right timing, and then everything else ends up being a mess. So, when you can return back to, &quot;Okay, what&#x27;s my strength?&quot; then you can relax and you can realize you absolutely have nothing to prove. You have nothing to prove. You don&#x27;t have to prove anything to anyone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003913">00:39:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  If you&#x27;re trying to prove yourself, that&#x27;s part of your shadow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003917">00:39:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  No, no, it&#x27;s - you&#x27;re right though. I don&#x27;t really... I&#x27;m like, &quot;Wow, what&#x27;s wrong with you?&quot; you know, with the whole ego situation. I&#x27;m like, &quot;Can&#x27;t you just be happy being you? And why are you right-fighting me right now?&quot; &quot;It&#x27;s okay, fine, if you believe that way, that&#x27;s okay.&quot; And then they get mad at you because you&#x27;re telling them it&#x27;s okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003938">00:39:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  &quot;Are you being condescending?&quot; &quot;No, I&#x27;m really not. I just don&#x27;t see things the way you do - and that&#x27;s okay. We&#x27;re okay.&quot; [Laughing.] But definitely, I would say you&#x27;re pretty much spot on right here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003951">00:39:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-10.PNG" alt="WSR_2026-09-28-LifeRedefined-10" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003952">00:39:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. Yeah. Now, what that can then also trigger is the emotions. This is emotional intelligence. It&#x27;s inconsistent. So, what can happen is you can be touchy, nervous, defensive, try to avoid confrontation, walk on eggshells just to make sure that nobody gets upset. And what you&#x27;re avoiding is actually speaking what&#x27;s truly there. And that can also disturb how you make decisions in following that intuitive gut response because what you are thinking and what you&#x27;re making decisions on is, &quot;Ooh, I don&#x27;t wanna upset this person, so I&#x27;m gonna do this&quot; - even though it doesn&#x27;t intuitively feel right - &quot;but I don&#x27;t want to upset them.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004039">00:40:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yep, that happens.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004042">00:40:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So the thing is to be cool, and don&#x27;t get caught up in the emotions and the dramas of others. Now, with emotions - you have it also completely undefined, so there&#x27;s a part of you that kind of like can get really overwhelmed by emotions of others. So, it&#x27;s just something to be aware of, and most of the time, the emotions are not yours - they&#x27;re coming from other people. What you&#x27;re doing is just receiving it. And the other part of this is that what you take in, you often amplify as well. You can take in the emotions of someone else - and it&#x27;s not even your emotion - but you take in that emotion and then you amplify it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004124">00:41:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I can see that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004125">00:41:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, it gets even bigger. And so it&#x27;s recognizing, most of the time, the emotions are not yours. This can show up in two extremes, and some place in the middle is the balance. But the two extremes are either being over-emotional - especially if you&#x27;re around a lot of emotionally defined people. You won&#x27;t find that by yourself. Sometimes you need to step away, and be by yourself, to get rid of all the emotional energy of everybody else, so you can just be you. But, if you&#x27;ve taken in a lot of emotional energy, recognize that it&#x27;s not you, and there&#x27;s nothing that you have to do about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004203">00:42:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  But, here&#x27;s also the great wisdom, which is that you can be really deeply empathetic as well. You can feel other people&#x27;s pain, but don&#x27;t take it on as your own. That&#x27;s one extreme. The other extreme is that it can also be very cold. And what I mean by cold is that sometimes you may seem totally unemotional, and people are like, &quot;Why aren&#x27;t you emotional about this?&quot; It&#x27;s because you&#x27;re not. That actually is your natural state - you&#x27;re not here to be emotional about things. And if you are over-emotional about things, it&#x27;s typically because you&#x27;ve taken in this emotional energy from everybody else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004241">00:42:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yeah, that&#x27;s true. And... just to be fair, I just wanted to say that just because I don&#x27;t make decisions emotionally - I can&#x27;t. I literally cannot. And people trying to... whether that&#x27;s anger or people trying to push your buttons, &quot;Well, when are you going to get off your butt and do this?&quot; I mean, I get that all day every day, whether it&#x27;s... you know, even from within the community sometimes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004317">00:43:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And I&#x27;m like, you know, I just want you to live my life for one day. Just really, just one day. And just try it on. Try these shoes on. See how they are. But regardless - that is also in here, too, right? That&#x27;s the response. And then I just start to look, and I&#x27;m like, you know, these people really don&#x27;t understand that. And quite frankly, I don&#x27;t want anybody to be here, you know, where I&#x27;m at. I really don&#x27;t. And I&#x27;m like, wow, everybody is very emotional today. And I don&#x27;t really understand emotional decision making.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004355">00:43:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  The next thing I have had to teach myself is: don&#x27;t ever make decisions when you&#x27;re mad. Do not make big decisions when you&#x27;re angry. Whether they&#x27;re attacking the heck out of me, or even in my personal life - don&#x27;t make decisions when I&#x27;m angry. That&#x27;s for me. I have to wait, sometimes as many as three days, before I make a decision about something because it never... it just is... I have to go back to logic. I have to go back to the logic and the intuition first. And for myself, anger or strong emotions of any kind - and now understanding the shadow existence and shadow planes - that&#x27;s where the emotions live. If you make decisions based on those things. But even before I knew all of this, you know, it definitely will send you straight to the shadow self, and that&#x27;s where all of these other things that you&#x27;re talking about here can start actually affecting you and me. And I know that. What you just pointed out was pretty much 100% of what I work really, really hard to try to not let it get to me in this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004518">00:45:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yep. Exactly. And actually, there are some people that, for example, for myself, I am emotionally defined. But, one of the key things - and this is for everyone - do not make decisions on emotional highs or emotional lows. That is, even if you are &quot;emotional&quot; and make &quot;emotional&quot; decisions, do not make them... one of the things... because if you are emotional especially, so if you are in a relationship with someone who&#x27;s emotional and they make a reactive decision, that can create a lot of chaos and friction and conflict and all kinds of stuff when people make decisions from that emotional low or from anger.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004604">00:46:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And this is one of the things as humanity that we&#x27;re learning to deal with is we&#x27;re learning to understand what emotional intelligence really is. It&#x27;s one of our newest awareness functions and we are still diving deep into how to understand what is that emotional wave and how do we work with it. The fact that, again, your design is very logical. And so, again, if you are making any kind of emotional decisions, it is way off - and you&#x27;re acting from your shadows. 100%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004643">00:46:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yep. Yep. Like, walk away, Kim. Don&#x27;t touch it right now. Walk away. Just walk away. &quot;Okay, we&#x27;ll talk to you later, enjoy your tomato, sir. Enjoy that. We&#x27;ll be back. Bye!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004652">00:46:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And, because you can amplify it - you can make the situation even worse. And so stepping away is the best thing when you get triggered. So you can recalibrate yourself, your body, everything, to what is natural for you. Because that is not natural for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004721">00:47:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  No, it&#x27;s like eating rotten lemons. No. [Both laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004728">00:47:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-11.PNG" alt="WSR_2026-09-28-LifeRedefined-11" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004730">00:47:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, your inspiration is inconsistent as well, so what you can find is that you lose focus, sometimes you can be mentally scattered, or you can focus on things that really don&#x27;t matter. I call this the bright shiny object. I have this myself. So, it&#x27;s kind of recognizing it - make lists to help you remember what you need to focus on. Recognize when you get excited about something and it takes you down a track and it has absolutely nothing to do with anything and it really doesn&#x27;t matter. Or you&#x27;re trying to, you know, you&#x27;re overcompensating and you&#x27;re trying to figure out something for someone else when it really doesn&#x27;t matter. Or, you&#x27;re feeling kind of emotional so you&#x27;re overcompensating, and then that has you focus on &quot;How do I make them happy?&quot; And then you&#x27;re totally... </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004818">00:48:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  How do I make them happy? Oh, wait, wait, wait. That&#x27;s a squirrel right there. So-and-so needs this. Here you go. We&#x27;ll just put that on that pile over here that just looks like this every day and we&#x27;re going to slide your problem right into this section over here. You know? Okay, I got you. That&#x27;s no problem. &quot;This AI-generated video looks like Kim.&quot; Oh, wait a minute! That goes over here in the &quot;You Issue&quot; pile. That one goes over here. I did not create said video. Here you go. It goes in the you section. It doesn&#x27;t get added to the stack. No, it doesn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004855">00:48:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly. Exactly. So being able to discern what is worth focusing on and what is not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004902">00:49:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  That&#x27;s right. The pile gets very, very high. I need some very high heels and probably a step stool some days. And I cannot fit your section in here in any way. That&#x27;s what happens. Goes right over there. Oh, you&#x27;re not on fire. Okay. Here you go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004929">00:49:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  That&#x27;s funny. And then there&#x27;s two others. These two are a little more elusive, but one of the things that you&#x27;ll find is sometimes there&#x27;s a feeling of inadequacy. Like having, oops, it&#x27;s the wrong arrow. That one&#x27;s, it&#x27;s this one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004943">00:49:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-12.PNG" alt="WSR_2026-09-28-LifeRedefined-12" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004944">00:49:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  The feeling of inadequacy - having depth - that feeling you don&#x27;t have enough skills. So again, then that can trigger overcompensating, trying to make sure that everybody&#x27;s okay, and then focusing on things that don&#x27;t really matter. There also can be a feeling or pressure to speak or act &quot;in the now,&quot; instead of waiting for the correct moment. Again, part of your intuition and part of how you make decisions is really trusting that gut response. Because that gut response will be true every single time. However, you also have to be careful, because sometimes, especially with the intuition, it sometimes speaks very quietly and then it goes away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005028">00:50:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And when you don&#x27;t listen, it goes, ah-ha-ha!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005031">00:50:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly! And if it speaks very quietly and you don&#x27;t respond to it in the moment (when it feels like it needs to respond), because all of a sudden you&#x27;ve gone to your mind and you&#x27;ve gone, &quot;Oh, well, if I do this, then it&#x27;s going to upset this person and they may think this,&quot; and blah, blah, blah, you know - then you&#x27;re not really following your gut in the moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005057">00:50:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  You&#x27;ve got to have a little sit down and talk with yourself. Yep. You&#x27;ve got to say to yourself, &quot;Self, if you try to please everybody all of the time...&quot; What is the quote there? If you are... &quot;I might not know the key to success, but I definitely know the key to failure - try to please everybody all the time.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005114">00:51:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yep. And then you please no one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005115">00:51:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I keep repeating that one. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005117">00:51:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005118">00:51:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  That&#x27;s the shadow side. And I oftentimes do feel that, at times when I am making tremendous progress in the quote-unquote &quot;day job,&quot; busyness things happen. And some of those things are, you know, it can be... at least for me - this is my experience - where a loved one, or five of them, all have a problem in the same day. The dog is sick. The child is upset. The father calls. The long-lost uncle is broken down on the side of the road, you know. And then you&#x27;re like, oh okay, and by the way, here&#x27;s that stack of work you had to do today, and well, that&#x27;ll go in the tomorrow section, which is over here in the middle. And we got to put all the fires out.  Do you experience that at all, Karen? (Karen: Oh yeah.) You know, when you feel you&#x27;re like, on the right track - you&#x27;re getting the report done, you&#x27;re getting the work done, you&#x27;re about ready to go on a business trip that&#x27;s going to be super successful, and you just have that gut feeling that you&#x27;re going to kill it or something, Karen, and then all of a sudden, fire, fire, fire.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005229">00:52:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yes. You know, so it always comes down to like, really, ultimately trusting yourself - that you know what - and oftentimes, the fires are there, and sometimes you wait and the fire takes care of itself. You don&#x27;t necessarily have to jump at that moment, you just wait for the right timing. And they&#x27;re like, &quot;Oh, we figured it out, never mind.&quot; Whereas, if you&#x27;ve jumped on it, now you get more deeply involved in it, when it could have been resolved by itself. And so, really trusting yourself and trusting your intuition and trusting what the correct timing is, it takes practice. It takes focus to know, and I&#x27;m speaking on this for everyone too, like, people think, &quot;Oh, I should just be able to follow my intuition. That&#x27;s easy.&quot; But it&#x27;s not always as easy as we think it is because of all of those distractions that you just talked about. That can really easily throw us off in a moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005334">00:53:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Absolutely.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005335">00:53:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so the key is being aware of, like, &quot;Oh, am I being triggered? Am I taking on the emotions of others? Am I trying to prove myself? Am I trying to focus on something that really doesn&#x27;t matter? Is this the correct timing?&quot; Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005349">00:53:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  You can feel it in your body. And we have, in a sense, sort of two cognitive potentials. I&#x27;ll say it that way. Two cognitive potentials. We have our body intelligence, and our body actually knows much quicker than our mind does. Then, we have our mind intelligence, and our mind intelligence thinks it knows, but your body intelligence - your body is going to tell you way before your mind even catches up. Because your body acts in the Now, and so part of what I work with with people is really, &quot;How you trust your body intelligence, your gut intelligence?&quot; None of the ways we make decisions - none of them, zero - are in the mind, contrary to popular belief. You know, we think that we, &quot;Oh, we have to weigh the pros and cons, we have to figure it out in our mind.&quot; Our bodies know before we even know, and if you can feel it in your body, you can trust where your body is directing you at any moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005450">00:54:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Karen, do you think people weighing the pros and cons in a situation is actually a way to know what feels right and what doesn&#x27;t feel right - by making a laundry list? It doesn&#x27;t necessarily mean because it&#x27;s in the pro or the con section of your list... because I find, like, I do this sometimes too when I&#x27;m weighing out the factors. So whether [or not] I write them down and actually make a list, I have mental thoughts about why this might not be a good idea and why this might be a good idea. And then there&#x27;s overthinking the problem - or trying to - when you already know the answer, if you just listen. And it&#x27;s called analysis paralysis. (Karen: Exactly.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005536">00:55:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  And sometimes analysis paralysis happens when you, you know - like you had said earlier about decision making - it happens when it&#x27;s just not quite that right time. And you&#x27;re trying to push that square peg in that round hole today, instead of waiting for the hole driller to make that hole square for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005602">00:56:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. Yeah. I have a beautiful example that I often share with my students. I was working on somebody&#x27;s website, and I promised them I&#x27;d get it done by Thursday. And then Monday came. I just didn&#x27;t have the energy to work on it. Tuesday came. I didn&#x27;t have the energy. Wednesday came, and I&#x27;m supposed to have it done by the next day. I&#x27;m like, I&#x27;m not going to be able to get it done and she calls me and I&#x27;m like, I&#x27;m going to have to tell her I&#x27;m not going to be able to get it done. And when I pick up the phone she&#x27;s like, &quot;Karen, I have this other idea, I want to change this, this, this, this, this, this, and this.&quot; So if I had forced myself to work on it when I thought I should, I would have wasted all of this time because she changed everything. And as soon as she changed everything, it was like, boom, boom, boom, boom, boom, done. And I had it done by Thursday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005649">00:56:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Isn&#x27;t that interesting, how it all works out sometimes that way? And yeah, absolutely. I wish the world was that clear cut. But you know, it actually kind of is, a little bit. You know, when I think about it, because these intuitive moments of Source and when to take a step back. When to get all of this other stuff completed so that you can do that. And He&#x27;ll hold down the fort, too, sometimes. Meaning, &quot;Okay, you&#x27;re going through this situation right now that is unavoidable, and we&#x27;re gonna let you do that, and we&#x27;re just gonna hold up these walls for a while, and it&#x27;s gonna be okay. No, really, it is.&quot; And then, when I&#x27;m done, I&#x27;ll get this gentle little nudge, I&#x27;ll wake up in the morning and there He is, and He&#x27;s like, &quot;Okay, here&#x27;s all of the things that happened and here&#x27;s what we need to do. And today&#x27;s a good day to do that, you know?&quot; It&#x27;s kind of like an okay, but it wasn&#x27;t okay two days ago either. (Karen: Exactly.) For reasons I&#x27;ll probably understand five years from now or something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005810">00:58:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah, or never know. Yeah, sometimes, sometimes we never know why we didn&#x27;t do it like right at this moment. But the waiting, it&#x27;s like &quot;Oh, thank goodness I waited.&quot; Or oh, you know, it&#x27;s like it resolves itself. Or like the right answer comes when it&#x27;s designed to come. Not because you want to force it. And when you feel resistance, resistance is an indication that something&#x27;s not quite right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005838">00:58:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yep. I would agree with you 100%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005842">00:58:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Because if we try to push it, if we try to force it, it doesn&#x27;t work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005848">00:58:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Especially if it&#x27;s something creative.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005850">00:58:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly. Exactly. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005856">00:58:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Alright, shadows.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005857">00:58:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-13.PNG" alt="WSR_2026-09-28-LifeRedefined-13" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005858">00:58:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So those are the shadows. Now the next thing I want to take a look at is your Life Work theme. Now everyone, in a sense, has a &quot;Life Work&quot; theme. And part of what we&#x27;re taking a look at, in cycles, is also in a sense how do you move towards whatever that life purpose is. And on your birthday, it&#x27;s kind of a realignment to what your Life Work is, what your life purpose is, so that you can take on whatever the next lesson plan is in the new year. And you can also complete whatever has been completed in the last year, the lessons that you learned from the last year. Because oftentimes we think, &quot;Oh, well, if I&#x27;m on track, nothing bad should ever happen to me.&quot; But the thing is, is that we are designed to learn.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005940">00:59:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  This is Earth School, if you will. We&#x27;re designed to go through things, and sometimes, in a sense, I often say our mess is our message. You know, the things that have been hardest that you had to endure, that you had to move through that wasn&#x27;t always easy, is also... what&#x27;s behind that is part of your deepest, deepest wisdom. And through that deepest wisdom, then you can also share it with others, so they don&#x27;t have to have the same experience you do. And part of our purpose here is really what we call self-reflected consciousness, or this ability to really be able to share our wisdom, our true wisdom with each other.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010025">01:00:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Now, if we are operating from shadows, anything that comes out of our mouth is a lie. When we are aligned with who we are, what happens is our voice naturally sings, our design naturally sings. We naturally impact others in a way that they can also learn. Even when we are in our shadows. Sometimes we impact people in negative ways. We can&#x27;t help it. But again, if you can recognize it and learn from it, that&#x27;s really what the key is all about. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010057">01:00:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-14.PNG" alt="WSR_2026-09-28-LifeRedefined-14" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010058">01:00:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So. First of all, with your Life Work theme, it also has a personal focus. So it&#x27;s kind of like, in focusing that personal focus, allows you to also, in a sense, learn for yourself so that you can also transform others as well. So it&#x27;s facing your own personal challenges, it&#x27;s doing research, it&#x27;s exploring, it&#x27;s gaining new perspectives, it&#x27;s understanding who you are - and your relationship to the world - because you also then fulfill your purpose through bonding, through connecting, through collaborating, through co-creating.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010134">01:01:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-15.PNG" alt="WSR_2026-09-28-LifeRedefined-15" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010135">01:01:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Again, you are not designed to do everything yourself. You are designed to connect, collaborate, work together with others. And ultimately, what your Life Work theme is, is about service.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010147">01:01:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-16.PNG" alt="WSR_2026-09-28-LifeRedefined-16" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010148">01:01:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So you&#x27;re part of an ongoing process of correcting and perfecting the archetypes of male-female, father-mother, opinions and corrections in service of humanity - by working to make what is good better. And this is one of your strengths as well, is that of correction.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010210">01:02:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-17.PNG" alt="WSR_2026-09-28-LifeRedefined-17" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010211">01:02:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So you are the perfect person to have around when we are trying to see what is wrong or what needs improvement. You enjoy discovering, naming, and challenging what needs to be corrected. And your gift of critical awareness directs you to the source of the weakness or to the imperfection. And it focuses your thinking on ways to correct or modify or replace it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010234">01:02:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So you have the ability to take in multiple opinions, multiple points of view, multiple ways that things work. And through that you find those that are really truly of value. You do need your stillness. Because it&#x27;s through your stillness that you gain these insights. And ultimately what you are - and the reason that you&#x27;re correcting and perfecting things - is because what you want to bring back is this joyous vitality. And what you can see is anything that&#x27;s standing in the way of this energy of joyous vitality. And so that&#x27;s where you can see where things are not aligned - that they&#x27;re not joyous, that they&#x27;re not allowing that kind of pure Source Energy to come through - that&#x27;s what you&#x27;re here to correct and perfect.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010326">01:03:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  It&#x27;s funny. Yeah, that&#x27;s true. Actually, honestly, one of the main themes here is harmony. Perfect harmonic balance. And just so you know, it&#x27;s kind of a hat. It&#x27;s a hat. But yes, it&#x27;s to achieve harmonic balance. And harmony, things in harmony might not be what people think they are sometimes. You know, when I say the word &quot;harmony&quot; to you, you&#x27;ll probably give me your opinion of what harmony looks like to you - and it might not be the same as somebody else - but technically those two things probably work together in some way. And in perfect Harmony with the Plan - to really stay on that life plan, despite what you might... your mind wants to tell you is, &quot;I can&#x27;t do this. This is impossible.&quot; And just having a little bit of faith in yourself and in other people and obviously the Creator and other things - you can achieve harmony, some days, some of the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010449">01:04:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Absolutely. And that also is, you&#x27;re also speaking to that motivation, that motivation of hope, because that motivation of hope is that belief. You know, the belief in Source, the belief in something bigger, the belief that things are shifting and changing, that vitality is returning to the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010514">01:05:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Mm-hmm. And the more you start to feel, wherever you feel, the point is that you feel from, like you said, most everybody is what you call your gut instinct. And in layman&#x27;s terms, I always compare that to how, when you meet the perfect person, even across a room, you get butterflies in your stomach. And by the same token, you also get those same butterflies in your stomach when something is really bad, and you&#x27;re in fear, and you need to run. So it&#x27;s just kind of interesting how that works. And I&#x27;m sure everybody has their own personal signals if you really sit down and think about yourself. But absolutely. Harmony is the way to go, Karen! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010601">01:06:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly! I do believe that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010604">01:06:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-18.PNG" alt="WSR_2026-09-28-LifeRedefined-18" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010604">01:06:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And part of your leadership: it&#x27;s leadership, stewardship, and service. And so you have, in a sense, the voice of collective direction, and progress through education. So part of how you communicate and part of how you lead, in a sense, is through a Tribal Leadership. That&#x27;s the 45. And then Tribal Leadership is being the voice of the tribe and communicating what is good for the whole.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010634">01:06:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-19.PNG" alt="WSR_2026-09-28-LifeRedefined-19" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010634">01:06:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  It is not selfish. It is what is good for everyone. What is going to bring everyone forward. And what you also pointed out, there&#x27;s a variety of different opinions of what something is, and to be able to take in all of it and to see how to move forward in that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010657">01:06:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-20.PNG" alt="WSR_2026-09-28-LifeRedefined-20" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010658">01:06:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So you have a voice that can gather people around a meaningful direction by combining leadership, emotional depth, lived experience, storytelling, and practical explanation. So this is really about explaining the details. This is being able to take in all of the details and all of the opinions and to make sense of the details, and then ultimately to organize it. One of the things that you&#x27;re really, really good at is organizing all of those ideas, all of those people, so that ultimately people can be educated.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010733">01:07:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  The 12 here, this is a voice that shifts the collective. This is the one, in a sense, individual trait. And although it&#x27;s very individual, it has the potential to impact the collective and to change the direction of the collective. The 35 here is all about progress. So what you&#x27;re speaking about is the progress of how things are moving forward, how we&#x27;re moving out of crisis and we&#x27;re moving forward. And the 56 is being able to tell the stories and to explain things through stories, which you do quite well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010811">01:08:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so what&#x27;s interesting is... 8 of the 26 life aspects. So one of the things I talked about earlier is that we have our own limitation. Every single person only has 26 out of, you know, there&#x27;s 64 total, but you only have 26 - and oftentimes you have multiple, so typically you have kind of less than 26. But 8 of the 26 life aspects are in what we call communication and action expression. So 31% of your design is focused on communication. So communication is a big aspect of who you are, and the importance of communication is really key to your design but also what you&#x27;re here to do publicly - what you&#x27;re here to do for humanity and on the planet is the communication.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010908">01:09:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  It&#x27;s interesting because, when I got the message to do this - you know, this news channel kind of thing and how it kind of evolved into what it is now and what it&#x27;s going to be in the future - it was just interesting how all of the insights kind of come to be and how that&#x27;s changed and morphed. And had its own - what appears on the outside to be a roller coaster - but in reality, I learned so much from every, every quote-unquote ride up the tracks. I could smell it coming. I&#x27;m like, &quot;Oh, something&#x27;s not right.&quot; I knew it. I knew it was coming. But I never really wanted to be on camera or anything. I&#x27;m not the attention-seeking kind of person by any stretch of the imagination.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011005">01:10:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  But effectively communicating with people, and teaching other people how to communicate when it comes to management styles and things of this way. And really communicating in multiple ways with people. Like, you can tell when people are not happy. You can see it in their face, you can see it in their body language. They actually look and feel a little sick sometimes. And just trying to do your best to bring people up instead of push people down, despite those shadow people that sit there and give me, you know - if they could sit behind their little keyboard and slam away and choke me, they would do it. And I&#x27;m like, not today. Into this pile, here you go: &quot;You Issues.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011102">01:11:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-21.PNG" alt="WSR_2026-09-28-LifeRedefined-21" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011103">01:11:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And then the next piece, I&#x27;m going to go through this fairly quickly. There&#x27;s a lot here so you can kind of look at it and kind of absorb it. But your public role, as I mentioned before, is as a Pioneer and a Messenger. So kind of &quot;How you perceive yourself&quot; as someone who learns through the school of hard knocks. Again, that&#x27;s the step-by-step and discovering what&#x27;s not working and willing to stand up and let other people know. &quot;What surprises you&quot; is that you&#x27;re someone who can get the word out there about something that&#x27;s new and different and innovative and practical solutions and fixing and solving problems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011139">01:11:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so, you know, part of your process is that trial-and-error process. So never, ever make that wrong. You know, I know sometimes it&#x27;s difficult because it&#x27;s like, &quot;Damn! That should have worked the first time. Why didn&#x27;t it work this time?&quot; But that is your process. And it really is embracing that process so that you can, in a sense, universalize a message that&#x27;s time has come.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011207">01:12:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And &quot;How others perceive you&quot; as someone who can be rebellious or revolutionary in bringing change. And how other people perceive you that can surprise you is other people look to you for leadership or guidance, especially in times of crisis. They do look to you to save them or to be the rescuer. So it&#x27;s part of your design that people look to you to save them. So oftentimes people will project on you more than sometimes you feel that you can actually give. And so just be aware of, in a sense, the projection field of how people perceive you, or what they think they need from you, because what that can do is that can trigger all of your shadows too. Because then you feel like you&#x27;re not being good enough because you can&#x27;t really fulfill on what they wanted. And then it can feel like it maybe has tarnished your reputation and then, you know, and then you have to go back.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011303">01:13:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, so your reputation is also really important. And so one of the key things is recognizing when somebody is projecting onto you things that you actually are not designed to fulfill or really can&#x27;t fulfill. You know, and being in communication of like, &quot;Yeah, that&#x27;s great - that&#x27;s just not something that I do or that I can provide. Maybe this other person can, but that&#x27;s not what I&#x27;m here for.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011329">01:13:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so sometimes it can feel like being quote-unquote, burned at the stake when, you know, it&#x27;s like, &quot;don&#x27;t shoot the messenger.&quot; That&#x27;s the messenger part that can sometimes be somewhat painful, because people will naturally perceive things on you that you may or may not be able to do or to deliver. So just to be aware of that so that it doesn&#x27;t trigger your shadows. You can be like, &quot;Oh, they&#x27;re just projecting that on me - I don&#x27;t have to answer it; I don&#x27;t have to try to figure it out - that&#x27;s just a projection that they have on me.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011403">01:14:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Interesting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011404">01:14:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. What you perceive and remember is sort of the pessimism. And what the pessimism is is what things don&#x27;t work. So remembering what doesn&#x27;t work so that you can figure out what does work. Your body also has this memory, if you will, of times when you were able to rescue or save people with a practical solution. So this is also where you have to be careful not to move into guilt, because guilt has sort of that same frequency of like, &quot;Ooh, I didn&#x27;t save them, and now I feel guilty.&quot; But that&#x27;s not what your motivation is - it&#x27;s to stay in that hope, even though you may feel like you need to save people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011445">01:14:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  You have this ability to sustain energy, and &quot;Where life takes you&quot; is Attractiveness. So it&#x27;s really important that especially your environment feels really beautiful and very calm. Because the more attractive things are, the more beautiful things are around you, the more you can truly relax.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011505">01:15:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yeah. I would agree with that 100%. Absolutely. I mean, being out of... leaving Durango and coming here has been probably one of the best things I&#x27;ve done. For my family, but also for myself. Just the lake, the going for hikes with the dog, the beach isn&#x27;t too far away - it&#x27;s a little ways, but it&#x27;s not too far away. And just, you know, it&#x27;s a lot calmer; things are a little different. The people are great. You know, it just feels - everything, all around - feels better and better as time goes on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011554">01:15:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly. And there&#x27;s a few other pieces here. I&#x27;m not going to cover them right now, but you can kind of look through them and we can talk about them at a later time because there are a few more things I want to cover and we haven&#x27;t even gotten to the cycle part. But the next few things...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011609">01:16:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Oh no!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011609">01:16:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  [Laughing.] Because this has been so amazing!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011614">01:16:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-22.PNG" alt="WSR_2026-09-28-LifeRedefined-22" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011615">01:16:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So a couple of things about... one of the things that you want to make sure of is that you&#x27;re in the right environment. Now, it&#x27;s &quot;Passive Mountains.&quot; Now, what does that mean? It doesn&#x27;t necessarily mean that it has to really be mountains. It can be. But the right environment gives you the space and the perspective to observe, to feel, and recognize what is correct without pressure to participate and act. So having a calm surrounding is really important, like being on top of the mountain, where you can kind of see the broader view without a lot of noise. You are designed to be on top of it all, meaning that you have the 360 view of everything around. And when you&#x27;re on a mountaintop, it&#x27;s rare air. Not a lot of people go up to the highest mountains. You are there to be in rare air so you can really see it all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011710">01:17:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-23.PNG" alt="WSR_2026-09-28-LifeRedefined-23" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011712">01:17:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And so, even though you may want to connect with tons and tons of people, this rare air is really connecting to the people that are really going to support you in that. This is an environment that allows you to observe a 360-degree view around, without any pressure. And that&#x27;s one of the key things, especially in moving into the new year. And part of what you were learning in the past year is the past year felt very pressurized. And this is the ability to be able to see it all without having that pressure. So that you can kind of take it all in, and that way, again, your gut response is gonna work even more cleanly, if you will, when you can fully just relax and take in the environment. You are not designed to actually kind of do, do, do, do, do. It&#x27;s more of like a passive environment that you can really allow your nervous system to really, truly settle in. And from a relaxed state, it&#x27;ll be amazing how much you can create and what you create when you&#x27;re in that state. It&#x27;s going to access a whole deeper level of your creativity that maybe you&#x27;ve never had the opportunity to access.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011828">01:18:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-24.PNG" alt="WSR_2026-09-28-LifeRedefined-24" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011829">01:18:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  You know, and I tend to try to make my own little mountain somewhere, even in the chaos. So, I put these headphones on and I just listen to some music and I make my own mountain wherever I have to make the mountain. Everybody goes away for a little while and that gives me a moment of space. I&#x27;m creating my own space and even space in my head because it helps me stay focused on what I&#x27;m doing. That&#x27;s part of the reason why I enjoy going to the gym so much is because headphones and plus some kind of a passive movement that I&#x27;ve done for years, it&#x27;s like, okay, don&#x27;t really have to think about that. But it&#x27;s enough to just get me focused in the Now. Or focused on this, so that everything else falls into place, just like you&#x27;re saying here. So I absolutely have to try to make my own mountain amongst chaos.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011930">01:19:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Exactly. Yeah. Because you thrive in environments that provide elevation, distance, perspective, both physically, socially, and also intellectually. And your role is passive rather than actively searching for the right place. By settling into an environment that feels removed from pressure and activity, you can naturally sense and judge what feels healthier, what&#x27;s clearer, what is more correct. (Kim: Yeah, absolutely.) So, when you are in the right environment, you can also see things in the correct way. And so, you&#x27;re also here to see power structures - which I find quite fascinating - in everything that you do. (Kim: Wow!)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012014">01:20:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-26.PNG" alt="WSR_2026-09-28-LifeRedefined-26" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012014">01:20:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  That&#x27;s exactly what you see. So, your perspective reveals how power moves through people and situations, and it helps you recognize when to lead and when wisdom lies in following. You naturally see the big picture around power structures and how power structures are used and where control or authority is also shifting. So that&#x27;s what you can see, and that&#x27;s part of being on the mountain. You can see the whole view of it. It&#x27;s not like being on the ground or not in a little cave and you like see everything. You see all the power structures happening on the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012100">01:21:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Well, and in a positive way and in a negative way, too. So I tend to - when I meet people in person, more over than just on the phone - and I&#x27;m actually very much looking forward to the opportunity to, Karen and I are actually going to meet. I know, towards the end of this month, beginning of next month, depending on her schedule, but she happens to be coming to New England for another reason, and so we&#x27;re going to meet and talk again at that time. And when I meet her in person, just like when I meet everybody else, I can tell you where you&#x27;ve been lifetime after lifetime. I can tell you where your own personal power lies and what you&#x27;re meant to be doing. And sometimes I say a lot, depending on the person, and sometimes I don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012149">01:21:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  In a negative way, I can also see if there&#x27;s going to be a power struggle with someone. In other words, their personal ideals are so firm in where they are that there&#x27;s no point in having any of this conversation - or even a conversation I thought I was going to have with this person. It&#x27;s like, okay, we&#x27;re not going to talk about that today. No, we&#x27;re not. We&#x27;re going to take a step back and I can see that you&#x27;re full of tomatoes. You&#x27;ve got your whole basket, and that&#x27;s good. It&#x27;s all filled up, isn&#x27;t it? Yes, it is. So, you&#x27;re good and I&#x27;m good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012229">01:22:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  But, no, in a positive way and a negative way, I can definitely see that someone is just trying to exert power in some way, shape, or form. And they&#x27;re going to try to do anything they can to get it, you know, in the case of like Deep State people or operatives and whatnot. And even when it feels like it&#x27;s passive - you know, it&#x27;s very, &quot;Oh look at all the things I can help you with!&quot; and they want to be your friend. Because they probably know this about me. I&#x27;m sure they do this analysis on you too. But, &quot;I want to be your friend,&quot; and all that. And I&#x27;m like, you know, over here I&#x27;m going: you&#x27;re actually wanting to poison me if I take that sip of water right now, and no, no. &quot;Oh yes, we can be friends! Yes! What kind of friends would you like to be? Yes, okay.&quot; And meanwhile, inside I&#x27;m going, &quot;No. This isn&#x27;t going to end well in any way.&quot; Whatever - we&#x27;re going to smile!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012332">01:23:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yep. Yep. Exactly. And staying healthy. It&#x27;s interesting. We&#x27;ve been talking about tea, and one of the ways that really helps, in a sense, your brain function and actually your entire body function is Hot Thirst. And so what does that mean? So your body is actually designed to process food and information most effectively when it&#x27;s warm, there&#x27;s stimulation, there&#x27;s visual clarity. So it actually helps you process and digest food easier.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012406">01:24:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2026-09-28-LifeRedefined-27.PNG" alt="WSR_2026-09-28-LifeRedefined-27" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012406">01:24:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, Hot Thirst generally benefits from foods or beverages that are consumed warm or above body temperature, allowing the heat to also support your digestive system. So, you may love the ice cream, but you may also find that maybe you don&#x27;t feel as good after you eat the ice cream, too. Because you&#x27;re designed to have things that are warm. And warm is going to actually help your body digest things, and it helps transform things as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012437">01:24:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  Yeah, I probably wouldn&#x27;t. I mean, I&#x27;m not a huge ice cream fan or anything, really. Have never been. Sometimes in the summer it&#x27;s nice, but very rarely. But I would say my go-to is like a warm soup, you know, like that&#x27;s one of my comfort foods is, you know, like bone broth - I love bone broth. So just warm things. But my tea, absolutely, that&#x27;s like my kind of this is the end of the day, a warm cup of tea. I don&#x27;t care if it&#x27;s 100 degrees outside. I still want the warm cup of tea and to relax. And in fact, even when it was summertime and things were really very stressful, I would oftentimes even have like, a little warm... you know, you put those things in the microwave and you kind of put them around your neck at bedtime.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012532">01:25:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah. Exactly. Anything warm really supports your whole system. It helps it calm down. It&#x27;s, in a sense, the most active part of your design, because heat is active. But in a sense, it activates and warms up your digestive system and other aspects of your physical being. Cool.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012555">01:25:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  And then - we&#x27;re almost at the conclusion of this part - we talked about being motivated by hope, and motivated by hope through inner vision. So you&#x27;re motivated by an inner sense of what may be possible, without needing force or control, or immediately having to act on it. So hope allows you to observe circumstances and also to remain very receptive to the possibility of the right solution, the right person, the right timing to allow it to emerge. And your motivation is holding the space for what can become possible. So trusting that clarity emerges through this inner reflection - rather than forcing certainty or accepting someone else&#x27;s beliefs. And again, you naturally question external doctrines and authorities and prescribed beliefs, rather than surrendering your own inner knowing to them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012652">01:26:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  So, part of your Life Work theme also has, in a sense, this sense of stillness, and it&#x27;s kind of like the mountain. There&#x27;s these themes of allowing yourself to be very receptive and not being on the hamster wheel of having to do, do, do, do, do, do, do. It&#x27;s more of being able to be receptive so you can see what needs to be done when.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012716">01:27:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  I would agree with you on a larger scale. I&#x27;m also, I mean, I&#x27;m a pretty good multitasker most of the time too. And I&#x27;m used to - and maybe that&#x27;s the single mom in me, you know, where you&#x27;re throwing things, all the plates are going around - and you&#x27;re like, &quot;Okay, done. Okay, moving on.&quot; And maybe that is to get to the quiet place. Maybe now I can go do this part of my life that I actually enjoy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012743">01:27:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Yeah, yeah. And then the last piece is, again, if you feel guilt, then you&#x27;re off track. And so the off track is, &quot;I must fix what&#x27;s wrong.&quot; The natural hope is, &quot;I can remain open to what&#x27;s possible and act when the correct action becomes clear.&quot; And so guilt is often a sign that you have moved away from your natural motivation - and instead of remaining receptive and allowing the right possibilities to emerge, you may believe something is wrong, and &quot;I have to do something about it.&quot; And you will feel guilty if you don&#x27;t. It can feel like, &quot;I should do something; it&#x27;s my responsibility to fix that.&quot; &quot;If I don&#x27;t intervene, something bad will happen.&quot; Right? &quot;I should be able to make this better.&quot; So you can always identify guilt as it feels pressure, urgent, heavy, or morally loaded - versus when you truly are in the hope, it&#x27;s like the right answers are right there, exactly when you need it. Because that&#x27;s when you&#x27;re connected to Source. You&#x27;re connected to Source and that belief of what&#x27;s possible. You know, hope is part of belief and believing in something bigger than yourself. And hope is that connection to Source. So ultimately, really what this is saying is: when you&#x27;re on track, that hope is when you&#x27;re connected to Source; the guilt is when you&#x27;re not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012907">01:29:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  It&#x27;s actually fascinating to me. You know, how accurate it is, really. And you know, there are things that I definitely recognize that I do, that I do try to work on too. And they&#x27;re always on my list of things to do. And then, like you said, the more chaotic it is, and the less time I get on the mountain somewhere, or the gym, or things that make me happy, or take me into that quiet space...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012934">01:29:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim:  We will see you back shortly then, and we&#x27;re gonna talk about the annual cycle - what this report is really all about. But first, we got to know ourselves - you know, I myself. And then - that&#x27;s what will happen if you decide to do your own report. But hopefully, you got to know a little bit about yourself too, honestly. So on that note, I will see you all back for Part Two. Karen, we&#x27;re going to continue. We&#x27;re going to keep going.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013003">01:30:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Karen:  Absolutely. Love it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013005">01:30:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator:  Thanks for joining the conversation. Until next time, keep exploring, keep questioning, keep redefining. Life Redefined, exclusively at United Networks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013020">01:30:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of podcast.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
