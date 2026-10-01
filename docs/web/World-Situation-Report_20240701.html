@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jul-01</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jul-01 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jul-01
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=YyyLi1F0nSw"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=YyyLi1F0nSw"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240701_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the July 1, 2024 report with the Deep State&#x27;s Fourth of July plans, all premised on money falling from the sky that day. They include groundwork for a war with China, laid starting over the weekend; false flags for Washington, D.C.; possible systems crashes; and a financial-system shutdown by month&#x27;s end. She recounts a weekend meeting staged over an underground facility. By switching locations at the last second, she learned operatives need 20 to 25 minutes to regroup. Their photos, video, and analysis still cannot classify her.<br>
+<br>
+That leads to government psychic programs (the Jedi program, Men Who Stare at Goats, LSD programs), built on information from hostile alien races. Enslaved aliens in the DUMBs, held under Marduk&#x27;s Global Martial Law, passed along only what could be counteracted. Quantum computer programs slapped down anyone, trained or not, who grew too light or too dark. Ordinary people were also steered by gurus and by a New Age movement seeded by government programs. Organized religion, for all the good it teaches and does, can lock people into someone else&#x27;s recipe for connecting to Source. Kim names ten now-dismantled facilities that transmuted Earth&#x27;s energy into Dark energy: New Mexico, Louisiana, Finland, the Caspian Sea, Ecuador, Canberra, Ho Chi Minh City, Costa Rica, Cantabria, and under the Euphrates.<br>
+<br>
+With those governing programs lifted, people can now develop their own abilities without the former backlash. Her guidance is to do you: other people&#x27;s methods are recipes to adapt, and the &quot;higher self&quot; is your own Source-given Wisdom. Empty your cup, trust guidance even when it is unwelcome, refuse the victim role, and use discernment about what you connect to. She describes shielding while projecting decoy thoughts, such as a nursery rhyme, which defeated an eight-and-a-half-hour reading attempt in Frankfurt. She also explains the Deep State&#x27;s long-held fear of three to seven people like her joining together. Part of her weekend went to tracing where the No Joy Program was still coming from.<br>
+<br>
+She closes on July 4th. The expected release of over $100 trillion has not happened since 2012, when Kim made the last such release herself, so governments and operatives will be disappointed and will simply set a new date. What remains of the Deep State plans meetings beginning with the July 5 New Moon. They expect instructions directly from aliens now that the hierarchy above them is gone, but no one is left to give them.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003606">00:36:06 - Deep State&#x27;s Fourth of July plans.</a></li>
+<li><a href="#t-003754">00:37:54 - A staged meeting -- and the switcheroo.</a></li>
+<li><a href="#t-004536">00:45:36 - Government psychic programs, courtesy of hostile aliens.</a></li>
+<li><a href="#t-005249">00:52:49 - Too light, too dark</a></li>
+<li><a href="#t-005416">00:54:16 - Gurus, the New Age, and organized religion.</a></li>
+<li><a href="#t-010311">01:03:11 - Somebody else&#x27;s recipe.</a></li>
+<li><a href="#t-011237">01:12:37 - Empty your cup.</a></li>
+<li><a href="#t-011733">01:17:33 - You are not a victim.</a></li>
+<li><a href="#t-012015">01:20:15 - Why three to seven like her terrify them.</a></li>
+<li><a href="#t-012243">01:22:43 - Ten facilities that turned Earth&#x27;s energy Dark.</a></li>
+<li><a href="#t-012600">01:26:00 - Nursery-rhyme decoys vs. eight hours of mind reading.</a></li>
+<li><a href="#t-013200">01:32:00 - No $100 trillion payday -- and a New Moon meeting.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUL-01 NEWS</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003452">00:34:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny:</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian. Let&#x27;s talk more about government psychic programming and projects and why this is relevant now. The Fourth of July is rapidly approaching and the Deep State has been making deals everywhere. Now here&#x27;s Kimberly Goguen with the Office of the Guardian. Hello, Kim, happy Monday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003518">00:35:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Happy Monday, and it&#x27;s a holiday week here in the U.S.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003521">00:35:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: It is a holiday, yeah, we&#x27;re kinda gearing up for July 4th. (Kim: Really?) Big day for the Deep State, too. At least they think it is, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003530">00:35:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah. Everything&#x27;s going to change. You know? (Sunny: Yeah, right.) But how about you? Hopefully, you&#x27;re not waiting for the Deep State to make your plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003538">00:35:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: No, I don&#x27;t care what the Deep State does, as long as it doesn&#x27;t impact me and my family. No, we are doing some fun things with my parents. And so this is the party house. This is the place where everyone wants to go. We&#x27;ve got a pool in the yard and stuff. And so people like to come over and we&#x27;re having a big barbecue. Friends and family, they do this every year. I just happen to be here this year to be part of all the festivities. So yeah, the kids will be here. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003606">00:36:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That should be fun. Something different. Yeah. I don&#x27;t think I&#x27;ll be celebrating quite the same way you will be, but... probably gonna go hide under a rock. No, I don&#x27;t do that. You know that. But for them, their festivities and anticipated plans, of course, based on money coming through, you know, that&#x27;s gonna fall from the sky, according to them, on the 4th of July, is setting up a war with China. That started over the weekend. Oh yes, we have big plans, they do, yes. False flags for Washington, D.C., possible systems crashes, turning off of the financial system by the end of this month, in order to effect change in a switch, you name it, they&#x27;ve got big plans.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003701">00:37:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But, you know, in both ways, though, some interesting events happened over the weekend. As I talked to you about, we do have some people that are interested in breaking away from the group and doing something different. Possibly running some tests, see about transfers going through, that kind of thing, along with their group so they can watch things happen. And on Saturday, there was a lot of phone calls placed to people that I talked to, asking how do I do what I do, how does this work, asking questions about me, I guess, that are not in my file, or are still undetermined how I do what I do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003754">00:37:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I got a call myself on Saturday asking for a meeting, which was to take place on Sunday. So I normally don&#x27;t really go to these kind of things. I ran some backgrounds, figured out who everybody was, that kind of thing. And then I kind of watched to see, once I called this person back and said, &quot;Okay, I&#x27;ll meet you.&quot; And there was a predetermined place to meet. And about an hour or so before I kind of ran a little scan to see what was going on around there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003834">00:38:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They had this whole thing set up. As I told you, underneath this town, there&#x27;s a big facility, right? So they had this whole thing set up within this particular restaurant we were supposed to meet in under the restaurant, around the restaurant. I mean, yeah, and there was a lot of people that came in overnight to be there, because they still cannot figure out how I do what I do. They don&#x27;t really understand for a number of different reasons. We&#x27;re going to talk a little bit about that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003912">00:39:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I kind of played a little game just to see what would happen. So the person I was supposed to meet, I walked in and said, &quot;Sorry, I can&#x27;t stay. Just got, you know, something&#x27;s come up and I gotta go.&quot; And I handed that person a note and it said where I was going to go. Meet me here. And I met in a place that I know. It&#x27;s not really remote, but it&#x27;s in an area where you would definitely see crowds of people around you if there were crowds of people. It&#x27;s you know - other than people hiking and whatnot, you don&#x27;t see a whole lot of people in this area. And I know because of its close proximity to the water that there&#x27;s nothing underneath the ground there, so there goes that out the window.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004000">00:40:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I met these people there, probably about five minutes later, and we started having a conversation, and everything was fine, and it took about 20 minutes or so, 20 to 25 minutes, before people started showing up. They had to regroup, they had to get the information. So there was a whole regrouping thing that happened, because I don&#x27;t go out very much, I work pretty much all the time and occasionally run to grocery stores and whatnot but I don&#x27;t really go hang out anywhere anymore for prolonged periods of time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004034">00:40:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it was kind of interesting for me because I figured out, Number 1: if you change locations it will take them 20 to 25 minutes to regroup, figure it out, and then all head in that direction. Number 2: They were trying to figure out if I had something up in here, you know, that was another part of the analysis. So I listened to a lot of the chatter after all these people dispersed and that kind of thing. So they were trying to figure out, because most of the people in their world that have had extraordinary abilities to do something else - what they consider to be extraordinary - that have not gone through one of their special psychic training programs, have... they have something that they put up in there, you know, like a soul swap or some kind of change out, and that&#x27;s really an alien. Well, I&#x27;m not an alien, they&#x27;ve come to that conclusion. They still don&#x27;t know what it is they&#x27;re seeing, and there were different groups of people that gave different opinions. And some of them are really funny, you know, as to what they see when they - because they were taking pictures, they were taking videos. I mean, I -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004158">00:41:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: We&#x27;re like a sideshow or something!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004200">00:42:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, I felt like a lab rat or, you know, like the statue, like in the middle of the park that everybody wants to go see and take pictures of like a tourist or something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004211">00:42:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, exactly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004212">00:42:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We had military people walking around there and we had all kinds of folks from all walks of life. I know! It&#x27;s very interesting. But the switcheroo was important for me though, because now I know that if I&#x27;m going to do something like this and meet somebody then I&#x27;m going to change the location at the last second, and then I&#x27;m gonna move every 15 to 20 minutes because by 20 to 25 minutes you can stick a fork in me I&#x27;m done, right? So that&#x27;s kind of why I don&#x27;t really bother going anywhere honestly, it&#x27;s because what&#x27;s the point? I mean, it&#x27;s always like I feel like the sideshow at the circus or something like that, you know? It&#x27;s always a bigger deal than it really needs to be. Sometimes, if they know I&#x27;m not meeting people, I&#x27;ll always have people around, especially if there&#x27;s people in town that are not, you know - and they&#x27;re just normal people that live here - I don&#x27;t know about normal, but they&#x27;re people that live here that just, they&#x27;ll stay a little closer than normal, that kind of thing, if they know that there&#x27;s people here that are potentially not friendly, or something like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004325">00:43:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But other than that, for the most part, I&#x27;m kind of left alone, unless it&#x27;s something like this. This was a pre-orchestrated thing because I definitely did some looking into it. So between the phone calls to - they were calling Tom, and some other people - and then they were contacting me directly, trying to figure out how I do what I do. There was way too much hubbub, just for a simple grab-a-coffee kind of thing with someone who actually lives here. Believe it or not, yeah, it was weird. I know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004400">00:44:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So did they get what they wanted? Do you have any idea? Like, the people that you met with were in on it, right? They knew that all this was going on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004409">00:44:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They definitely were aware something was going on, for sure. I would say they have their own skills. You know, they&#x27;re not Dark, you know, just, they&#x27;re, you know, they have abilities, let&#x27;s just say.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004432">00:44:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But they weren&#x27;t part of the Deep State, so to speak. They weren&#x27;t... they were just locals.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004439">00:44:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, I&#x27;m pretty sure. So, but anyway, to go back to these other people. Now, when you said, &quot;Did they get what they were looking for?&quot; The problem is they don&#x27;t know what they&#x27;re looking for. And to them, I am an anomaly. How is it that a human has this job? How is it she does what she does? And why did I never have any kind of training of any sort in their world to do what I do?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004513">00:45:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, I also feel like there&#x27;s jealousy in there too Kim, like they had to do certain things, you know what I mean? They had to do XYZ to get to wherever they are. How does you know, how do you walk in, in their mind and just say, hey, I&#x27;m here, let the party start!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004536">00:45:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, and I&#x27;m gonna talk about something which I think is important for all of you to understand, even if obviously you weren&#x27;t in any kind of program. But there&#x27;s a lot of program information out there as well. So let&#x27;s talk about the reason why I am confusing to the government. The government has done extensive research, in cooperation - governments plural - this is not just the United States, the Russians, the Chinese, everybody. We all know about deep underground military bases and a lot of interaction that happened between humans and different alien races. And some of those programs involved how to train your human.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004623">00:46:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So how to teach your human that may already exhibit somewhat of a psychic ability? And then they put them through these programs, such as the Jedi program. Or if you&#x27;ve been around for a while, you&#x27;ve seen the movie Men Who Stare at Goats. And then the LSD programs, Project Moon... I think it&#x27;s Moonlight. You know, there&#x27;s a lot of programs out there centered around psychic abilities. Using drugs as enhancement. And you know we&#x27;ve seen it all on the internet. But the information on how to do this and how to create these drugs, and what can you do to manipulate humans into doing things for you, came from alien races. And not ones that were friendly to humans. And most of the time the information came from people that were trying to control humans.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004725">00:47:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the programs are extensive, and they are all geared around doing things in such a way that involve a third-party entity or a third-party medication of some sort. And the people that are admitted to these programs already have some kind of skill of their own, and they&#x27;re just amplifying those skills. So a lot of people have those kind of skills naturally. Doesn&#x27;t mean everybody goes into a government program but, the information that was given to them is much like how militaries give information to other countries&#x27; militaries. So the United States quite often will go in and &quot;help a country,&quot; you know, fight the bad people - insert-bad-people-name here, you know, Taliban or whoever the latest and greatest boogeyman is - and they&#x27;ll come right in and they&#x27;ll train their militaries, you know, kind of like Syria and some other places in Africa, and they give them equipment and that type of thing so they can &quot;defend themselves&quot; should there ever be an uprising of insert-boogeyman-name here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004850">00:48:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the United States never gives out equipment that they can&#x27;t overcome with something else they have. They also never give them information about tactics and how to, you know, run this type of an operation, that type of an operation, that they can&#x27;t overcome or already know what they&#x27;re going to do. And that&#x27;s Warfare 101. You never know when someone might be your enemy. That&#x27;s what they&#x27;re told anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004920">00:49:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">In reality land, it&#x27;s all just a movie. You know, if you&#x27;re gonna go off script, we&#x27;re not helping you, basically. But in a nutshell, that program that everybody who&#x27;s been in the military knows about, and if you&#x27;ve been watching the news ever in your life, you know that we do this. We go in and we help countries military-wise, and we sell military equipment and those types of things. Some of the equipment, of course, is only held out for the U.S. or, in Russia&#x27;s case, in Russia, they might do the same thing, and did a lot of that during the Cold War. In Nicaragua, and in a lot of places, spreading Communist sunshine everywhere they go. But this is a well-known thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005005">00:50:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now take it up one more level, and let&#x27;s talk about deep underground military bases. Deep underground military bases, and their work with captured... refugees, in some cases... prisoners of war in other cases. Aliens - because most of them were, that were working in those bases - they were forced to work there, in cooperation with the humans. Not by the humans, but by another alien race they were truly scared of. This would be your Draco, your Abraxas, and those kind of people - non-people people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005049">00:50:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the information that they were given by these groups of people was limited. And part of the reason for that is because their superiors, or their slave owners, or the people that were holding them prisoner on this planet, told them not to train the humans, because they could be our enemy at any given moment in time. Give them just enough information to function, but never too much information that they could leave this planet or do something that we couldn&#x27;t control. So the humans in the Space Program that did leave the planet - whether going forward and backward in time, breaking the time-space continuum, traveling to bases on Mars and other places - did so using technology that they provided and they could drive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005145">00:51:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So make no mistake. Humans that have left this planet, left here as slaves, or left here for a purpose to be utilized as batteries in another location, or whatever it was. And if you talk to the people that were involved in those programs, this is part of the problem. Because these people participated - probably, maybe some of them actually on a first-hand level - and it&#x27;s fascinating for us to read online about whistleblowers that have been in underground bases and those kind of things, but it&#x27;s not as fascinating as you might think. Because the information was limited, and it was limited by their people that were holding them prisoners - the head general on this planet under Global Martial Law, which was Marduk, and others. Therefore they basically gave you forks to a gunfight.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005249">00:52:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Does the information work for remote viewing? Does it work for opening your mind up, learning how to have special psychic skills to throw energy around, those kind of things? Yeah it does, but it was never anything that they couldn&#x27;t counteract, either with a computer program - a quantum computer program - or monitor with a quantum computer program. You get too light, you get too dark, they&#x27;re gonna slap you down. And the same goes for the rest of us humans too. So the rest of us humans also had the same issue. If we got too light, we were traveling too far, we became too skilled, we would also get smacked back down. So theirs was designed to work predominantly with dark matter, Dark essence, and lots of different things that would keep them working on their side of the fence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005350">00:53:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, these people are not bad people. I&#x27;m not saying they are or anything like that. Some of them maybe, but they&#x27;re not bad people. And they&#x27;re just in a program thinking they&#x27;re doing what&#x27;s right for their country. And this goes for the Russians and Chinese and the British and everybody else - everybody does it. Everybody has their own remote viewers and psychics, and that&#x27;s been going on for decades.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005416">00:54:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, on the regular people level, it&#x27;s done in a different way. So yes, they can use the same computer programs. They can use a lot of the same stuff on all of us - and we&#x27;ll talk about locations where that was based out of - to keep you down. The same thing goes for money and societal systems. But. They also do it through gurus and information. Meaning, you know, I was talking to somebody this weekend and they were talking about an experience that they had. They were kind of awake, pretty young, in their teenage years, and they wanted more information. And back then, when this person was that age, dinosaurs were roaming the earth and it was hard to get to a library - no, I&#x27;m just kidding. And you had to go to a library, you had to get a book - we had no internet, there was no YouTube &quot;How to Make a Psychic Connection&quot; video. So we picked up a book and instinctively and wisdom-wise, he automatically knew that the information in there was wrong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005529">00:55:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the same thing goes for- and I hate to say this because people are going to hate me for this one, but I&#x27;m going to say it anyway - the same thing goes for organized religions. Now, they teach you a lot of good information. So don&#x27;t get me wrong here. You know, we&#x27;re not supposed to kill each other. You know, these 10 points are very valid. You know, things we are not supposed to do. Don&#x27;t take somebody else&#x27;s wife or whatever. That&#x27;s important. We don&#x27;t do these things. But to say that you have to go to this specific building to do that is kind of weird. You have to be around these specific people, and do activities with these specific people, because - and some of the activities aren&#x27;t bad, like I said, during the hurricane, when the government and FEMA failed a few years back, in came all the church groups. And the church groups were the ones that actually provided people with food, water, shelter, whatever they needed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005632">00:56:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So there&#x27;s a lot of benefits to having religion - I&#x27;m not saying there isn&#x27;t. And mainly from the standpoint, in my eyes, of being around like-minded people who just want to do something good in this world. I think that&#x27;s a real positive. But it also goes for other... we often think like the Catholic Church, and bad things that happen there and that kind of stuff. And then we often think about, sometimes in church, the minister&#x27;s sleeping with everybody, that kind of thing. But people are just people - not everybody goes to church with the wrong intentions or forming a gossip clique or anything like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005717">00:57:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But we also have other religions that aren&#x27;t talked about a lot, like Islam. We don&#x27;t talk about that. We don&#x27;t talk about Hindu, we don&#x27;t talk about these - and they&#x27;re not technically religions, but in some ways they&#x27;re teachings. Which is pretty much what religion is. It&#x27;s teachings. You&#x27;re teaching information that&#x27;s in the book, how to relate it to your life, and it doesn&#x27;t matter which book you&#x27;re talking about, whether it be the Quran or be it the Bible. You know, it&#x27;s all pretty much laid out there for you in the Kabbalah and Buddhism, and you name it. Whichever one resonates with you is the one that you choose. And it&#x27;s the same thing with gurus online. You know, people are... the New Age movement many years ago started with a bunch of information that was put out there by some of these government programs. Believe it or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005812">00:58:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And there are still gurus out there that are giving information based on government program training. And some of these people, I can give you some examples of people that do this, and I don&#x27;t like to talk badly about people online, but there&#x27;s a guy that talks about the Light System. And we&#x27;ll leave it at that. He&#x27;s one of those people that was trained in one of those programs - does have skills don&#x27;t get me wrong - he is probably communicating with people he thinks are good guys, trying to do the right thing for people, but he puts out a lot of stuff out there that&#x27;s, you know, instead of doing something about it, you know, we&#x27;re all gonna die of the next pandemic and this is when it&#x27;s gonna start, blah, blah, blah, blah, you know, and there&#x27;s gonna be an invasion. But the same thing that I&#x27;m seeing on my side of it - coming from people who actually do wanna kill us all, you know, or corral us, or whatever it is they&#x27;re trying to do - are the same people that&#x27;s giving him this information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005923">00:59:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So who&#x27;s positive and who&#x27;s not? But again, I don&#x27;t think the guy&#x27;s a bad guy. There are other folks out there too, with a hodgepodge of information, that have been in these programs. And they are all over YouTube and Rumble and all of that, giving you inside information, telling you, we remote viewed this and we remote viewed that. And some of them - even recently in the last six months - there were some people online, when we were going through that whole changeover to the new UNN, they said that they remote viewed, and I&#x27;m on a hill and I got wonderful views, and, you know, in my huge closet and all of this stuff. And let me just set the record straight for you: I just don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010010">01:00:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">At the same time these same people were invalidated, but the other people are putting an address online that looks like it couldn&#x27;t be anything further from the truth. It&#x27;s a tiny little place! It&#x27;s not big. You know what I&#x27;m saying? The information kind of conflicted there. These people made me look like I&#x27;m a rock star. The other people are saying, &quot;Look at this little tiny place,&quot; and all that kind of thing. But the point is, is that the way that they&#x27;re trained to think, and what they&#x27;re trained to look for - in a person with extraordinary skills or has been trained to have extraordinary skills - doesn&#x27;t necessarily mean that they can actually look in on someone who has actual skills.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010102">01:01:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, a perception from someone like that, or a psychic, rarely works on someone that actually has skills. Number 1, someone who actually has skills will have themselves shielded and blocked like you wouldn&#x27;t believe. You don&#x27;t have any idea how many people have called me and said, &quot;We&#x27;ve been having a psychic conversation, and I&#x27;ve looked into your energy.&quot; And I&#x27;m like, &quot;Oh heck no you didn&#x27;t!&quot; Because I have to be super-ultra protected all the time. All the time. Because if not, these people are gonna creep in and probably could kill me this way. But they&#x27;re predictable because there is only one program that actually does this. And those programs are either defined by government level, you know, these are your average everyday people that are recruited, or SSP level. So it&#x27;s pretty easy to - once you have a copy of it - which of course it&#x27;s in the system because it had to be funded by somewhere. And once you understand those programs, then they&#x27;re easy to defend yourself against.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010223">01:02:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But as far as myself, in order for me to do what I do - and even sometimes it creeps in, and I&#x27;m not saying it&#x27;s from these types of people - this was really bad during the days when the Covens were around and the Sanhedrins were around. Well, they learn a lot from the demons that they conjure. It&#x27;s a constant communication with them and their demon brood, so to speak. So the demons know how to try to get in there, try to attack you, and they&#x27;re not program people. So there&#x27;s a difference there. We still have some of those people around - not the Covens or anything like that - but people that practice black magic, that probably know a little more than some others.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010311">01:03:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the defenses are always there. They&#x27;re always up. The energy shields are always up. And I know a lot of you do the same thing. You probably are pretty sensitive, some of you, and you know how to do the same thing to prevent those attacks. But the problem that I see in the regular world, with regular people - even highly skilled people - we tend to lock ourselves into someone else&#x27;s way of making that connection to Source. It doesn&#x27;t matter if it&#x27;s because you&#x27;re going to a building and you&#x27;re talking to those people, or you&#x27;re talking to some Buddhist person, or some enlightened guru or whatever it is. It&#x27;s somebody else&#x27;s recipe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010401">01:04:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And recipes work great if you&#x27;re trying to bake a cake, you know, I have baked a successful cake with this recipe or this pie or whatever, and it works. And then some of you look at the pie and you say, &quot;Okay, well, this is a great pie, but sure could use a little pinch of this, or a little bit of that,&quot; or &quot;I think I&#x27;m gonna use a different pie crust next time,&quot; or whatever it is. And you start to morph that into your own.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010430">01:04:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the same thing goes for people that teach things online. This is the way. This is the way to enlightenment. This is the frequency, and you must meditate, and you have to sit in this position, or go in, because that&#x27;s what works for them. But it&#x27;s not going to be the same for everybody, and everybody&#x27;s experience isn&#x27;t gonna be the same. And some of that is based on the other side of your brain. So for those of you that have grown up in religion, maybe you&#x27;re religious now, maybe you&#x27;re not before, but maybe you&#x27;re not anymore. But we have this vision of what God looks like because the movies have told us what it looks like. We have this vision of what Jesus looks like, or Buddha looks like, or whatever looks like Nirvana.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010524">01:05:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes people tend to think in some ways, like some people say, &quot;Well, I&#x27;m talking to my higher self. I asked my higher self.&quot; And all you&#x27;re really doing is asking yourself, because it&#x27;s still yourself. Meaning you are tapping into your wisdom. That&#x27;s what you&#x27;re doing. You&#x27;re tapping into your Source-given Wisdom, to ask yourself what&#x27;s good for you or bad for you. Or should I do this or should I do that? But that&#x27;s sovereignty though, too. You know, instead of calling up somebody else and asking somebody to read your tarot cards, or do whatever when you have a big and difficult decision to make. It&#x27;s not to say that that&#x27;s not great to do sometimes, and some people have people they trust and they get the information, but there&#x27;s nothing better than the Wisdom that&#x27;s coming through.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010617">01:06:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes we can say we&#x27;re too close to the situation, and I&#x27;m not gonna think objectively because I really love this person and I don&#x27;t wanna say that to this person or I love these people, I don&#x27;t wanna stop going to this group even though I feel weird when I&#x27;m there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010640">01:06:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I guess the message here on this part of it is, you have to do you, in your way. You have to do your things and your connections and your remote viewing or whatever skills you possess or want to possess in your way. Only you know you. And it doesn&#x27;t matter which road you take to get there. And are these people helpful? Are you blocking yourself? Because with the lifting of some of these programs that are the governors, that don&#x27;t smack you down anymore, it&#x27;s a wide open field. So this weekend for me was a perfect example of - when I listened to the analysis after, and it&#x27;s still being analyzed, actually, at this moment because it&#x27;s been a little over 24 hours now - but they just don&#x27;t get it. I&#x27;m like, I&#x27;m not one of those. I don&#x27;t fit into any of their classified document categories that a person is supposed to fit into. Or it&#x27;s not a person, and I don&#x27;t fit into those categories either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010801">01:08:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I thought it was good to explain this not only for their benefit - because not all of these people hate me, or are against me - and some of them will try to use the information against me, and I know that. Therefore, it&#x27;s now an extra-high alert on that front. But on a regular person&#x27;s front, it also made me think of, you know, how much information is really out there? You know, on how do we connect to Source? How do we levitate? How do we travel? Is it all astral travel? You know, is that the heaven that everybody&#x27;s looking at? What is it? What are people seeing and how are they doing this? And then, you know, I started looking on YouTube a little bit yesterday in the afternoon. I&#x27;m like, how many people are trying to teach people how to do this? There&#x27;s a lot.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010859">01:08:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah and like you said, everyone does it a little different way. And I think we&#x27;re kind of trained to be like, well, if not everyone&#x27;s saying the same thing, then maybe none of it&#x27;s right? Or you don&#x27;t know who to trust? As opposed to looking at it like what you said, like everybody does do it differently. When I have these kind of situations - and I&#x27;m not a big person for going to gurus and stuff like that - so I just try to connect with Source. And I just try to say, can you show me what the way is for me? What is, you know, just open my eyes, like drop me clues, whatever. I&#x27;m open and I&#x27;m willing to receive this information. How do I do it? That&#x27;s what I typically do. And just because it is - it&#x27;s different for everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010943">01:09:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And sometimes it&#x27;s difficult to hear too. Meaning, you make that connection and you&#x27;re expecting an answer. I know that like - this was years ago, and I mean years ago - but there was a question about a person I was dating at that time. And I was like, okay what do I need to know here? Cuz like this, you know, I thought it was going okay... maybe not, I don&#x27;t know. And the answer was, when one door closes, another door opens. And I didn&#x27;t really want that to be the answer. I wanted it to be something else. But sometimes, like you said, anytime I don&#x27;t listen to all that advice I get, you know, the Wisdom, whatever it is, it never ends well. And it pretty much ended shortly thereafter and that kind of thing. And another door did open, and it was a better door, at the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011038">01:10:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But you&#x27;ve got to do it yourself. You can see how other people do it, but you really have to dance your own dance; sing your own song. Some people, they need to be in a quiet place and really focus on that connection. Some people can do it in the middle of a crowded room, or when they&#x27;re in a dangerous situation it&#x27;s like, ooh, it all opens up wide and then now they get all the information they need to get out of the situation. I don&#x27;t know what it is for you. I mean, you can look at the menu here of possible options, and maybe you&#x27;ll look at 10 different people or different religions or whatever it is for you, and you make that connection however you do it. And then you can ask the question as well - &quot;I&#x27;d like to remote view, how do I do that? I would like to levitate. I want to walk on water.&quot; Or whatever it is you want.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011142">01:11:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, if you want something badly enough, you&#x27;ll get the answer on how to do it. All you gotta do is ask. And it will come to you, and whatever position you&#x27;re in, maybe you stand on your head and bark like a dog. I don&#x27;t know, but whatever it is for you, do you. You were not in a program. You were not trained in a specific way that this is how it&#x27;s done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011208">01:12:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Because there&#x27;s gonna be things that are happening in this world that none of these programs are going to understand. Including me. And I&#x27;m glad you don&#x27;t understand me. Because if you did, I&#x27;d probably be in a lab right now being dissected to figure out how you could make more of me&#x27;s that work for you. I&#x27;m sure of that. Actually, they&#x27;ve actually told me that in the past. That they&#x27;ve been trying to make people like I am for years. And I know that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011237">01:12:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But for you, there&#x27;s a lot of changes that are going to be coming up. Positive changes. No more interference with you. And really, this is gonna be an important skill to learn. You know, how to protect yourself, how to defend yourself. This is about sovereignty. It&#x27;s about you. If you want to watch some of those videos, great. Take what you need and leave the rest, because it might not be... it might not work for you, or maybe just part of it works for you, and then you combine it with something somebody else does, and now you&#x27;ve hit your goal. But have a basic understanding of where you want to go and what you want to do, and what you want to focus on, and the information will come when it&#x27;s the right time. And by the way, empty your cup before you do. Because if you don&#x27;t empty your cup, then you&#x27;re going to be confused. You&#x27;re going to be like, &quot;Wait a minute, I don&#x27;t want to move to Oklahoma. I don&#x27;t want to move to the States. I don&#x27;t want to move to Australia.&quot; But you&#x27;re told to move to Australia or wherever it is you&#x27;re going. You&#x27;re told to do this. Listen, because there&#x27;s something there for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011348">01:13:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, I have a good friend of mine who had been in a horrible abusive marriage, that kind of thing, and she had never really traveled outside the country very much at this time. And all of a sudden, she basically threw a dart on a map and said, where am I supposed to go? And I don&#x27;t mean literally, but in her conversations with Source. And she was told to go to Honduras. Of all places in the world, this is where she was told to go. And it turns out, she did go there. She stayed for quite a while. And she met her now husband of 10 years. So, you just, you know, you&#x27;re supposed to go here and you&#x27;re gonna learn about love. That was all she knew. She&#x27;s like, how am I gonna learn about love? I don&#x27;t speak Spanish even, you know. How is this gonna be possible? Well, turns out it worked out that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011444">01:14:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You just never know where the Wisdom is gonna drive you, and you might not always like the answer, but trust me when I tell you it&#x27;s in your best interest. And that&#x27;s where the empty cup comes in. You gotta learn to trust yourself too. You&#x27;ll get messages sometimes and you&#x27;ll think, I am absolutely off my rocker. If I say this to my spouse or whatever, they&#x27;re gonna think I&#x27;m a crazy person. You know, &quot;Hi honey, we&#x27;re gonna move to Jamaica now.&quot; You know, smile big. &quot;Because I was told to. Just saying.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011527">01:15:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, that doesn&#x27;t always go over so well. Let&#x27;s have a move, the whole family, let&#x27;s do that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011535">01:15:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sometimes it does and sometimes it doesn&#x27;t, but you know... or you&#x27;re gonna up and quit your job and go to this other location and trust me, the money&#x27;s gonna be there, or trust me that this is gonna work out. I&#x27;ve even had unpleasant experiences and they were like, nope, you need to go back. Nope, nope, you did not get what you were supposed to get, go back. I&#x27;m like, oh God, this is gonna be painful as all get out, you know, I gotta go back. But I&#x27;ve always come away with some information. You know, people even ask me, like, &quot;How did you sit there and talk to Marduk for all those years?&quot; Like, &quot;Why did you go across the world to go sit with these people?&quot; &quot;Why did you talk to all these agency people?&quot; Why did you... you know, &quot;Oh, you must be CIA,&quot; or something like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011623">01:16:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But no, I was just told to go there and talk to these people. I was told to take the meeting. I was told to do this. So I did. And quite frankly, as unpleasant as some of these experiences were, and at times, I&#x27;m like, you&#x27;re kidding me right now. I&#x27;m supposed to let this happen. I am supposed to go to this thing. You are kidding me right now. These people could kill me when I get there. And they&#x27;re like, nope, nope, you&#x27;ll be OK. Just go. I&#x27;m like, OK. I did. I turned out OK. I mean, not always was it a pleasant experience not always did I remain unscathed for sure, but I did survive it and I&#x27;m okay. And I learned an awful lot from these experiences. So again, the reason why they can&#x27;t figure me out, is it&#x27;s the same reason how they&#x27;re not going to figure you out either. Without computer enhancement quantum AI systems programs left here by aliens, you are now open to do a lot of this stuff without the same backlash as you got before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011733">01:17:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. The next thing - and this one&#x27;s gonna be a tough one for a lot of you. Playing the victim. You know you feel sometimes these things can beat you down so much sometimes, especially if you&#x27;re a light worker and you&#x27;re trying to do a lot of light and it really hits you hard. You&#x27;re not a victim. You have all the tools you need to defend yourself by whatever means necessary. And if that means you&#x27;re pulling a cord and you&#x27;re pushing somebody as hard as you can push away from you, then do it. They are breaking and infringing on your sovereign right to do what you&#x27;re doing. Push them. Defend yourself. Stop calling other people to defend you. Some of these people might not be in your best interest. You don&#x27;t know which side somebody&#x27;s playing with. Or if they were trained in an unnatural way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011835">01:18:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Even regular people that really think they&#x27;re doing something positive, you know, if they did it in such a way, you don&#x27;t know what&#x27;s out there. You don&#x27;t know what you&#x27;re connecting to. You may think you&#x27;re connecting to Mother Mary or something wonderful or this angel or that angel, but are you really? Use discernment. And you don&#x27;t know what these other people are doing. You only know what you do. And make sure that you uncover the Veil, and you&#x27;re seeing - if you&#x27;re talking to another being from another place, that&#x27;s fine. They&#x27;re just like me talking to you, Sunny, you know, but without a microphone and an internet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011916">01:19:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But make sure you&#x27;re talking to the right thing, the right person. You&#x27;re not talking to a computer program if there&#x27;s anything left out there. You&#x27;re not talking to somebody else&#x27;s something that they brought up in that person. Just be careful. These things are opening up now. And the government doesn&#x27;t understand, the Space Program people don&#x27;t understand me, because they&#x27;ve never worked with anyone that has not been through one of their programs that is as effective as we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011950">01:19:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You know, I find it so strange unless I really don&#x27;t understand the hierarchy of everything here. Why they give Anti-Source so much credit and not Source itself, because that&#x27;s what we&#x27;re partnering with to do what we do. Why wouldn&#x27;t they think that, you know, that Source would be just as strong if not stronger than Anti-Source?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012015">01:20:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: For many many years, due to agreements, Dark Ages, all kinds of things that have been going on. Remember these organizations, even the oldest of them, you know, 5,000 years old, 6,000 years old or whatever. I mean, that&#x27;s a long time for an organization to exist. But for as long as these people have had knowledge of this stuff, we have lived under a Dark Age, and God forbid they do locate people on our side of the fence. You know, those kind of things. They&#x27;ve always been able to run all their operations on them. They&#x27;ve always been able to counteract them. They&#x27;ve always been able to kill them. They&#x27;ve always been able to do certain things with people that are on the other side to render them ineffective, isolate them, keep them away from all their people, make sure that they don&#x27;t join together with other people, because if they get three to seven of them, this is what they told me, together, &quot;If she gets three of them like her together or seven would be better, then it&#x27;s over for us.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012119">01:21:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh, that sounds like a challenge. Yeah, okay. Let&#x27;s do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012125">01:21:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Because every time I would find these people, some of those people would go nuts. They would literally lose their mind. They threw their own psychic network people in there to tell them, &quot;Oh no, she&#x27;s not what she says she is, and you&#x27;ve been fooled,&quot; and all of this kind of thing. Yeah. Oh yeah, this has happened. I&#x27;ve located a lot of people, and now I just don&#x27;t really talk about it - because when I do, bad things happen. They go after those people. Because it does take a strong person to sit in this chair. And for a long time I made sure I didn&#x27;t surround myself with anybody. For that very reason.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012205">01:22:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve seen grown six-foot-five men run around like little girls slapping themselves in the head going, ah ahh, you know. And a lot of it, like I said, was computer programs. So these programs, humans had limited access to, but some of them were aware of the regulators that could happen, and probably had some limited access to regulators to where - and you&#x27;re talking CyberLife-level now - you&#x27;re not talking about regular government-type programs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012243">01:22:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the facilities for these things, I&#x27;ll tell you, these things were huge. A lot of them existed in places where they could transmute the most amount of energy coming out of Earth. So let me give you those locations so that you know. These facilities are not there anymore. They were tied to some of those satellites and stuff that we talked about last week. But we had pretty much most of the whole state of New Mexico, most of the whole state of Louisiana, in the United States. Most of the whole country of Finland, these were huge. Under the Caspian Sea. Another area, Salcedo, Ecuador. Canberra, Australia. Ho Chi Minh City in Vietnam. Wonder why we were all fighting over that, huh? Most of the nation of Costa Rica. Cantabria, Spain. And underneath the Euphrates River.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012355">01:23:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, we talked a lot about the Euphrates River, and the border between Iran and Iraq. So that was a big light generator for Earth. A lot of gold there, Source presence, Source of life on the planet, first place where everything happened. So no surprise that they would go just outside of that, and build an overlay so they could transmute as much of that energy into Dark energy to make people go crazy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012423">01:24:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I hesitate to talk about a lot of these programs because I want to encourage people to push through glass ceilings and things that existed that were not insurmountable by the average everyday human. We just felt like you get to that point... it&#x27;s kind of like fear too. You get to that point and it takes an awful lot, and a lot of strength, or an extenuating circumstance to make people say, &quot;I need to go do this.&quot; Your kid&#x27;s in trouble. It doesn&#x27;t matter what it is. You&#x27;re going to go to the ends of the earth and lift that car, move that building, whatever you got to do to get that kid out, it&#x27;s going to happen. That&#x27;s what I mean by extenuating circumstances, where you push through all your limits that have been put on you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012521">01:25:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the takeaway... from things I didn&#x27;t realize this weekend, just how different things were when you aren&#x27;t in one of those programs, and you&#x27;ve basically taught yourself how to do a lot of that stuff - which I talked about, not last Wednesday, the Wednesday before - was most of mine just came off Wisdom. It came off that connection. &quot;Oh, look what I can do with my body. Look what I can do with this. Look what I can do with that.&quot; And then of course, learning and meeting these people in person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012600">01:26:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;ve had a lot of meetings with a lot of people over the years in many different countries, that, you go into the meeting and immediately it feels like someone has a vice on your head. You know, they&#x27;re very heavy handed, these people that are trained in these programs. I don&#x27;t know if they&#x27;re trying to penetrate it with Dark energy, to read with Dark energy - I&#x27;m not exactly sure how they do these things. But once you start feeling that, you can push them off. I mean, you can block it, you can even put a layer over it that says that you&#x27;re singing some song. Like one time in a meeting I had on repeat, &quot;My hat, it has three corners. Three corners has my hat.&quot; You remember that song?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012646">01:26:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: No! I haven&#x27;t heard it! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012649">01:26:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No? Oh, it&#x27;s a kids nursery rhyme.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012651">01:26:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: A children&#x27;s song?? Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012652">01:26:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I would just pick something random like that, and that&#x27;s all they were reading. But yet I&#x27;m talking about something different. They don&#x27;t understand how it&#x27;s done. But when you&#x27;re self-taught and self-trained, all you know is you need to avoid X. If you go to a meeting and you&#x27;re starting to feel that, you need to avoid it. I had one meeting that lasted eight and a half hours while they sat there and tried to figure out how to do it. I had little blowing fish - this was before Nemo - floating around, all kinds of different stuff, like weird random thoughts, and they&#x27;re like, &quot;She can&#x27;t be thinking about this!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012737">01:27:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: She&#x27;s messing with us, come on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012739">01:27:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m having a conversation about, at the time, this particular meeting took place in Frankfurt, Germany. So they&#x27;re like, &quot;How the heck is she doing this?&quot; Eight hours they tried. God bless them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012752">01:27:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So I&#x27;m curious, how did you do that? Did you just set the intention that that&#x27;s what you wanted them to understand or hear, if they were to read you? And then you could go on and talk about other things?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012806">01:28:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Yeah, you change your... So what you do is, I shield, right? Obviously, I don&#x27;t want them actually in my head. And then outside that shield, you change your brainwaves from what you&#x27;re actually thinking to send out a frequency that will formulate something different. And then you just let it run. Like, so I pick something that would be repetitive, like, you know, a nursery rhyme, or song, or something like that - that&#x27;s not too complicated, only has a few lines to it. That way I can keep that going at the same time I&#x27;m having actual thoughts and conversations.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012845">01:28:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Interesting. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012847">01:28:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know. Well, you gotta survive somehow. And a lot of people that are on our side, we come up with, like I said, our own little tricks of the trade, so to speak, that help us defend ourselves. Because there&#x27;s nobody coming, we don&#x27;t have a gaggle of military people that are gonna show up here and defend you. Or whatever, at this point. Never have, anyway, in the past. So you gotta do something, you gotta figure it out. Same thing with, you know, remote viewing. Remote viewing has proven to be extremely useful, and kicks into super-high 3D vivid gear when I&#x27;m in a situation that I need to get out of. If I&#x27;m going to a meeting that I feel like is with some people that are dangerous, I automatically know how to get out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012943">01:29:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I make sure that I know all the exits, where I can go. I&#x27;ve remote viewed the whole dang building, hotel or otherwise, no matter where I was in the world. Cities, walking around. I know the exits. I know which ways to go, where they&#x27;re gonna be coming from. I can see people coming after me, I don&#x27;t go that way. That kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013003">01:30:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But, these are things that people go through these programs to do, I guess, to some degree, to locate their enemies, to locate different sites like the ones I just talked about, these 10. We don&#x27;t have that. We need to defend. And it comes from Wisdom. It comes from Others that are here. From time to time, we work with all kinds of different groups to make this happen. And I&#x27;m sure they probably noticed that yesterday too, that even though it appeared that I showed up there with one person, I didn&#x27;t show up there with just one person. There were Other &quot;folks&quot; in the peripheral. Yeah. Was there some people? Sure. Was there people that, if you had a special camera that governments use to look at you in a different way, on this level of things they do? Absolutely. Did they have to find a different way to do it because I didn&#x27;t show up in the location or stay long enough for them to figure it out? Yes, they did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013115">01:31:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But that&#x27;s okay. You live and you learn, guys. I live and I learn, too - and that&#x27;s why I didn&#x27;t stay. I had coffee one time at a coffee shop that I had pre-arranged, and you guys did all your thing to me there. So I&#x27;m like nah, we&#x27;re not doing this again. Heck no. But it worked out. Turned out, it was a nice conversation and that was part of my weekend. The other part was going around looking at sites looking at where that No Joy Program was coming from, cuz I could still sense it. You know trying to make sure that we give everybody the best opportunity to be their best self, without pain and being pushed down by other people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013200">01:32:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as governments, everybody&#x27;s anxiously awaiting their giant payday on the 4th of July to begin wars and World War III and false flags, and all these exciting things that they&#x27;re setting up. When that actually has not happened since 2012. I know that they used some limited money, because when I say 4th of July money, we&#x27;re talking over $100 trillion would come out. I mean, that&#x27;s a lot of money for every country in the world-type budget. It&#x27;s not just the United States budget. Now, since that time in 2012, the last time that there was any kind of release - and I know that because I did it myself - the next, the other releases paled in comparison. Even though the U.S. budget was 1.5 trillion or whatever it was, 1.8 one time. That&#x27;s chump change compared to what used to happen on the 4th of July.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013300">01:33:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you&#x27;re going to have a whole lot of disappointed people, operatives, governments, and everything else. And they&#x27;ll just set a new date. I don&#x27;t know when the next New Moon, Full Moon, Harvest Moon, God knows what. Interestingly enough, though, the chatter I am hearing is, annual meeting-wise, it appears that what&#x27;s left of the Deep State plans on attending meetings that would normally start the next day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013337">01:33:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: In-person meetings? Or...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013338">01:33:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013339">01:33:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;s good. Anytime you can corral them!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013344">01:33:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well the Others - okay, so in the world of meetings, you would have had, every seven years, fallen angels meetings. And then it would have been the alien meetings, or what we consider aliens - you know, non-humans. And then you would have started to have the Parents meetings now. Well, they figure, since nobody else is left, they are more than happy to take that position. So there&#x27;s chatter about them figuring out where in the world they should go to get the information directly from the aliens starting on July 5th - on the New Moon - because &quot;There&#x27;s nobody above our heads now, so we can get the information directly.&quot; Well, there&#x27;s none of those people either, guys.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013429">01:34:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah. You&#x27;re gonna be waiting a long time for that information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013432">01:34:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You&#x27;re gonna be waiting a long time. I hope you packed some bags. But it would be great if you all go to one place. I&#x27;m happy with that. Please do. Please all go to the one place. You know, rapid repeat-o, you know, by Friday. You know, let me know when you&#x27;re migrating. All to the one place. I&#x27;m pretty sure I know where that place is going to be, but we&#x27;ll see if they actually do it. Or, the information that they got this weekend - I should have done a projection, Sunny, that&#x27;s what I should have done. I should have made like a big angel or something. Roooaaaar!! You know? [Both laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013513">01:35:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Just to throw &#x27;em off!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013514">01:35:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, no kidding, I could have done that too! It&#x27;s actually really easy to change the color of your aura. You know how people do aura readings and stuff. You can change the color of your aura. I mean, you can make your aura completely white if you want to. Like you can do a multitude of colors, you change it any way you want. Your emotional state obviously comes into play with that, but it&#x27;s very fun to do. I&#x27;ve done that before, like on somebody&#x27;s machine, they wanted me to go do the reading with them. And so I did a thing. But it&#x27;s fun to do. But as far as like projecting, like I could have definitely done that. God! Darn it!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013554">01:35:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Next time, Kim!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013556">01:35:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Next time, next time, next time. There&#x27;s always next time. [Hearty giggle.] Anyway, that&#x27;s pretty much the World Situation Report for Monday. Gonna be an interesting week this week. Probably won&#x27;t be until, what, Thursday, Friday this week is when it&#x27;ll be S-H-T-F time. So we&#x27;ll see. We&#x27;ll see how it goes. See if anybody comes to their senses. See if this analysis is helping anybody in a positive way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013631">01:36:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Maybe they&#x27;ll figure out that the difference between an actual White Worker versus a White Hat, and why are all these people fighting me? Why are these alleged people that think they&#x27;re doing the right thing fighting me, if I am on that side? I don&#x27;t look dark, even when I&#x27;m not manipulating anything, I don&#x27;t. So we&#x27;ll see. We&#x27;ll see what happens. Anything at this point, who knows? For us, we&#x27;re just sanitation engineering, and restoring one piece at a time, one day at a time, one thing at a time. And now you all have homework. So there you go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013718">01:37:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, I do hope that some people come to their senses once July 4th comes and goes. You know, I mean, they got to be tired of this song and dance just as much as we are. I guess we&#x27;ll see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013733">01:37:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Yeah, we&#x27;ll see. And now you have to look up that nursery rhyme.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013739">01:37:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, I gotta go back. What was it again?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013743">01:37:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;It&#x27;s my hat, it has three corners, three corners has my hat.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013746">01:37:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay, okay. I&#x27;ll Google it, see what comes up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013750">01:37:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;And if not three corners, it will not be my hat.&quot; Alright, fine. Fine!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013759">01:37:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Alright. Well, Kim, we will see you back here on Wednesday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013802">01:38:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sounds perfect. Thank you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013804">01:38:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, thank you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013807">01:38:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013839">01:38:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=YyyLi1F0nSw" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
