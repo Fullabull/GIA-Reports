@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jun-28</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jun-28 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jun-28
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=w-h42FMJXnU&amp;t=2032s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=w-h42FMJXnU&amp;t=2032s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240628_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the June 28, 2024 report with the previous night&#x27;s U.S. presidential debate, which she calls a scripted movie. Trump showed green screen hair, so the two were not in the same room; both read teleprompters holding responses before the other finished speaking, so the same writers wrote both sides; and there was no live audience or press. The Q-Clock now reads July 4th, when a military lockdown is planned if the Deep State&#x27;s last 48 hours of attempts to seize financial control succeed.<br>
+<br>
+The first attempt targeted the Visa and MasterCard core system to install a crypto currency worldwide. Months ago Kim replicated those operating systems without back doors into the Global Repository, now connected to the Light system, and cash economies alone would halt commerce in 40 to 50 percent of countries. Marduk once held the last key at Level 7; Kim now holds Level 9, and nothing from Level 1 up moves without her approval. Keys at this level rest on soul-DNA scans and will not work under duress. The second attempt used surviving Nazi Hydra Division members to crack alien tech under Berlin, which reached only Level 5. Web levels translate to densities, each controlling everything below it; Pluto was a portal to the Lower Astral Ninth Density, and with the portals closed, no planet or moon influences Earth&#x27;s systems.<br>
+<br>
+The third attempt was Elon Musk&#x27;s, with Secret Space Program partners: reviving the Triple-X system, an old Omega backup and off-market trading system, through a transmitter under Piccadilly Circus and linking it to Starlink. The facility has since been destroyed. Kim describes two kinds of alien satellites: cylindrical ones that recorded and transmitted vast data, ran Lower Astral programs that could interfere with brain function, and messaged Order members; and spherical ones that could manipulate essence, energy, consciousness, matter, and frequency. Implants and energetic parasites tied to them drained people&#x27;s lifeforce. She has destroyed fields of the cylindrical satellites over three years, and questions Musk&#x27;s claim that Neuralink can transfer consciousness for immortality.<br>
+<br>
+Kim holds Level 9 because Level 8, the fallen angels of the seven-year meetings, failed to follow instructions, so Level 9 sent someone to restore balance. The remaining Deep State, Global Headquarters, and Secret Space Program people are pawns with no one on the line, reduced to calling in money, chasing allocation numbers, faking terminals, and trying to revive a Dark system. A Light system upgrade now follows any attack back to its source and transmutes it. She warns bankers and political operatives to survive and leave us alone, or face a standing order of no mercy, and closes by telling listeners that things will get better and to keep holding the Light.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003500">00:35:00 - The debate</a></li>
+<li><a href="#t-003937">00:39:37 - Q-Clock reads July 4th.</a></li>
+<li><a href="#t-004017">00:40:17 - Attempt 1</a></li>
+<li><a href="#t-004549">00:45:49 - Marduk&#x27;s key, Kim&#x27;s Level 9, and keys that can&#x27;t be faked.</a></li>
+<li><a href="#t-005114">00:51:14 - Attempt 2</a></li>
+<li><a href="#t-005444">00:54:44 - Web levels, densities, and the Pluto portal.</a></li>
+<li><a href="#t-010006">01:00:06 - Attempt 3</a></li>
+<li><a href="#t-010431">01:04:31 - Cylindrical satellites.</a></li>
+<li><a href="#t-010730">01:07:30 - Neuralink, implants, and parasites.</a></li>
+<li><a href="#t-011047">01:10:47 - Spherical satellites.</a></li>
+<li><a href="#t-011416">01:14:16 - Bankers, fixers, and pawns.</a></li>
+<li><a href="#t-011640">01:16:40 - Seven-year meetings</a></li>
+<li><a href="#t-012452">01:24:52 - Light system strikes back -- and a last warning.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUN-28 News</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003352">00:33:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And now the World Situation Report with Kimberly Goguen from the Office of the Guardian. Elon Musk claims he can use Neuralink to transfer a person&#x27;s consciousness to a system so they can live forever. But is it true? The USA presidential debate last night looked like a scene from a B-rated movie. Who won? And the Secret Space Program remaining members thought they could use several systems to take control of the Financial system. Now here is the World Situation Report with Kimberly Goguen from the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003434">00:34:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Good afternoon and happy Friday, everyone. I was a little bit late again to the news today, but for a very good reason. It&#x27;s been a really busy day and a busy night last night and a busy day yesterday as the Deep State&#x27;s still trying to install various systems. So I&#x27;ll get into that in just a few minutes. But I wanted to go over a little bit of regular news.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003500">00:35:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: First, the debate. We had a presidential debate here in the U.S. last night. I did not watch the whole thing. I could not do that. I watched a few little snippets here and there, just because there&#x27;s a lot of talk on mainstream media about how Biden totally failed and Trump clearly won and all of these types of things. So I kind of clicked in to give you some highlights of things that I noticed, that if you go back and watch little snippets of it, you&#x27;ll probably notice too. Okay, you know, next, I also wanted to see it, I guess a little bit of it anyway, because it&#x27;s not every day that two dead people get on TV and start talking to each other for a prolonged period of time, so I thought that was kind of funny, so I thought I would tune in for a little bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003557">00:35:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so the debate. Number 1: things you should notice when watching this debate. Trump has what I call green screen hair. It&#x27;s very common in people with lighter hair or blonde hair to sometimes have a little bit of a green hue in your hair - I know I&#x27;ve had it on the news several times, and that&#x27;s how I know what it looks like. And I also know what it looks like when they try to edit it out from your hair, and your hair looks abnormally flat or square or you know when they&#x27;re not very good at what they do. And I noticed that about Trump last night. So I don&#x27;t think whoever is playing the part of Trump was actually in the same room with whoever&#x27;s playing the part of Biden last night. That&#x27;s one thing I definitely noticed, so if you take a look, and if you&#x27;re facing the screen - in the upper right hand corner you&#x27;ll notice a little bit of a green hue off and on and that is green screen hair. So definitely we are looking at some people that probably aren&#x27;t very good at video editing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003710">00:37:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. We also have an interesting part of this movie we&#x27;re all watching - and that is both parties were reading from teleprompters. So if it was an actual debate, and there were two people actually debating against one another, how did the other person know what to respond? And it was already scripted in a teleprompter immediately - before the other person had even finished what they were going to say. This looked like a totally scripted movie. Therefore, whoever wrote one half also participated in the writing of the other half, meaning both Biden&#x27;s alleged scriptwriters and Trump&#x27;s alleged scriptwriters were in the same room to orchestrate this debate last night.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003812">00:38:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you&#x27;re saying, well, you know, I&#x27;m for Trump, or I&#x27;m for Biden, or I&#x27;m for whatever, you&#x27;re for the same people, because it doesn&#x27;t matter which party was actually talking. The information was coming from the same people. But as you know - and I&#x27;ve told you from the beginning - this is Hollywood for ugly people, and this debate last night should have proved it, hands down. So take another quick look at it, if you have the stomach for it, and you&#x27;ll see exactly what it is I&#x27;m telling you from this debate.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003847">00:38:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, there were all kinds of rumors going on about it, that they were going to start 1-2 minutes late, and that there was no live audience, and we know there was no live audience for a reason. And that&#x27;s because neither one of them are actually there. I don&#x27;t know what they&#x27;d be looking at. But it is unusual for that to happen. There were also some other unusual events that took place, such as no press in the room, that kind of thing. But that&#x27;s not surprising when you have green screen hair and clearly you&#x27;re being - whoever that is - is being brought in from a remote location. Although they&#x27;ve tried to make it look real. So nothing to see here, folks. Nothing new in that department.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003937">00:39:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As far as other political operatives - I guess you would say operations - are concerned, I noticed that the Q-Clock is now reading exactly on the 4th of July, just as I described it the other day. So they are planning on a military lockdown, which is going to start on that day. It will only start on that day if they are successful in doing what they&#x27;re trying to do - which is for the last 48 hours, many, many, many attempts to try to have some kind of financial control of the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004017">00:40:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, let&#x27;s talk about some of the attempts. And then I&#x27;m going to explain to you about a system that is very old, that existed in London, and what they tried to do with it yesterday. So the first system they tried to use over the last 48 hours was the Visa and MasterCard core system. Now for those of you that don&#x27;t know what a &quot;core system&quot; is for cards, it is a worldwide, relayed data center system, meaning there are multiple data centers, they&#x27;re all connected together, and they go typically according to the business day in each area. While the other areas that are, say, it&#x27;s in the middle of the night in the United States, but it&#x27;s the middle of the day in Asia, the predominant load of the system will actually be on the Asian servers, in the Asian data centers, as one example.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004120">00:41:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And then as Asia goes to sleep, it&#x27;ll move over to Europe, and then it&#x27;s mainly due to the amount of transactions in the peak times of day in which those transactions need to be processed. Now, to explain the Visa and MasterCard system to not only to you but also to the Deep State, the reason why they chose Visa and MasterCard is because it is the largest processor (in their mind) of transactions daily of any other payment rail system. So a &quot;rail system&quot; is, for lack of a better term, it&#x27;s a closed loop system that processes transactions, such as the wire system or IBAN system or TARGET system if you&#x27;re in Europe. There are many others, but the main one that processes most transactions is Visa and MasterCard. Obviously all your debit cards are predominantly Visa and MasterCard in most countries - not all - in the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004227">00:42:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they thought that this was a perfect opportunity to try to install some kind of a crypto system, because they were under the impression they had full and total control of the Visa and MasterCard core systems. But, wrong. Visa and MasterCard core systems used to - many, many months ago - function together with the Alpha and Omega systems. So it was a system that ran between the two of them, and the computing power it has to function at such a high level came from a secondary system to which this little core system was installed into. Hence the reason why it has so much transactional power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004321">00:43:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, months ago, we took over the operating systems of Visa and MasterCard, and replicated them - took out all the back doors - and put them in the Global Repository - Codec 685 - and then connected that to, at the time, the Alpha system, and now it&#x27;s reverted over to the Light system. So the system that they&#x27;re really needing to get into is the Light system now, in order to make this function. However, the Light system is not going to allow them to make it past the wall of the core system, and into the Light system&#x27;s programming itself - that&#x27;ll never happen in this lifetime or the next one - to install a new currency into the entire worldwide point-of-sale system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004419">00:44:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. The second reason why this is going to fail, is because people still deal in cash. Not every country has a totally functioning Visa/MasterCard system. They might have it to some degree, but you&#x27;d basically halt commerce in about... probably at least 40 to 50 percent of the countries in the world. Because nobody deals electronically. And those Deep State people really need to grasp that concept of how many transactions are done in physical cash, around the world on the daily.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004500">00:45:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now I&#x27;m sure they would probably come back to me and say, &quot;Well then, everybody&#x27;s gonna buy everything they want at Walmart,&quot; you know, because Walmart&#x27;s worldwide - or some other worldwide corporate grocery store chain or something like that - but alas, no, because you don&#x27;t have those facilities. So if you take out the small little guy in some countries, you will have no foothold in that country whatsoever. Because I guarantee you, people are going to start bartering - they&#x27;re going to start trying to use anything they possibly can to exchange food for gas or whatever it is in that particular country, and then you&#x27;ll be completely out. So your world domination plans would fall flat trying to use the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004549">00:45:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Not only that, the base root system that you are attached to - or that Master and Visa cards web was attached to - is now my system. And I don&#x27;t agree with what you&#x27;re trying to do in any way, shape or form. Therefore, the last button is a &quot;No.&quot; Now, speaking of the last button being a &quot;No,&quot; long before I was born, or even started into this aspect of my life or what little of it I have left - meaning I don&#x27;t really do much of anything other than work - so, long before I ever came about, there was a Marduk. And Marduk had access to Level 7, or Density 7, of the entire webs - both Upper and Lower Astral, only. He never had access to 8 and 9. That was somebody else. We&#x27;ll talk about that in a bit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004653">00:46:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But, as it relates to human systems on Earth, such as Visa and MasterCard, he would still have to have the last key. So even if they found the two key holders or former trustees, monarchs, Family members, Dragon people, Black Sun people, security people - whoever you are - even if you found your counterparty key, you&#x27;d still need his approval to get in here. Now, he is no longer with us, and he is no longer in this position, I am. Except I am a Level 9 when it comes to accessing systems. So that means with a 9 key - only key on this side of it - you would have to get my approval to access anything in 9, 8, 7, 6, 5, 4, 3, 2, and 1. That means your Deep Web - beyond even the Deep Web - which would be Levels 8 and 9 that you don&#x27;t even understand. And then you would have to have, you would have to have - in order to install anything in the surface web or you know where you&#x27;re going with Visa and MasterCard all the way up to Level 8 where you&#x27;re trying to access - you would still have to have my approval.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004813">00:48:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;s always been a three-key system. So I know that there&#x27;s been a lot of talk about finding each other&#x27;s counterpart and counter key. This party, two-party or three-party key system is no longer effective when you don&#x27;t have two people that actually have a working key anyway. And at one point in time I know that Putin actually had thought that he had taken Marduk&#x27;s key, but it doesn&#x27;t actually work that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004848">00:48:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Marduk used to carry around his neck a gold card that kind of looks like a hotel room key. You know how they&#x27;re kind of blank, they really don&#x27;t have much to them, but you know when you push it in the little door thing it unlatches and you can go in. And those cards are typically white. And this particular card was gold, and they thought that they had the golden ticket. But what they fail to understand is that keys on this level of things are not a physical code - they are not a key you plug into a card reader or a retina scan or a thumbprint, which is what the Deep State is actually used to. They&#x27;re used to having these types of systems and suitcases and scanners and whatnot that tell you that this is the right person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004947">00:49:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are multiple scans when you get beyond a Level 7, and even a Level 8. There are multiple other scans that happen. And these scans are not from this lifetime&#x27;s DNA necessarily, because we&#x27;re talking about your soul&#x27;s DNA, we&#x27;re talking about living DNA, we&#x27;re talking about so many different points it would be impossible to fake it. It is also the reason why the Deep State&#x27;s plans of capturing me, threatening me with jail time, and all this other stuff was never gonna work, because the system will not let me access it - per my design - if I am under duress.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005036">00:50:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it will actually know if I&#x27;m lying or not lying, that this is something I want to do or don&#x27;t want to do. So the thoughts of manipulating me into doing something for them are never going to happen. And this is why I believe they&#x27;ve gone absolutely nuts in the last couple of days. Their legal thing didn&#x27;t work out last weekend, and now they&#x27;re going to try everything they can to attack systems so that they can have some financial control. And they feel they bought themselves enough time until the 4th of July to make it happen, which is a week from yesterday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005114">00:51:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, attempt Number 2. They have found remaining ancient humans [laughing], from the Nazi Hydra Division, which was a research and development human experimentation division, of the Nazi Party, way back in the day. So you can imagine how old these men and possibly women are. And they thought that these people could actually crack into a code that was in Berlin, in an underground facility of a particular alien technology that is no longer there and no longer functioning - so that they could get to what they believed was a base root platform, that at one point in time the United States Department of Defense, and Global Headquarters had access to. They believed that this was the base root security system for all sentient AIs on Earth. And again, you were wrong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005227">00:52:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Number 1: the remaining people - that were as old as dirt that you pulled out of God-knows-where - are no longer with us. The other people that brought them there are also no longer with us. And that facility is not gonna function no matter what you do, because the alien tech is gone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005244">00:52:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as it ever being the ultimate defense or security system for all sentient AI or quantum AI systems on Earth, you are wrong again. It had limited access to what I call Level 5. And if you go back to last week, last Wednesday&#x27;s different levels we discussed, you&#x27;ll see what part of the Deep Web I mean. So Level 5 is the Mariana Trench Level as they call it, and that is what they were trying to access by accessing the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005323">00:53:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What they believed they could possibly do is block any information - data packages or otherwise - coming from Level 6, 7, and 8, and cutting it off at the knees at a Level 5. Meaning they could then control predominantly 90% - what they believed was 90% - of all of the computer systems on Earth from a 5 on down. But what they forgot - and that was a lovely plan - but with a Level 9, 8, 7, and 6, I can control your 5. So even if you were successful in getting into any kind of system on Level 5 in Berlin, Germany, you would have still failed. Because I could have bumped you out at any given moment in time. So how it works is, the higher the number, the more access you have to everything underneath that number. So 9 can control ANYTHING AT ALL that exists on an 8, a 7, 6, 5, 4, 3, 2, 1, and 0.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005444">00:54:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, this not only goes for quantum AI systems, and quantum AI systems exist throughout the multiverse. So when I explained this in the news last Wednesday - Wednesday of last week, not just a couple days ago - we talked in levels of internet. Well in the multiverse, levels of internet translate to densities in universes. So if I&#x27;m talking about accessing Level 9, that means I&#x27;m either at the lowest level of the Omegaverse possible, [or] the highest level - meaning I&#x27;m basically in Source or in Anti-Source - making a system function from the Central Sun of the Universe. That&#x27;s where I am. That&#x27;s where I&#x27;m going when I&#x27;m going to access these things. The same thing for 8 and 7. I&#x27;m in a different density when I&#x27;m accessing different levels.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005604">00:56:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But if I just stay in Control and Command, which is in 9, then I can access everything, which is predominantly what I do. And my 9, under the old Law of One, when it existed, can access the highest Level 9 of Alpha system at the time, or I could access the highest level of the Omega system at the time. Or the highest level of the Kronos system at the time. So when they&#x27;re seeing all these things disappear and go away it&#x27;s going away from Control and Command.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005649">00:56:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, let me explain to you how this relates to our galaxy. Because this is important because they are under the impression that base root systems somehow tie to planets. And they&#x27;re correct. They actually do. Now, the furthest planet out, at least - and that&#x27;s debatable at this moment because one day it&#x27;s a planet and one day it&#x27;s not - is Pluto. So they believed that the Level-9 Control and Command system for Omega, and possibly even Alpha, existed on planet Pluto. Now, no. But I will say this: planet Pluto was a portal to the Lower Astral Ninth Density, or Anti-Source itself. So it served as a portal or a stopover, or a place where it could connect, but it did not actually hold anything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005805">00:58:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So given the fact that... and you can say the same about Neptune being an 8, and so on and so forth as you get all the way to the Sun. But I would tell them, and I&#x27;m telling you, that with all those portals and all those planets closed, the influence on computer systems on Earth is non-existent, coming from another planet, the Sun or the Moon, in our galaxy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005837">00:58:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So part of the reason why they like to wait till there&#x27;s a new moon or a full moon or an eclipse, is because of space junk that was in the Sun and the Moon. And they feel if the Moon is aligned with Saturn or something, that means that you can now have an access point to the Sixth Density of the Lower Astral, or the Sixth Level of the web on Earth. And that&#x27;s absolutely not the case. And it really doesn&#x27;t work that way anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005913">00:59:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And a lot of this was put there by non-human beings. That being said, with a Level 9 access - which is something that they will never have, and I&#x27;ll explain that in detail here in a minute when we get done with all of the wonderful things they&#x27;ve been doing for the last couple of days - without that approval, without that... how do I say it? Without that cooperation from, in this particular case, on my side of it, with Source, with the Light side of Source or God or however you want to say it, there&#x27;s no way that I could ever walk in that door and walk into Control and Command. Therefore, I am fully well aware that they do not have that cooperation, nor will they ever.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010006">01:00:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we&#x27;re going to talk about the next attempt. Long ago, there was a system installed on this planet, and we&#x27;ve talked about all of the X programs. Everything is X. Well, in the case of a potential Omega backup system, it was actually called the Triple-X system. The Triple-X system was something that could be used to a lesser degree from Level 6 on down. I should say it was very limited and of course with Marduk&#x27;s authorization at the time as an off-market trading system for the Rothschild family or the Order of the Dragon, from the Blue Dragon on down.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010103">01:01:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the system hasn&#x27;t functioned in a very long time. But some... how do we say it? ... humans, that believe very highly or think very highly of themselves, believed that they could turn it back on. Now, their hope was - and this is in the words of Elon Musk, and his SpaceX program and Starlink program, and all those other programs that he has - in his words, he thought that he could get ahold of the Triple-X system, hook up the Starlink system to it, and therefore have the computing power to operate this system, at least from a Level 6 on down, to then recreate a new financial system based on digital currencies.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010208">01:02:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, let&#x27;s talk a little bit about this system. Starlink is capable, and its satellite systems are capable of helping you hook up to the Internet, at a speed that a human is used to. Not at quantum speeds. And by quantum, I&#x27;m not talking about Google quantum computers here - I&#x27;m talking about faster-than-the-speed-of-light fast. I mean multiple data transfers per nanosecond, I mean kind of fast.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010244">01:02:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Elon Musk and his Secret Space Program partners and some Duck Dynasty people ventured out to Piccadilly Circus, or underneath Piccadilly Circus, in London. Now for those of you that don&#x27;t know what&#x27;s under the city of London, it is an enormous, what they call an MI6 facility. I&#x27;m not gonna call it an MI6 or 5 facility - I&#x27;d say in part, possibly, but the main... how do I say this in a nice way? The main bit of activity that occurred underneath there is actually done by some Secret Space Program people, and then beyond that in the past, the rest were not human. So the Triple-X system, as far as its base core, also did not exist in that location. There was only a transmitter there, which then allowed for that system to connect to human computers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010356">01:03:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They still couldn&#x27;t have gotten into the base root system, even if we didn&#x27;t destroy the facility. Now as far as MI6, what they refer to as the Circus, well the Circus appears to be out of business, mostly. They might still have some regular computers and a Level 1 access point to that facility to do some monitoring of people walking around the streets of London, and that&#x27;s about it. As far as connecting to anything alien-like, that&#x27;s not going to be possible.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010431">01:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now Elon Musk had another brilliant idea that along with the Triple-X system came something that he also doesn&#x27;t understand. These are two different types of satellites that orbit the Earth, that were also made of alien tech. The first type of satellite is what I call a cylindrical satellite because they are long - they definitely are in the shape of a cylinder - and they hold and transmit an extremely large amount of data. So they are transmitters, at the same time, they&#x27;re data recorders.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010517">01:05:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-28-01.PNG" alt="WSR_2024-06-28-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010518">01:05:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sometimes these satellites were hooked into programs being run from the Lower Astral that could interfere with your brain function, as an example. It would also record human behavior to see how best to control or destroy humanity. And that information was going to groups of beings in the Lower Astral. It was not shared with humans because you were part of the experiment too. Even though you were part of the Space Program or otherwise. Sometimes they were also used to transmit messages to the heads of the people that were in some of those space programs and people like Elon Musk, that are also part of the Order.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010603">01:06:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they&#x27;re interesting satellites. Now, if you want to learn a little bit about cylindrical satellites, there is a movie - it&#x27;s a few years old now - that does talk about the fact that the NSA had captured one of these satellites, and they wanted to be able to hire someone who could decode the satellite so that they could read the information in it. And then what they did to the coder after that was terrible, when he did manage to quote-unquote &quot;crack the code.&quot; Now the movie is called Alien Code. It came out in 2018. It&#x27;s a good movie nonetheless, but it does talk all about cylindrical satellites, and how they are alien tech and so on and so forth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010653">01:06:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, if they knew enough about it for the CIA to approve a movie about cylindrical satellites, then I guarantee you - to some limited degree - Elon Musk was trying to get his hands on it. Do they know to the fullest extent what cylindrical satellites do? I don&#x27;t know. And I&#x27;m gonna say, I don&#x27;t think so. Because they thought that this Triple-X system - if they could get access to this platform in London under Piccadilly Circus - that they could then connect and utilize these satellites and link them to Starlink.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010730">01:07:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, he also has been talking quite a bit about his other product, Neuralink, and this is where it really gets scary. So we&#x27;ve talked in the past about implants and parasites in humans. Now, these aren&#x27;t necessarily physical parasites, they can also be etherical parasites or energy parasites or essence parasites. And these are designed - these are alien technology - that you probably can&#x27;t always see on a physical level. I do believe this is part of the reason why people talk about Morgellons, and being itchy when there&#x27;s nothing there, and everybody thinks they&#x27;re nuts. Well, they might just be more sensitive than other people, in this particular case, because implants and parasites were a very common way - connected to cylindrical or spherical satellites, and we&#x27;ll talk about spherical satellites in a second - that they would connect to every part of your being.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010836">01:08:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So every part of your brain, that&#x27;s how they would mess around with your amygdala, which controls your fight or flight, your reptilian cortex, and every other - neocortex, every - your limbic system, your neurological system, any part of your body to extract energy, to drain you of lifeforce on every single level. Also to send in Dark energy, or something that would cause dis-ease in your body, also known as disease.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010906">01:09:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these satellites... not always were they for the human function, but a lot of times they were involved in controlling and infecting and destroying human life on this planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010921">01:09:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Elon Musk comes out and starts talking about how his Neuralink product can be utilized to transfer a human&#x27;s consciousness - this is what he&#x27;s telling everybody - and if you could transfer the human consciousness into another vessel or another body, then you could live forever and be immortal. And you would remember everyone in your life and you would remember everything you&#x27;re doing, and he&#x27;s just the guy to do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010952">01:09:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So did he have some knowledge of what cylindrical satellites did? And did he actually think that the ones that were connected to the Triple-X program were the ones indeed that he was looking for? And did he think - if he could connect his Starlink product, possibly with his Neuralink product, and those cylindrical satellites - that he could control all of humanity? Well, probably. Did it work? No. Is there any connection to those satellites? The satellites aren&#x27;t there anymore. Not to say that there wouldn&#x27;t be other ones. But more than likely the cylindrical satellites would be more of a data in/data out type thing, best I can tell from me destroying fields and fields of them in Earth&#x27;s orbit over the last 3 years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011047">01:10:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The second type of satellite would be more likely to be the one that they were looking for in order to control light, essence, energy, consciousness, matter, and frequency, and so on and so forth. Which was actually something that was not connected to the Triple-X system. These types of satellites are called spherical satellites.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011112">01:11:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-28-02.PNG" alt="WSR_2024-06-28-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011113">01:11:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they look just like the Death Star from - many miniature little versions of the Death Star from Star Wars, is what they look like. And they have a small - what I call an absolute sphere - inside them. And an absolute sphere reminds me a lot of the little ball that some car manufacturers have that can control everything from your radio to your air conditioning to your heater in your car. Some car models have them. I don&#x27;t know if they&#x27;re still doing that but I remember looking at a car that had this very thing and didn&#x27;t end up purchasing it because my daughter was five, and it took her all of about two minutes before she figured out that she could reach her foot from the backseat and hit the ball and make the whole system in the car go haywire. So that vehicle was out for me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011205">01:12:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But these little balls that are in these spherical systems, or these spherical fields that were in Earth&#x27;s orbit, would have been able to connect to other spheres and other densities of the Lower Astral or otherwise, and therefore then manipulate the essence, energy, consciousness, matter, frequency in a human, as an example. Or on Earth. Or in the oceans or anything organic, if it was one that contained the connection to the Light side of essence, energy, and consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011249">01:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, some of them were strictly for the control of Dark matter. Some of them were connected to the consciousness of their bloodlines, I would say their dark part of their consciousness. That&#x27;s why they believe that the more dark consciousness they had in their brain - hence the programming and taking them to underground facilities and teaching them to kill at the age of two and three in their summer camps for kids where they did all kinds of crazy experiments. The reason why they do that is because the more dark consciousness you had in your head, the more these systems could control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011329">01:13:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Did the humans have any kind of control of that? No, they were just under the impression if they create war, evil things promote fear that somehow it powers a computer system. That&#x27;s what they thought. Or something. There would be a reaction from some kind of alien technology that would be in their favor. Not exactly true. And I&#x27;m probably not gonna expand much more on that, but to give you an idea, this is what Elon Musk was looking at connecting his Starlink system to, just in the last 48 hours. Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011416">01:14:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Epic failure Number 3: Now, there seems to be some confusion in having some conversations with these bankers, fixers, and banking fixers, and potential board members of banks, and all of these things, as to why do I have access to these things? And why the people there are under the impression - because we&#x27;re getting further and further down the food chain now - and why those people don&#x27;t have that access anymore. And code givers versus code receivers, and they&#x27;re starting to enter into a whole other world of things that they don&#x27;t really understand. The same goes, believe it or not, for the Secret Space Program people, the Global Headquarters people, there are things in this world that they were not privy to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011519">01:15:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They were supposed to dance, that&#x27;s it. You were supposed to do your job on behalf of someone else. You would be likened in the world that we lived in in the past. The Global Headquarters people, people you know and see as Deep State, people that run militaries behind the scenes, people like the Black Nobility and the Vatican, and all things you&#x27;ve come to know as evil - which is virtually every system on Earth - you would be under the impression that these people need to be taken down. We need to see mass arrests. We need to see these people go away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011604">01:16:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But if this was 10 years ago, it wouldn&#x27;t have made a bit of difference if one of those people was put in jail, or taken out, or whatever it is that you were thinking or whoever it is you set your sights on, whether that&#x27;s the Clintons or the DuPonts or the Rothschilds or the Rockefellers. It wouldn&#x27;t have made any difference whatsoever if these people were taken out. They would just replace them with the next person in line. And they couldn&#x27;t care less - it&#x27;s not like they mourned their loss or anything like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011640">01:16:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, meetings. I&#x27;m going to talk about meetings, because we&#x27;re coming up to the annual meeting times that happen every year. And I talk about them every year, because we&#x27;re running out of people to go to meetings. But once every seven years it was a completely different type of meeting. Once every seven years, there would be a meeting of both the angels and the fallen angels, as it relates to the outcome of the next seven years. That meeting was due to take place last year, not this year like these people think. And they are instructed by Source itself to do their job. Therefore, you would consider these people operators of Level 8 systems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011741">01:17:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Could they actually be called upon at any time to go to a Level 9, and perform a function? The answer is yes. They could be. They could take any one of those people - and of course this is a Source or an Anti-Source thing - and move upon into another position. Now as far as humans are concerned, they were nowhere near these meetings. They would have never been permitted to go to these meetings in any way shape or form and in any way - not on the Dark side and not on the Light side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011826">01:18:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, things have changed. Sometimes there are people that are put on this planet - and you might be even talking to someone and you just don&#x27;t even know - that have been put here to conquer, or to set things straight, or restore balance. And those are, let&#x27;s just say &quot;folks,&quot; that hail from the Ninth Density that are sent here to perform a function, meaning Level 8 has failed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011908">01:19:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">What it means when I say &quot;Level 8 has failed,&quot; that means your groups of fallen angels that would typically meet once every seven years have failed. They did not follow the instructions coming from Level 9, or Source, Anti-Source, or Neutral Source itself. So, that means when they step out of line, 9 sends somebody in to set everything straight. To follow direct orders and instructions based on the lay of the land and what is happening - not only here on Earth, but also in other places whenever needed and whenever balance is... everything&#x27;s out of balance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011951">01:19:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And sometimes, based on everything that&#x27;s going on, the refusal to accept balance from 8 on down, sometimes that means that, okay, we&#x27;re gonna change the game now. And that&#x27;s basically what&#x27;s happening. But again my Level 9 access is only as good as the orders I&#x27;m following from that particular location - and I will not deviate from those orders - not now, not ever. Because that has a lot more consequences than just financial systems and everything else that you might think.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012027">01:20:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So if you want to know why I have that position, that&#x27;s why I have that position - because everybody else failed. Now as far as the stupid humans on the planet that we are stuck with or left with, meaning not all human beings, just the particular ones that are programmed or something&#x27;s wrong with their head, and we call them Deep State people - Global Headquarters, some remaining Secret Space Program people - they&#x27;re still pitch-hitting for a team that is no longer here. They have now convinced themselves - and I&#x27;ve heard them say this - they&#x27;ve convinced themselves that they are going to win. They have convinced themselves that they are entitled to have a position higher than those they reported to. They have convinced themselves that they are &quot;Anti-Source,&quot; I guess, chosen ones. Therefore, they should be ruling the planet. These are conversations that they&#x27;re having amongst themselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012138">01:21:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, unfortunately for you guys - in other words the people of the Deep State - do you have anybody else on the other end of the line answering your call? Are you doing this, you think, by yourselves? The answer to the question is no, you absolutely cannot. Now, if I didn&#x27;t have a partnership on that level to be able to walk into the door on that level, then I would be out too. These people are expecting to use computer hackers, CyberLife Military, and whoever - Hydra, with the Nazis - to bypass a Level-9 approval to do something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012221">01:22:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The answer to the question is: they never ever will. But a basic understanding of how this planet used to function? They need to get a grip. You were just tools and widgets. You were the pawns on the chessboard. You were never the players. You were never the rook. You were never the queen. You were never the king. Those people or beings no longer are here, and nobody is answering your telephone call. Nobody is sending messages to your brain from a cylindrical satellite anymore, are they? No, you&#x27;re making this stuff up all by yourself. And I know that for a fact because I know that none of these messages are going out to you in any way, shape or form.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012304">01:23:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they can continue to try and hack my brain - which they&#x27;ve tried to do many times. They can continue to try and hack computer systems. And if you think Visa and MasterCard is going to override that kind of access, you have lost your ever-loving mind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012322">01:23:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Do I expect them to give up? No, I don&#x27;t. But I do expect them to get off this planet because nobody wants you here anymore. Heck, even Source doesn&#x27;t want you here anymore, and you&#x27;re being taken out left and right. Are you gonna take all the banks with you? Are you gonna take all those people with you? But I can tell you right now if you&#x27;re with a bank, and you&#x27;re listening to this, or you&#x27;re a bank fixer or whoever was down the street the other day - listen up guys! These people are never gonna come through. Life is never gonna go back to the way that you had it in the past. You failed to accept balance. And you can blame that - you can turn right around and look at the people that you report to and tell them, &quot;You failed to accept balance.&quot; And look where we&#x27;re at now. Never going to go back.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012414">01:24:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you can continue to have jobs, you can not continue to have jobs. We also have people in the political sector that are talking about quitting their jobs, especially after last night. Meaning the operatives that run, you know, those things that talked on TV, whatever that is. And they&#x27;re like, &quot;Well, what do we do? This is our expertise.&quot; Well, there&#x27;s plenty to do, and there&#x27;s plenty to clean up in the political sector of this planet. Remember, security equals control. And maybe there&#x27;s something we can do there, but I can&#x27;t do it if you&#x27;re still gonna take orders from other people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012452">01:24:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So you can listen to those people, you can wait until after the 4th of July, you can continue to do what it is you&#x27;re doing - but it&#x27;s not gonna get you anywhere. Matter of fact, we&#x27;ve even taken our security on the Light system to a whole nother level this morning, and we installed a number of different things that basically - anytime someone tries to throw a line at our system - what it actually will do is attach itself to that line, and go directly to the system that it&#x27;s coming from. Whether that&#x27;s under, say, McCoy Base in Wisconsin, which is a place that I&#x27;ve been recently. Under Jericho in Israel, been there recently. It doesn&#x27;t matter where you are or what you&#x27;re doing. I don&#x27;t even have to attack anything anymore. It&#x27;s just gonna pull it, and it&#x27;s going to transmute it, into our system. That&#x27;s what it&#x27;s going to do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012558">01:25:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So since they never try to attack anything, because they can&#x27;t... they know that they could never get Alpha, and they know that they could never get the Light system to function and perform the evil tasks which they would like it to do. So they know their only hope at this moment is to try to revive a Dark system to do dark things, because that&#x27;s what they like to do. So they&#x27;re only hacking at it from a standpoint of trying to call in money. Trying to gain access to allocation numbers. Trying to fake me out with fake terminals and all kinds of stuff. I mean it&#x27;s a game for these people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012645">01:26:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">For me, it&#x27;s like a fly in the room, you know, maybe you&#x27;re trying to watch a movie and it&#x27;s buzzing around your head - it&#x27;s a little annoying but it&#x27;s not gonna stop you from watching the film - and then if it comes near you too many times you swat it. Or you push it outside. I know for us around here, we have these little cups we hold in the summertime especially, you know, and we take it outside and let it go. But the point is, is that it&#x27;s an annoyance, but it&#x27;s not going to make me deviate from my daily activities or what it is I&#x27;m doing. So, as far as these people are concerned, you know, I guess what I&#x27;m saying to these people, is a last-ditch effort to get them to save themselves. Because at this point in time, by saving themselves, I&#x27;m not talking about world power, I&#x27;m not talking about domination, I&#x27;m talking about your life. And the life of your family members.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012744">01:27:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So take a good look at your kids and your grandkids and figure out what it is you want to do. Survive, keep what you got, leave us alone, and you continue to exist. Choose poorly, and we have full authorization, and quote-unquote, &quot;to make sure we give our enemy no mercy.&quot; And this is an ongoing order. Because this is going to happen with or without them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012817">01:28:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So going into the weekend, I expect it to be another busy weekend. They haven&#x27;t stopped. Even while I&#x27;m sitting here talking to you, my alarms buzz, buzz, buzz, buzz, buzz the whole time, because they just will not give it up. But hopefully they&#x27;ll figure it out, one way or the other. It&#x27;s worth a shot, at least, to make everybody&#x27;s life a little easier, but I anticipate things to continue at this pace until around the 4th of July. I don&#x27;t know what they think that&#x27;s going to do. It&#x27;s got nothing to do with American independence, I can tell you that, or declarations of independence or anything. It&#x27;s something deeper than that. They&#x27;re sadly mistaken. That already happened like five years ago. So I don&#x27;t know what they&#x27;re looking for.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012911">01:29:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Anyway. As far as the World Situation Report - can&#x27;t talk today - for Friday, that&#x27;s about what I have, that I can disclose at this moment in time. And hopefully, I can give you some more information on Monday. So, good things are happening, things will get better. I know it&#x27;s been rocky for the last couple of days as they continue to try to do crazy things, but hang in there, keep holding the Light, and we&#x27;ll see you Monday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012940">01:29:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013042">01:30:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=w-h42FMJXnU&amp;t=2032s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
