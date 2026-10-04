@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-02</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-02 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Declassified - Beyond The Headlines
+        <br>Episode Five
+        <br>2026-Oct-02
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261002_GIA-Declassified.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the October 2, 2026 report, joined by Tank, with Senator John Kennedy calling Iran&#x27;s leaders reptiles and President Xi the &quot;chief reptile&quot; among China, North Korea, Russia, and Iran -- part of renewed alien-invasion hype that Kim calls staging, not disclosure. Tank outlines End Times prophecies involving the yellow jinn, the Mahdi, al-Masih ad-Dajjal, and Gog and Magog. Kim ties them to Yom Kippur, when Merovingian bloodlines, including the Kennedy family, went to sites worldwide with artifacts, hoping the Machine would choose them to help stage Armageddon and then present themselves as humanity&#x27;s saviors.<br>
+<br>
+Kim discloses Palang in Yunnan, officially uninhabited, as a breeding ground where female infants spared from infanticide are taken and later used to perpetuate Asian royal and Deep State bloodlines. Other Colors have their own breeding locations. Tank recalls missing children, CPS, the Clintons, and Senator Nancy Schaefer&#x27;s investigation. Kim then describes an alleged FlyDubai hijacking -- an Indian copilot traveling on an Omani passport supposedly stabbing the pilot -- as a false flag intended to blame Iran, provoke Israeli retaliation, and advance another world-war scenario.<br>
+<br>
+Behind the larger operation are three women -- one in China, one beneath the United Nations, and one in Japan -- to whom Kim says the world&#x27;s Deep State is now bowing. They sent Xi to meet Trump to discuss pandemic payouts, costs, and how many Americans could be lost without sacrificing control of the Machine. Their plan was a Marburg-like pandemic using a boomslang-venom substance manufactured at 20 sites in China, intended to begin October 2 and no later than October 5. The lead Chinese woman also tried to open the &quot;floodgates&quot; controlling water in human bodies and across the planet, but could not bring anything through the gate and came after Kim instead. Kim says the woman is now gone and the Simulation cannot bring in money or its own creations unless the gate&#x27;s controller allows it.<br>
+<br>
+Kim recalls that in 2018 an operative warned her that if &quot;they&quot; were not back in control by the 2019 UN General Assembly, they would release a global pandemic; Tank confirms Kim told him this before COVID. Kim says the last 10 days have been one of the hardest battles she has fought in years. When Tank asks whether the current operation depended on getting her to release money, Kim clarifies that they were repeatedly trying to get her to open the gate -- including the Chinese woman herself. More follows in Beyond the Matrix.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000155">00:01:55 - Senator Kennedy</a></li>
+<li><a href="#t-000431">00:04:31 - The alien invasion hype.</a></li>
+<li><a href="#t-000543">00:05:43 - End Times prophecies and the yellow jinn.</a></li>
+<li><a href="#t-000852">00:08:52 - What happened on Yom Kippur.</a></li>
+<li><a href="#t-001552">00:15:52 - Palang</a></li>
+<li><a href="#t-002310">00:23:10 - Missing children, CPS, and Nancy Schaefer.</a></li>
+<li><a href="#t-002540">00:25:40 - The FlyDubai hijacking.</a></li>
+<li><a href="#t-003334">00:33:34 - Xi, Trump, and a Marburg-like pandemic.</a></li>
+<li><a href="#t-003615">00:36:15 - Opening the floodgates.</a></li>
+<li><a href="#t-003853">00:38:53 - The three women the Deep State bows to.</a></li>
+<li><a href="#t-004028">00:40:28 - The 2018 pandemic warning.</a></li>
+<li><a href="#t-004313">00:43:13 - They wanted Kim to open the gate.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000022">00:00:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Hello, everybody, and welcome to Declassified, where we go Beyond the Headlines here with Kimberly Goguen. And my name is Steffan Rowe, more commonly known as Tank, and I will be assisting with today&#x27;s broadcast. And how are you today, Kim?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000039">00:00:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, I&#x27;m hanging in there. It&#x27;s been quite a rough - a really, really rough - couple of weeks, but I appreciate you coming on today. For those of you that haven&#x27;t seen Tank and Kim together in a long time, we do work pretty well together, and he was gonna be recording something else today for the Think Tank, and I asked him if he would jump in for Declassified and Beyond the Matrix because some of these things are things that I know Tank also knows quite a bit about. So, welcome to Declassified.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000115">00:01:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yes. It is October 2, by the way. I missed that part, just to clarify.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000120">00:01:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s October 2nd, 2026, and this is &quot;Declassified - Beyond the Headlines.&quot; Not &quot;[Beyond] the Matrix&quot; - &quot;[Beyond] the Headlines.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000128">00:01:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Jeepers. I&#x27;m nailing this. Okay. With that in mind...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000132">00:01:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I make him nervous. I make him nervous, everyone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000136">00:01:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Haha! Alright, Kim. So go ahead and let&#x27;s hear what&#x27;s happening in the news this week with everything aliens. I know things are pretty exciting out there, and you wanted to start maybe with Senator John Kennedy and his latest reports of Reptilians in Iran?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000155">00:01:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Actually, yeah. We did. And before we play that video, I just wanted to kinda tell you, this seems to be a common theme right now. It&#x27;s appearing in a lot of social media. It&#x27;s appearing in alt media, and it&#x27;s actually appearing in the mainstream news. So Senator John Kennedy gets on the news and says, basically, that Iran... Iran, he says Iran is being run by reptiles. So... Yeah. So let&#x27;s take a quick look at that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000227">00:02:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Alright.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000229">00:02:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Will-Cain: Joining me now, Louisiana Republican Senator John Kennedy. Senator, it&#x27;s good to have you here on the program. What do you make of what happened today at the UN, and what do you think could happen, potentially, with President Trump and Iranian delegation?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000245">00:02:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Senator-Kennedy: I think that the people running Iran are reptiles, and they&#x27;re part of a colony of reptiles: China, North Korea, Russia, and as I said, Iran. The chief reptile - the quarterback - is President Xi in China. You can&#x27;t trust any of them. All four of them are the same. It&#x27;s like the same hooker in different dresses. They all lie like timeshare salesmen. You can&#x27;t trust them. I wouldn&#x27;t turn my back on any of them even if I thought and knew they were two days dead.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000339">00:03:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Wow. That was kind of interesting. Was it not?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000343">00:03:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yes. I think his voice is... He sounds a little Reptilian to me, to be quite honest.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000350">00:03:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, so that that sounds like the pot calling the kettle black a little bit, doesn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000354">00:03:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. For sure. So what&#x27;s the idea behind this? I mean, he&#x27;s basically saying that Russia, China, and Iran are a colony of reptiles.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000408">00:04:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. Oh, China also - because he says in this little clip here that President Xi of China is the king of all the reptiles.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000420">00:04:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh my goodness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000421">00:04:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000423">00:04:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So are they coming out directly and just basically outing themselves at this point? Or are they just dropping hints about what&#x27;s about to go down?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000431">00:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, I would say that if they had their way, we would have been invaded in this last 10 days or so, since I did the last report. They really are hyping it up. They are even bringing forward additional clips and things like that from when, you know, the unknown drones over New Jersey are back. That&#x27;s kind of hitting Twitter again. I mean, we&#x27;re hearing a lot of stuff around the internet, both in the alt media, the intelligence reports, the Alien Invasion is about to happen. And I would say that, you know, these are... They&#x27;re waiting for their people to join them, let&#x27;s just say. But, yeah. I did wanna talk about something else that you might know a little bit about too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000518">00:05:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Let&#x27;s hear it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000520">00:05:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So a friend of mine, and you&#x27;ve probably heard from Agent M before, he&#x27;s told me a little bit about a prophecy in the Middle East. Allegedly, it&#x27;s an End Times prophecy, and it kinda goes along the lines with what Mr. Kennedy might be saying. He didn&#x27;t... they don&#x27;t... it doesn&#x27;t specifically talk about reptiles, though. Tank, what do you know about that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000543">00:05:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this... I&#x27;m very familiar with... every religion has some version of an End Time prophecy, of course. Right? In the Quran, it expanded on the Hadith, right? Which is the idea of the center of the Day of Judgment, which I think is pronounced &quot;Qiyamah,&quot; right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000603">00:06:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And the idea is that there&#x27;s basically these yellow jinn that are under the earth that are going to emerge. Now this is directly from one of my Islamic friends. We talked about the yellow jinn that are preparing for the Day of Judgment and that they&#x27;ll emerge from beneath the earth and wreak vengeance on the infidel. Now that&#x27;s one way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000623">00:06:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now, the way that they identify this is like, the moral decay of society, which, obviously, we&#x27;re living in all the time. The economic shifts and competition in architecture and structures all over. The idea of barefoot destitute shepherds competing to build the tallest skyscrapers, right, which is kind of what you see now. And then, widespread political turmoil, which kind of something that you feel like we&#x27;ve been living in forever. But, clearly, these things... with these prophecies - also like the Book of Revelation, the Rapture - they&#x27;ve been trying to implement and showcase this type of thing, and they all kinda overlap. It&#x27;s also one of the places where, like, most End-Time prophecies, the Jehovah&#x27;s Witnesses and the Christians and the Muslims and even the Jews have some version of this, of the End Times. And that&#x27;s what they&#x27;ve been talking about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000721">00:07:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So it&#x27;s interesting that you kind of bring up a little bit that this is not just the End Times prophecy for the Islamic people. They do mention something about new imams being appointed, which is kind of like the Islamic pope sort of, in a way. They don&#x27;t specifically cite Iran, per se, where these yellow people are coming from in other religions necessarily, but they do say there&#x27;s always gonna be a fight between (allegedly) the chosen ones and... Or the or the Mahdi or the Yeshua, Jesus. There&#x27;s gonna be a fight, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000809">00:08:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. So it&#x27;d be Al-Masih ad-Dajjal, which is like the Islamic version of the Antichrist. Also, the Islamic culture believes that Christ is a figure and that he will return. There&#x27;s the al-Mahdi, which is like a righteous leader from the Prophet Muhammad who will return. And then Gog and Magog... now Gog and Magog are sometimes attributed to being gods themselves, but they&#x27;re actually tribes that are locked behind a barrier who will break through and cause widespread chaos on Earth before being subdued by divine intervention, and God comes down and basically stops it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000852">00:08:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, interestingly enough. So... we&#x27;re talking about all of this for a reason because there was an event that occurred behind the scenes on Yom Kippur. And for those of you that don&#x27;t know what Yom Kippur is, that is the day... which is kind of like New Year&#x27;s Day, and there&#x27;s a common greeting for Yom Kippur, which is &quot;May you be entered into the Book of the Living,&quot; which kind of is gonna give you a little teaser into what we&#x27;re gonna talk about in Beyond the Matrix too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000927">00:09:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But in this particular case, back in 2010, I actually was in China at this time. Let&#x27;s just say, I landed in China around this time, and this is at the point where they drove me into the middle of nowhere China. I had no idea - you know, we hiked for miles into some forest somewhere, and we ended up going down a hole in the ground, and that&#x27;s where I saw what &quot;Catholic Kim&quot; thought was the Ark of the Covenant. Also on the same day, but that was back in 2010.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001003">00:10:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So this year, for Yom Kippur... these people had been preparing for this for a while. And it has to do with a 26,000-year cycle of the opportunity for these non-people people, including the bloodlines of these people we know as the Merovingians. We also know them as the Kennedy family, so interesting that we&#x27;re calling Iran the bad ones and them the good ones. Because a lot of people crawled into... I&#x27;m not gonna call it they &quot;crawled into a hole,&quot; I would say that they went to various places that they felt that they should be on Yom Kippur, hoping to be the chosen ones of the Machine to whereby they would then have more power and control during a Simulation. And so then they are going to be the Saviors and also cause the problem at the same time. So the intention here is to put on a show, and we are now going to have apocalypse number... Oh, this would be Armageddon, right? Where the Christ fights the Antichrist - is that how it works in the Armageddon?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001125">00:11:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yes, it does. It&#x27;s a little drawn out differently, but, like, the Day of Atonement is Yom Kippur. Right? (Kim: Yes.) So &quot;atonement&quot; meaning &quot;at-one-ment&quot; and also to atone for one&#x27;s sins. The idea is in this massive tribal wave, actually. You had everyone gathered around the tabernacle, and they would blow the horn. And when this horn would go off, the tribes would do like a wave, like a football game. Right? And they would all embrace it, and all the energy would fly around these massive tribes, like, two-million-people tribes. As they celebrated, their sins were forgiven. That&#x27;s what the idea was behind the Day of Atonement, like, the way it&#x27;s described by the Jews. But it was one of those things where everyone had to bring sacrifices - it is a blood ritual for sure - those are the things that people don&#x27;t talk about as much. Which kinda speaks to what you are saying. It&#x27;s also when God was most relevant because it&#x27;s the only time the high priest would go into the Most Holy Place around the Ark of the Covenant - around the exact thing you&#x27;re talking about. So the fact that you thought or that you said it was the Ark of the Covenant, I would say is right, probably.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001244">00:12:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, some covenant, for sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001246">00:12:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And so what had to happen for all of the people to be redeemed: everyone was waiting on the high priest to go - you know, who they believed was the most righteous - to go into where the actual Ark of the Covenant was. So that makes sense is what I&#x27;m trying to say in reference to what you&#x27;re referring to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001308">00:13:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, apparently, in this little ditty that was going on there, they did go to these respective places with some artifacts. These are all over the world. There was even a guy in Chicago. There was a guy in Milwaukee. There was other... There were two locations in Israel where they were. We&#x27;ll talk about that in Beyond the Matrix. But these people had every intention of setting the stage for the fact that we were gonna be overrun by demons, apparently, very soon. That&#x27;s the whole point of this reinvention of public news of Alien Invasions. And, hey, it&#x27;s NOT disclosure. That&#x27;s my point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001351">00:13:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/l2nNWPaI89U" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001352">00:13:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sabrina-Singh: These are not U.S. military drones. Again, this is being investigated by local law enforcement. What... Our initial assessment here is that these are not drones or activities coming from a foreign entity or adversary.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001407">00:14:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: This is a whole setup for them to come in and save us all - or not - and we&#x27;ll have the Armageddon. We&#x27;ll all get in line, and we&#x27;ll all revere these Bloodline Families of the Machine as God. So that&#x27;s where we were going.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001427">00:14:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s a really deep principle. It&#x27;s actually filled with lore from the world of conspiracy and the... what is it called... the Iron Mountain Report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001438">00:14:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/HBSzwV_3jyU" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001439">00:14:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: They talk about how do you bring about world peace - because we live in a war system - and one of the things they talk about is this fake Alien Invasion, right? So for them to revisit these drones - or whatever they were that they&#x27;re they&#x27;re trying to classify as aliens - one of the things they said in the actual government documents is they would have... they would use holographic technology to bring about - and drones - to bring about a fake Alien Invasion, which is exactly what they&#x27;re talking about here. Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001511">00:15:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. It&#x27;s pretty funny. Yeah. I know. But there is a little bit of truth to things crawling out of the ground, though, a little bit. And we need to talk about this because it actually goes into what&#x27;s happening behind the scenes at the United Nations, and in the meeting with Trump and President Xi of China. So I wouldn&#x27;t normally talk about this kind of crazy in the Declassified - I try to keep this pretty mellow, but I&#x27;ve gotta at least mention this here. Because there&#x27;s so much intelligence information that has happened in the last 10 days. I&#x27;ll leave this one here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001552">00:15:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So... Okay. So there&#x27;s a little place, and if you are in our Community Chat, you&#x27;ve probably seen me post about it, called Palang in China.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001601">00:16:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/QtB8EXOhjTU" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001602">00:16:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: According to information from the Chinese government - which obviously is always censored - but in this case, there is a population of zero there. But when you go to Google Maps and Google Earth, if you manage to find Palang in the Yunnan province, you&#x27;re gonna see there&#x27;s tons of houses there. And, technically, China allegedly kills females. I can&#x27;t remember, you called it something very specific.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001636">00:16:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Female infanticide, it&#x27;s called.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001638">00:16:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Infanticide. Okay. So China allegedly kills all these females, but what we have found is they bring all of these infants to this particular area and they become breeders for something very specific here. Now, there are people that had a specific position - at one point in time on this planet - who impregnate these women, generation after generation after generation, and then they take in a soul that doesn&#x27;t quite look like a person&#x27;s. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001723">00:17:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Hmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001725">00:17:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, I wouldn&#x27;t say it looks like the jinn from the movies I&#x27;ve seen, but I&#x27;m gonna say to you that I would put them in the weird bug-like looking creature, perhaps Mantids-somewhat category. There are also other types that come out of the ground there, but it&#x27;s like a giant breeding ground for the Merovingian families. And this is where the Deep State actually comes from, those Bloodline Families of the Deep State. They actually come out of the ground - that part&#x27;s true. And the prophecy does say yellow jinn specifically, meaning &quot;yellow&quot; is often referred to as China. So is there some truth to that? Yeah, if they had their way this past week. Sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001813">00:18:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well... and I had shared this with Kim earlier, and I do think it&#x27;s valuable and important to know, right? That Kim represents a genetic anomaly that occurs every, you know, thousand and eight years or something to that effect. Right? Is that fair to say, Kim?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001830">00:18:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, I&#x27;m just an anomaly in general, Tank. I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001835">00:18:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: But if you look throughout history, you&#x27;ll see that there was times in history, like when Moses was born, there was a death decree on the firstborn male child of all the Hebrew children. When the Messiah or Jesus or Joshua or Emmanuel - whatever you wanna call him - when he was born, Herod had another death decree where all the male children of, you know, Bethlehem were all killed off. Right? And, also, what you had right around the time that Kim was born, I fervently believe they were looking for Kim because they expected her to be Asian of some kind. There... something that was in common practice that she was just referring to is female infanticide, right, where they would kill... Because they were only allowed to have one child, so they wanted to have one child that would carry on their name. So they would - that&#x27;s what they justified it with - but they would kill the female, the daughters that were born. That was very common.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001932">00:19:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And that&#x27;s what you&#x27;re talking about, right? That there&#x27;s actually a place where they would go, and they wouldn&#x27;t kill them. They would offer them up - and I just wanna make sure I understand this correctly - they would offer them up, and basically use them to breed and reinforce their bloodline. What you said it was... these holes were the real Deep State, the hierarchy emerged from and populate?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001959">00:19:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It was a deeper access into the Machine. And so at certain points in time, until around 2007, at certain points in time they would come to the breeding ground, breed the women, and then the royal families of Asia - all of Asia, actually - would emerge from there. There are other places in the world for the artificial white race humans. There are other places in the world for the black humans as well that would be born. And yeah, it&#x27;s just a perpetuation of their bloodlines on the planet. Their intention is actually to overrun the organic people. They would like to take over completely. So they&#x27;re interbreeding.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002051">00:20:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So how does this go back to President Trump and President Xi at the United Nations?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002058">00:20:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay [laughing]. Yeah. Alright. So we all know that the United Nations General Assembly has been going on now for quite some time. You know, it goes on for about a month or so before we even see it in the news. And then they had the General Assembly speeches. Netanyahu got up there, you know, talked a bunch of stuff. Everybody walked out. He actually patiently waited for everybody to walk out. So, I think he looked very surprised. You know? I&#x27;m kidding, he didn&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002133">00:21:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And there&#x27;s a few other things we have to talk about that too. But as it relates to the United Nations meeting, the interesting part about what we had found just a few days ago... probably now it&#x27;s been almost a - not a full week ago - so it was about the beginning of this week. I got a lot of... see, everybody thinks I took, like, some time off to relax, have a good birthday. That didn&#x27;t happen at all. I actually have a torturous birthday every year, so I don&#x27;t even celebrate it anymore. Not because I&#x27;m sad about getting old or anything like that, like normal people. No. No. No. No. Around here, it&#x27;s like everything blows up. In this case, I had Asian women coming after me all day... and night on my birthday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002220">00:22:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So come to find out, I started looking for these three in particular Asian women that seemed to be in charge. Now they looked very militant, very general-like, and they could have hailed from those mountains because oftentimes the older women become the &quot;nannies,&quot; so to speak, and they are militant women that run these &quot;camps&quot; in China. And so it wouldn&#x27;t surprise me that these women are here. Now they don&#x27;t just breed Chinese royal family folk. They also are responsible for breeding most of the Asian folk in the world as it relates to royal families and other bloodlines.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002310">00:23:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The British have their place where they come from. All the different Colors have their own locations where they all do the same thing. You know, children go missing every single day. It&#x27;s no surprise that Hillary Clinton - it was something Tank and I actually talked about years ago - was a part [of] and behind CPS. Remember when we found out about that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002331">00:23:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002332">00:23:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And that the Clinton Foundation was actually listed on their website there for a while. So they take the kids wherever they can take the kids, basically, and use them as breeders for their own bloodlines because they have to have a humanness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002348">00:23:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002349">00:23:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Oh, yeah. For sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002352">00:23:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, it&#x27;s just to emphasize that point while you mention it. This is one of the reasons why a very famous senator, I believe her name is Nancy Schaefer, was killed in an alleged murder-suicide with her husband - because she was traveling the world talking about CPS. And the actual footage she had was of planes leaving from Washington, D.C. and also in, I believe it was Hot Springs, Arkansas. They would leave on Thursday night with children they took from Child Protective Services to go to China. They would go to China, and they would come back with like half as many kids. So yeah. And that that was a fact. That&#x27;s why she got killed because she was gonna bring that out about the Clintons.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002437">00:24:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So that definitely reinforces the point you&#x27;re making.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002441">00:24:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s very interesting. I&#x27;d forgotten about that. I think you talked about that on a Life Force meeting an eon ago. I wish we still had a lot of that footage. It looks like a lot of it&#x27;s gone now. But...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002452">00:24:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: We got it. Don&#x27;t worry.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002453">00:24:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know. Somebody&#x27;s got it somewhere [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002455">00:24:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And so, to continue on with the story behind this, there are other events that have taken place as well in the last few days to reinforce who&#x27;s gonna be the Savior and who is not gonna be the Savior. So an alleged plane - I&#x27;m saying &quot;alleged&quot; plane here - so the intel actually came in also regarding this from Agent M a couple of nights ago. And, you know, none of this happens when Kim needs to sleep, you know that? It always happens like, here it comes, oh, seven o&#x27;clock! I&#x27;m hoping to just... you know, it&#x27;s been since 3AM I&#x27;ve been working. I&#x27;m like, okay, you know, now&#x27;s the time for a cup of tea and the movie. And it didn&#x27;t work out that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002540">00:25:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So FlyDubai - Emirati airlines - was on a routine flight from Dubai to Israel, allegedly. The pilot was Emirati, and the copilot was allegedly Omani, which turns out he was not. He had an Omani passport, however, allegedly, he was from India, so we found out later. The Omani copilot allegedly stabbed the pilot and tried to hijack the plane.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002606">00:26:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: He intended to crash the plane with almost 200 Israeli passengers. Someone on the plane managed to take control of the cockpit, and, apparently, because this happens because it&#x27;s so easy to do that these days. I mean, you know, ever since that whole 9/11 situation, we probably remember that event somewhat.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002626">00:26:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002627">00:26:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: He just flew straight through the wall there with the locked doors to get into the cockpit. Thank God, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002634">00:26:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. That&#x27;s realistic.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002635">00:26:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And apparently... Yeah, that&#x27;s realistic, that could happen. Yep. And apparently, there were two other pilots also on this flight. Woo! [Hearty laugh.] Isn&#x27;t this amazing?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002648">00:26:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Bad planning by that terrorist, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002651">00:26:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: [Hearty laugh.] This is atypical [typical] Q-clearance people, guys. It just really is. They cannot run an operation, really. I don&#x27;t know. Maybe those breeding grounds over there in China, too much inbreeding, it messes with their brain or something. I&#x27;m not sure. But here we go again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002710">00:27:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So two other pilots are also on this flight. They did an emergency landing in Saudi Arabia and rumors of Israeli jets accompanying the plane until it landed. Israeli and Saudi authorities are questioning the Omani copilot (which is actually found out to be Indian, but not in the news, of course), and speculations of the Iranian Guards being behind this - the reptile Iranian people, according to John Kennedy. [Giggle.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002739">00:27:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now the story is coming together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002740">00:27:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And he [Agent M] said to me, this smells like a false flag. However, he did manage to send us a little bit of footage, which I&#x27;m sure we&#x27;ll put in here, of the flight pattern and the actual pilot here who was allegedly stabbed. Now I have also a good friend of mine who is actually Israeli. And you may or may not know this, but all... Israel has conscription. And that conscription basically means that all people of Israel - every citizen of Israel by the age of 18 years old - must join the military for a time. This is men and women.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002823">00:28:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That is correct.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002824">00:28:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So this is a female friend, and she also was a flight attendant for a time for an airline which frequently flies out of Israel. And she told me that there was no chance of this happening. But anytime... She said that a flight [that] actually leaves Israel or comes to Israel - that is considered going over international territory, which, given the size of Israel, it&#x27;s hard not to fly over international territory at this point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002858">00:28:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So she basically said that it&#x27;s always accompanied by Israeli jets. That&#x27;s a common thing that happens. So this is not an out of the ordinary situation. She said anytime there&#x27;s tension in the Middle East - which Lord knows there has been for, oh, I don&#x27;t know, a little over 1000 years and longer than we&#x27;ve even had jets and planes - but hey.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002922">00:29:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Pretty much that&#x27;s the thing, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002925">00:29:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. It&#x27;s just kind of a thing, you know? It just happens there. And I&#x27;m sure there... There&#x27;s a very good reason behind that, I guess, for the Deep State anyway. For our side of it, we&#x27;re like, meh. You know? Okay. Just making another mess. But anyway, she said there&#x27;s no way this could have occurred. I mean, she&#x27;s flown those planes. It hasn&#x27;t been all that long since she was a flight attendant, maybe a decade or so there. And this was a total setup, 100%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002955">00:29:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: What&#x27;s the point, though? What are they accomplishing by doing this?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003000">00:30:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, you know, they need that whole world war situation to occur. And so, it&#x27;s kinda like the same thing that happened during 9/11 as well, where the Saudi Arabian alleged terrorist just happened to throw his passport on the ground before... you know what I mean?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003021">00:30:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: It&#x27;s amazing, yeah - the solid steel burned, melted to the ground - but a passport survived. That&#x27;s perfectly realistic. That just happens. Yep. Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003031">00:30:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, absolutely. See, Saudi Arabia makes special passports, Tank. They&#x27;re very special. Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003037">00:30:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Very durable. I mean, it&#x27;s very impressive. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003041">00:30:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. And apparently, no airlines who also buy their planes from Airbus and also Lockheed Martin and other places - Boeing, of course - and they don&#x27;t get manufactured either, with orange or black boxes when they are sent to Israel, or to the Middle East for a Middle Eastern airline. They take those out, so that in the event of a hijacking such as this one... And they also don&#x27;t have those extra special locks that have been on every plane since 9/11 either. So people rushing... oh, yeah, that... see, that happens every day. You know? That&#x27;s a thing. I mean, I&#x27;m sure you&#x27;ve rushed one of those doors to get some wings, or something on a flight.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003125">00:31:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You have to, I mean, like, if you want the... you know, I wanna take a picture with a pilot or something. Yeah. Sure. That would be normal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003131">00:31:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. You know, I guess, I thought about it, but I&#x27;m not as brave as you. So... I know. [Laughing.] So, anyway, the point is is that they would actually control the plane from the ground. That&#x27;s how it would actually happen. The plane would be landed safely, and there would be no action-movie-type pilots rushing in. There happens to be two extra pilots on the plane. I feel like I&#x27;m watching a movie, a bad B movie right now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003159">00:31:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. Like, in one of those old episodes of &quot;Airplane!&quot; We&#x27;re like, okay. We&#x27;re gonna fly it in. Just... we&#x27;re gonna figure this out, guys. When you can just take control. They&#x27;re all basically just drones, really. I mean, you have a pilot, but they could be just drones just with a flip of a switch.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003215">00:32:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And you know, of course the Iranian Guard would have to be involved. And so now, Israel allegedly is gonna have retaliation on Iran. And they&#x27;re gonna come save us from the evil reptiles, which apparently, Israel probably is prepared because of the conscription. So their military is gonna save us all - they&#x27;re the chosen people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003236">00:32:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003237">00:32:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003238">00:32:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. They&#x27;ve [been] waiting for this moment. So everyone is trained on how to use military weapons, and they&#x27;re trained to protect themselves, and Krav Maga [Hebrew for &quot;contact combat&quot;], and all types of things. That is very common - every single person has been trained that way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003253">00:32:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, and especially alien attack weaponry.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003256">00:32:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. That&#x27;s standard, of course, in Israel. [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003301">00:33:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yes. Because it could happen. You gotta go with what the prophecies say. (Tank: Yeah.) Well, not only that. You know, there was also a... Like I said, the large intent of them taking on - it wasn&#x27;t just Israelis either, and they weren&#x27;t just fake Jew - I call them fake Jews. These are the Bloodline Families, right? That call themselves Jewish that really are not. But they did have an intention of taking these special positions - which we&#x27;ll talk about what they were in Beyond the Matrix - but anyway, they did have an intent of doing that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003334">00:33:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So back to Trump and the United Nations. So now I&#x27;ve got three Chinese women. I&#x27;ve got one in Japan that I can clearly see that is also in charge, but the main one is in China. And, apparently, the intent here, and the reason why Xi actually met with Trump was to release this Marburg-like virus. The intelligence behind the scenes that was going on... so we were gonna have another pandemic, is basically what they were going for. The intelligence said behind the scenes that there are 20 sites in China that are manufacturing a venom-like substance which comes from the boomslang snake. So if you look that up, it causes internal hemorrhaging and all of these types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003428">00:34:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I was working on this before I ran into said Chinese women - happy birthday to me! Happy birthday...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003436">00:34:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, this is all on your birthday?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003437">00:34:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah. Happy birthday. That was the evening of my - yes. Happy birthday. Just to... yep. And no sleep. Happy birthday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003443">00:34:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So wait. Before you describe it, just to give a clear picture to everyone out there - as far as a new pandemic goes - the Marburg virus wouldn&#x27;t be like previous pandemics. This is super aggressive, sudden onset of high fever, gastrointestinal distress, including watery diarrhea, abdominal pain, nausea, and vomiting. Severe hemorrhagic manifestation, such as bleeding from your eyes and nose and ears - multi-organs - shock in the body. I mean, and this would happen all in, like, eight to nine days. So just to paint the picture that Kim is saying about this Marburg virus. That&#x27;s what the Marburg virus is. So that&#x27;s a little more aggressive version of a pandemic for sure. Sorry, Kim. You were you were talking about the boomsnake venom.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003537">00:35:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Boomslang venom, yes. However, when I ran into finally finding this Chinese woman - a very militant Chinese woman. She is no longer around, but she was making an attempt to protect the Machine and their bloodlines. So this is very interesting because there are some other events that had also occurred as recent as last night, as of the time of this recording.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003615">00:36:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But, anyway, so I find this Chinese woman, and she is barking out orders everywhere, and she&#x27;s trying desperately to open up the, quote-unquote &quot;floodgates&quot; to allow for the water supply. That includes the water that exists in your body and other locations of the world: the oceans, the drinking water, everything. So if they didn&#x27;t get you one way, they would get you another one. Where, remember, in a simulation - or whatever is left of it - they can actually create with frequencies. And there&#x27;s a definitive reason why these Bloodline Families believed they could actually control the water. We&#x27;ll talk about that in Beyond the Matrix because there&#x27;s a whole story that you have to hear about that one. But, anyway... so this woman was desperately trying to make this happen. When she couldn&#x27;t bring anything through the gate, she came looking for me. And that&#x27;s why she&#x27;s looking for me. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003720">00:37:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Is this the code name Calypso?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003724">00:37:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, let me tell you about... yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003726">00:37:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. I just wanna make sure I...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003728">00:37:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I told Tank about this just before we got on. So there is a Chinese-government insider that we have that often gives us information. So the next morning, I called to find out who the heck this woman is, because it appears that it&#x27;s not just her - there&#x27;s another woman underneath the United Nations, and another woman in Japan - and they all seem to be working together to run this apparent upcoming pandemic (and even worse, so we found out later), to get this show started. Now this is on the 28th, and here we are... you know, yesterday was the 1st. And they only had a few days to make this happen, because by today - today was the day that this was supposed to occur. No later than the 5th of October.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003822">00:38:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, again, the Simulation not only cannot bring in money, it cannot even bring in any kind of its own creations at this point. Not unless it&#x27;s allowed by the controller of the gate. That is not her. And that is not the Machine at this time. It&#x27;s the same reason why they don&#x27;t have any money, but they figured they would have all of these lovely things by now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003853">00:38:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But as far as these three women are concerned, the Chinese government guy seemed a little panicked that we actually knew that this woman existed. And he said, &quot;Look, two weeks ago, this woman showed up out of nowhere. And right now, the entire Chinese government is bowing to this woman.&quot; And it&#x27;s not just the Chinese government either. It&#x27;s the Russians. It&#x27;s everywhere. It&#x27;s not just BRICS, it&#x27;s not just India and South Africa. No. No. No. No. The entire world is basically... the whole Deep State of the entire planet is bowing to these three women like they run the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003934">00:39:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And they are the ones that sent President Xi to the White House to meet with Trump to discuss the next pandemic&#x27;s large payouts, what it&#x27;s going to cost, how many U.S. citizens can they lose without losing power over the Machine? How many do you need to keep? We don&#x27;t wanna keep them all - that would be us regular Homo sapiens here in America. So to say I&#x27;ve been busy for the last week or so, it&#x27;s been one of these events after another after another after another. But this is the story and how this ties to the United Nations and Trump and Xi.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004015">00:40:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now this particular pandemic, Kim, you mentioned earlier that it would have been kind of like a global annihilator. It would have been 80 percent of the population could have been potentially wiped out. Correct?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004028">00:40:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Yeah. And matter of fact, it&#x27;s funny how... I don&#x27;t know what it is with the General Assembly, if it&#x27;s because it kinda correlates with this Equinox time or, you know, the time of year. Maybe they coordinate the UN General Assembly with the Equinox for this reason, or because it&#x27;s always right around the time of the Harvest Moon, which was on the 26th. However, it seems like... well, back in 2018 - I was actually sitting in my kitchen at the time, at the table - when an operative, who at that time was... I was in Durango and the operative comes to my house.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004108">00:41:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: He says, &quot;Look, if they&#x27;re not in control&quot; - didn&#x27;t say anything about who &quot;they&quot; is or &quot;they&quot; isn&#x27;t - &quot;if they&#x27;re not in control by the next General Assembly,&quot; which would have been 2019, he said, &quot;they are gonna release a global pandemic.&quot; And I said, &quot;Well, that&#x27;s good news.&quot; And he said, &quot;Why?&quot; And I said, &quot;Well, because that indicates they&#x27;re not in control right now. And who is they?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004133">00:41:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I can confirm that that happened, by the way, because I met Kim in 2017, and she had told me this before the pandemic ever hit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004145">00:41:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004146">00:41:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So they definitely tried to come through at least.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004150">00:41:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I remember exactly where I was sitting when we had that conversation. But yes. And then it ended up happening. Because despite trying to do everything we could to not allow it to happen, it happened anyway. So... and there we were. But, yes, the intention to have another one was very clearly indicated from people inside the White House at the time of the meeting. So to say that Trump was begging China for money? Well, yeah, maybe. Because the U.S. government is broke - but also China is broke.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004223">00:42:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So unless these Asian women were able to pull a rabbit out of their hat - which did not actually happen, by the way - and that was a battle of epic proportions, I can tell you. And it&#x27;s not just because of those women. They&#x27;re not the only Bloodline Families left on this planet, I can tell you that right now. But I will say it&#x27;s been a battle of epic proportions. I have probably not battled this hard, like I have in the last 10 days, in a very long time. So we&#x27;ll talk more about that in Beyond the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004252">00:42:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But, yes, that is pretty much exactly what&#x27;s going on right now in the news. This is the main part of the news. So you can argue about who said what at the General Assembly talking monkey show - there we call it Hollywood for ugly people - but I&#x27;m telling you right now, as far as the rest of the world, this is what&#x27;s really going on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004313">00:43:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So you had mentioned this before that - and I think this would apply here in Declassified - that, really, they were trying to get you to release the money on some level, before they could even do this pandemic to retrieve the money. Did I say that right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004334">00:43:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They were trying to get me to open the gate - a lot - in the last several days. Even the Chinese woman approached me for that. Yeah. (Tank: Wow.) On my birthday. Happy birthday. (Tank: Happy birthday. Wow.) One of these years, I&#x27;m gonna celebrate on a beach somewhere. I really will.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004355">00:43:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Those days are coming. They&#x27;re here any moment. I&#x27;m sure of it. I&#x27;m sure of it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004359">00:43:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: All right. Anything else you wanna cover on Declassified?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004404">00:44:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I think that&#x27;s it. I think we need to get on to doing Beyond the Matrix, at some point, real soon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004409">00:44:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. So please stay tuned. These things obviously tie together, and I&#x27;ll let you sign us off, Kim.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004415">00:44:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Alright. That has been Declassified - Beyond the Headlines, for the 2nd of October, 2026, and thank you. Thank... Tank, Tank you - Tank you! [Both laughing.] Thank you so much, Tank, for joining us today! I really appreciate it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004431">00:44:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004434">00:44:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
