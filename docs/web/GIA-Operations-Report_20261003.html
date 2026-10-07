@@ -1,0 +1,2678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-03</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-03 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Oct-03
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261003_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000003">00:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000035">00:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. It is the 3rd of October and this is Beyond the Matrix. We tried to get this done last night for you, and so here we are again today on the 3rd trying to get this out. There&#x27;s going to be a lot of information coming through today, and there was so much information within last night&#x27;s Declassified that we actually missed something. And we were going to mention this because it kind of goes along with what we were talking about last night with the Deep State and them trying to make themselves out as to who&#x27;s going to be the Savior in the program in the Battle of Armageddon, or whichever religious situation is going to make a savior out of somebody and a demon out of another group. So apparently the stage is being set for those of the Middle East, or the Islamic people, or Iran - or &quot;Iran,&quot; as they said last night - is going to be the bad folks, and the good folks are going to be here. Watch this:</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000142">00:01:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: And on June 14, 1946, God looked down on His planned paradise and said, &quot;I need a caretaker.&quot; So God gave us Trump. God said, &quot;I need somebody willing to get up before dawn, fix this country, work all day, fight the Marxists, eat supper, then go to the Oval Office and stay past midnight at a meeting of the heads of state.&quot; So God made Trump.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000206">00:02:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: &quot;I need somebody with arms strong enough to rustle the Deep State, and yet gentle enough to deliver his own grandchild. Somebody to ruffle the feathers. Tame the cantankerous World Economic Forum. Come home hungry. Have to wait until the First Lady is done with lunch with friends, then tell the ladies to be sure and come back real soon, and mean it.&quot; So God gave us Trump.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000232">00:02:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: &quot;I need somebody who can shape an axe but wield a sword. Who had the courage to step foot in North Korea. Who can make money from the tar of the sand, turn liquid to gold. Who understands the difference between tariffs and inflation, will finish his 40-hour week by Tuesday noon, but then put in another 72 hours.&quot; So God made Trump. God had to have somebody willing to go into the den of vipers - call out the fake news with their tongues as sharp as a serpent&#x27;s; the poison of vipers is on their lips - and yet stop. So God made Trump.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000309">00:03:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Narrator: God said, &quot;I need somebody who will be strong and courageous, who will not be afraid or terrified of the wolves when they attack. A man who cares for the flock. A shepherd to mankind who will never leave nor forsake them. I need the most diligent worker to follow the path and remain strong in faith and know the belief of God and country. Somebody who&#x27;s willing to drill, bring back manufacturing and American jobs, farm the lands, secure our borders, build our military, fight the system all day, and finish a hard week&#x27;s work by attending church on Sunday.&quot; And then his oldest son turns and says, &quot;Dad, let&#x27;s make America great again. Dad, let&#x27;s build back a country to be the envy of the world again.&quot; So God made Trump.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000410">00:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: How do you feel about that, Kim? I feel like it puts us all at ease, right, that Trump&#x27;s there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000415">00:04:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I feel better after watching that, really. [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000418">00:04:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, I feel great about that. That&#x27;s re-emerged. That was originally broadcast in 2024, I believe, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000425">00:04:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000426">00:04:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And now it&#x27;s... All these things are coming back, really in large part based on the things you&#x27;re saying. I&#x27;m gonna read this article. I&#x27;m just gonna read the title of this article. This is something I think is really important. We didn&#x27;t get to this on Declassified the other day, but I think it&#x27;s very relevant. Okay. This is actually the MRFF, which is the Military Religious Freedom Foundation. This is so it protects the religious rights of those who are enlisted in the various U.S. military bodies. And this actually has happened; this has been confirmed from several sources.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000504">00:05:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-00.PNG" alt="BTM_2026-10-03-00" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000505">00:05:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this is a direct quote from the article: &quot;This morning our commander opened up the combat readiness status briefing by urging us not to be afraid as to what is happening with our combat operations in Iran right now. He urged us to tell our troops that this was all part of God&#x27;s Divine Plan. And he specifically referenced numerous citations out of the Book of Revelation, referring to Armageddon and the imminent return of Jesus Christ. He said that President Trump has been anointed by Jesus to light the signal fire in Iran to cause Armageddon and mark his return to Earth.&quot; There was... that is over 200 complaints citing the exact same event. They are literally telling our U.S. troops - and that&#x27;s from March, right, so it&#x27;s not that old, but there&#x27;s probably more religious complaints about this now - that Trump is leading us into Armageddon and he&#x27;s been anointed by Jesus.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000618">00:06:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Part of that I agree with. I do believe that they would like to have some Armageddon. And that&#x27;s very apparent and it&#x27;s happened over and over and over again. And interestingly enough, his hidden chief of staff has actually been running Iran quite a bit. That&#x27;s Mr. Kushner, another Sanhedrin Illuminati member who has been spending a lot of time in Iran actually running the country. My understanding is at one point he got run out of the country, allegedly for crashing the stock market and doing business with, I think it was an Iranian coke dealer who was funding an Albanian resort for God knows what, supposedly like Epstein Island. But yeah, I know. But nonetheless, here we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000712">00:07:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So this is basically just setting up for the Savior program. This is all this really is. It&#x27;s an old video that some fan made - that all of a sudden went viral in the last couple of weeks - and it just goes to show you exactly what I have been talking about and what they&#x27;ve been trying to do. Now this article actually came out with this video in it from the Daily Beast, an incredible newspaper [rolling eyes], but nonetheless, the Daily Beast put it out on the 11th of September. So just like we were talking about last night, and we&#x27;re going to talk about this more today, this is what is actually happening out there. So be careful everyone, because all of these... this alleged disclosure that everybody has been wanting for a long time is not actual disclosure. It&#x27;s actually defining an enemy without blaming a very specific country. It&#x27;s going to be: &quot;The aliens have taken over Iran and we must fight the aliens and not necessarily the Iranians themselves. We&#x27;re just helping them get rid of their infestation of Reptilians.&quot; It&#x27;s like pest control services of the IDF.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000826">00:08:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: It&#x27;s the pot calling the kettle black, sounds like to me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000831">00:08:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-SaudiAramco-01.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/s6Q_jHr8MlY" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000832">00:08:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Also, just to point out, one thing that&#x27;s come up in the last, actually, two minutes is that the Houthis, which are a rebel group from Yemen, have recently bombed Aramco. And Aramco is - allegedly - Saudi Arabia&#x27;s major oil-producing facility. And they also have a location in Houston, Texas, with American partners. Now, Aramco also funnels black-market oil into the United States by giving it Saudi Aramco oil allocation numbers so that it looks clean from a partner of the Americans. However, that is not the case. So why all of a sudden are the Houthis allegedly bombing Aramco? Well, fine Americans, get your bicycles out today [chuckle] because the gas prices, yeah, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000935">00:09:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I&#x27;m not really feeling that America&#x27;s being made great again in any way, shape, or form - because I actually live here I can actually say this - that food prices are going up. Everything is going up. They&#x27;re going to try to create a financial crisis as we talked about in these prophecies in Declassified last night. They&#x27;re really going the distance because they believed that by yesterday this was all going to happen for them, that they would have these positions. And so setting all of this up now is no surprise. The fact that they actually went through with the bombing in Saudi Arabia somewhat surprises me because they haven&#x27;t actually gotten what they&#x27;ve been looking for at this time. But they were sure they would have it by today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001020">00:10:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So keeping everybody moving, saying, &quot;Look, if you want to get your money, your big payouts, you know, who&#x27;s going to be in charge? Who&#x27;s going to be the winner of the Armageddon war?&quot; See, they think actual Armageddon, when something - if it was actually something of Source that was fighting against the Deep State - then you don&#x27;t get to pick the winner here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001050">00:10:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Kim, talk about this just a little bit. You mentioned this a lot with these positions. What do you mean? What are the positions, I mean, what type of positions are they looking for? What does this mean? Like, what are they holding out for? And where do they expect to be, or who do they expect to appoint them in these positions?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001111">00:11:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, they would like to appoint their chosen people from their groups. And before we get to that, I kind of wanted to talk about what everybody&#x27;s feeling first. Then we can talk about what the positions were in the Natural world. And then we&#x27;ll talk about what they are in the Machine world. So we can gain a better understanding of what it is they&#x27;re looking to do, and actually, why now? Because this is very relative to everything that&#x27;s going on. So this is kind of a little bit of the history of the Machine. History, you would say, of the world a little bit. And then it&#x27;s going to be the current intel as to why we&#x27;re seeing these crazy-type videos, and senators getting on TV saying that the reptiles run this country or that country, or unknown drone videos are resurfacing again. And it all has a very specific purpose to it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001203">00:12:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So as part of this craziness, what was left and what has been somewhat left of this Machine has been causing people a lot of problems since the last Beyond the Matrix. And I know it&#x27;s been a hot minute since I&#x27;ve done a report, but some of those symptoms are [Number 1:] shaking your self-confidence. And that&#x27;s a big one. And that kind of goes for everybody. And everybody&#x27;s response to shaking your self-confidence is different. Some people want to cry. They don&#x27;t believe in themselves. They don&#x27;t believe in visions they&#x27;re having. They don&#x27;t believe their intuition is right. They don&#x27;t believe in their prayers - for those people that are religious - because it&#x27;s not happening. You know, the things that they&#x27;re asking for are not actually happening. Therefore, they don&#x27;t have any confidence in Source itself anymore. That&#x27;s a big one for the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001259">00:12:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And when you do get those insights and you do get those bits of intuition, it&#x27;s going to stomp that right down and make sure that you don&#x27;t even believe in yourself, let alone those around you. So, [Number 2:] big irritation too: sadness, irritation, depression, &quot;This is never going to work.&quot; &quot;This is never going to happen.&quot; I mean, I&#x27;m seeing it everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001320">00:13:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, and you said that this is kind of attributed to... you said the Machine has actually died and then revived itself. (Kim: Yeah.) So this is all symptoms of this collapsing Machine, this massive control structure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001333">00:13:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001336">00:13:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now that&#x27;s a big one too that you just mentioned, not having confidence in God, or Source from unanswered prayers kind of thing, right? Not believing in your own inspiration, you mentioned. I thought that&#x27;s a really powerful thing. When you&#x27;re inspired to do something the right way, then you immediately doubt yourself. You&#x27;re saying that&#x27;s a symptom of the Machine, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001356">00:13:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And it has, actually, over the last 10 days - more specifically, the last seven days - this Machine has actually run out of power and was not functioning. The Machine has frozen several times completely, just stood still - no data flowing at all whatsoever. And then because there were Covenants that were still in place, it&#x27;s like all of a sudden it gets another breath. It keeps going, it keeps going, it keeps going, it stops, it dies, it gets frozen. And then it would start again and I&#x27;m like, &quot;Oh my God, I&#x27;m in Groundhog Day&quot; for this last, you know, 10 days - and it&#x27;s been pretty brutal - especially on me, but not only that, probably on all of you as well. Doing anything and everything that it can to make sure that we&#x27;re distracted and we don&#x27;t get to the point and get to the heart of the matter before a very special alignment - that they think is very special (it kind of is, in a way) - occurs, which is still occurring, actually, as we&#x27;re recording this right now. So we&#x27;ll talk about that in a minute.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001504">00:15:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I did want to point out a couple of things because, you know... and this is part of the reason too why Tank&#x27;s here today, because Tank is always all about solutions. You know, &quot;Don&#x27;t tell me that something is wrong if you&#x27;re not going to tell me how to fix it.&quot; So... I know. And he&#x27;s come up with some pretty good information in the Think Tank, if you haven&#x27;t seen it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001527">00:15:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But Wisdom versus knowledge. This is something that&#x27;s important to understand, and it&#x27;s very relative to what&#x27;s happening right now. And what each one technically means. So Wisdom is something we know that comes from Source. But it&#x27;s what comes along with the Wisdom that is important to understand. So, Tank, when you have this intuition, whether that comes to you - like, some people, it&#x27;s like in the morning, they wake up with the solution to a problem. It&#x27;s just amazing, or something that you really feel the need you have to do. All of a sudden, do you get like a really big burst of energy, like you could just keep going and going and going until this project is done?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001613">00:16:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, absolutely. You know, I think about this kind of thing all the time. Like, when you&#x27;re really inspired and excited about something, suddenly you need three hours of sleep because you want to get up and start working on it and turn it into action. Absolutely. Happens to me all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001629">00:16:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. So commonly, when you&#x27;re actually receiving the Wisdom of Source, whether you feel that&#x27;s your own intuition - which it is, because that&#x27;s how Source speaks to you. Source speaks to you about your own purpose in life. That could be something purposeful for that day - like, &quot;Gee, I really need to take a gallon of milk to my friend Joan&#x27;s house,&quot; and then all of a sudden you go to the store, you get the gallon of milk, you&#x27;re happy, you got unlimited energy which you didn&#x27;t have. Maybe you were thinking... you got up in the morning, you&#x27;re like, &quot;Oh my God I need some coffee, this is terrible.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001702">00:17:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But yet all of a sudden you&#x27;ve got a certain amount of energy and you realize you have a certain amount of cash with which to do it. So then you go to the store, you pick up the gallon of milk, and you show up - and all of a sudden there&#x27;s no milk there and she doesn&#x27;t have any money and she really needed that gallon of milk more than you know. So with Wisdom comes unlimited amounts of energy - or, not energy, but Ethereum - to carry out the task. It also comes with very good instructions on how to carry out the task: where to get the things you need, even in a matrix-type world. You might think, &quot;I can&#x27;t do this, because I don&#x27;t have the money to do this.&quot; But then Source provides you a way. It might not be the way you think, and it might not be the way that you want it to happen, but someone calls you up and says, &quot;Hey, I was just about to throw away this hammer. Do you need a hammer before I throw it away?&quot; You know, &quot;It&#x27;s doing me no good here. I don&#x27;t build anything anymore.&quot; And then all of a sudden you get the free hammer and the free nails and the free wood and then before you know it you&#x27;ve built yourself a home.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001806">00:18:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So it might not be that &quot;I need a new house&quot; thing, but hey, here&#x27;s the hammer, the nails and all the wood or lumber that you need to achieve this task, plus any cement - comes from the other guy down the street. You know, there&#x27;s leftover from a construction site - they always build in 10% for contingency, in case you don&#x27;t know that - and oftentimes that stuff gets thrown away. So there&#x27;s a lot of things that you can do to pull together on how to get that new home, you just have to listen. And Source provides you with those very detailed instructions when you&#x27;re there to listen and sit in that thought of intuition. Don&#x27;t talk yourself out of it, because the Machine is going to do that for you if you&#x27;re not careful. That&#x27;s where shaking your confidence in yourself, Source and your intuition comes from. And how you have to override that is - &quot;This is not real.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001859">00:18:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well, also it speaks to walking by faith. You know, faith being really alignment and in harmony with Source. That even - if you&#x27;re inspired to do something and you&#x27;re impressed that way and it&#x27;s from Source, the resources, the people, the expertise - all those things show up just as you need them. And I&#x27;ve already talked about this many times, so you&#x27;re saying that that is really the Wisdom, or glimpsing the Wisdom of Source. That true innate feeling, intuitive feeling and inspiration is all Source and to trust it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001934">00:19:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely, because you&#x27;ll know what it is by what follows with it. Very detailed instructions all of a sudden start coming through when you&#x27;re like, &quot;Yes, I will do this.&quot; When you accept it, that &quot;Yes, I&#x27;m going to do this; I&#x27;m doing this.&quot; And then you push the Machine away and say, &quot;That&#x27;s not real,&quot; and then all of a sudden you get all the energy in the world that you did not have two days ago - because now it feels right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002001">00:20:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The next thing is: it resonates with you. When you are doing this, you feel like, &quot;Wow, this is just amazing. I am so happy that I can actually do this, and this is what I needed to do today - this is exactly what I needed.&quot; It could be something like, &quot;Hey, go visit a good friend,&quot; or, &quot;Go for a walk on the beach,&quot; or, it could be &quot;Build that house.&quot; And it can be something that changes the world. But all of... recognizing the signs, you&#x27;ll also start to think about things like, &quot;How is this going to impact my family, my friends around me?&quot; And the Machine&#x27;s going to tell you, &quot;They are going to all think you&#x27;re crazy. This is not possible.&quot; But you know what you&#x27;re going to do is you&#x27;re going to show them it&#x27;s possible - because you&#x27;re being shown yourself how possible it actually is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002053">00:20:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So recognizing the signs of what the Machine tries to tell you - versus what Source is trying to tell you - because you have actually been receiving moments and even sometimes prolonged periods of time in the last week or two weeks of those positive things of Source. These intuitive hits. And it&#x27;s you - you think it&#x27;s you that has shoved that down. You have no self-confidence, you have no belief in yourself, and even no belief in Source that the prayers were not answered or the meditation didn&#x27;t give you the information exactly the moment when you wanted it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002134">00:21:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Remember, this is about the whole. It&#x27;s actually about your highest and best good, because sometimes that moment that you want it and you just push, push, push, push, push - I am known for this, I am like a bulldog. When I get my teeth into something, I will just go and go and go and go and go until it&#x27;s done. And sometimes you can only go so far, and then Source says, &quot;Stop&quot; and &quot;Wait.&quot; And you don&#x27;t want to wait. I don&#x27;t want to wait. You don&#x27;t want to wait - I&#x27;m sure you don&#x27;t either, especially us Americans. We want it now. We&#x27;re in the land of the drive-thru; order it on your app - the Uber shows up in 10 minutes; groceries to your door. Whatever it is you want, you can get it in America in 10 minutes or less, and we&#x27;re angry when we don&#x27;t. That cup of coffee takes 12 minutes and we&#x27;re on our way to work - &quot;Oh, heck no!&quot; - we&#x27;re upset about that. But unfortunately with Source, there is no way to push it. You can&#x27;t just go to another coffee shop - you have to wait. And then all the information is going to come flooding in - I promise you - at the right time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002235">00:22:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But people have been receiving this for the last week or two, and then the Machine - as it revives itself - will come back and just tell you it&#x27;s all you. &quot;Can&#x27;t do this, can&#x27;t do that. Look, you can&#x27;t even find these resources. Look, who would trust you with a plan of this magnitude? Of something that is this big? That&#x27;s stuff only presidents do, militaries, heads of state.&quot; But that&#x27;s not true - that&#x27;s absolutely not true. And that&#x27;s how you know the difference.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002306">00:23:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So, just to step back through that. I think that&#x27;s important. So first is recognizing that Source&#x27;s Wisdom is coming as inspiration, or an intuitive sense to take action, or to do whatever, right? That&#x27;s the first thing you said, recognize it. Then you can almost immediately expect that the Machine is going to try to jump in and basically try to derail it. So the next step would be to discern that&#x27;s not real. The thing telling you not to take action - if you know it&#x27;s really inspired action and Source&#x27;s Wisdom - the next thing is to identify that the doubt that&#x27;s coming after is a separate entity. And you actually see this - this is something that I&#x27;ve often told people - the Devil never talks until God talks, right? So God will say, &quot;Do this,&quot; and all the Devil has to say, he changes one word. And he says, &quot;Don&#x27;t do this,&quot; right? Or, &quot;Do do this.&quot; Changes one word and changes the whole meaning, right? But the Devil never talks until Source gives you instruction. Now all of a sudden, the Machine is chiming in, saying, &quot;Well, you can&#x27;t do that.&quot; And then it brings in your memories. Like memories of past experiences, past failures, even past successes. It comes in with that. And you&#x27;re saying to focus past that: realize that&#x27;s not real, and to take action according to Source - and Source will provide a way. Just to recap.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002433">00:24:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. Absolutely. If you stand true to yourself and say, look, I know where this came from. I could feel it because it has a different resonance to it. It&#x27;s like being in the room with someone that you really just connect with. You know, connecting with a friend, someone that you really have a bond with. Where you just, you know... or information or what people are saying, it&#x27;s like, &quot;Wow, that really vibes with me.&quot; You&#x27;re kind of getting what you call &quot;the vibe,&quot; or &quot;Wow, that energy feels really good - this is right.&quot; And that&#x27;s how you&#x27;ll know that&#x27;s where that information is coming from. So it&#x27;s the resonance of it too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002515">00:25:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So yeah, you talked about, do you want to talk about that here? The resonance versus frequency? Because it seems like a perfect place to plug it in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002522">00:25:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, we&#x27;re - yeah, absolutely. So, there&#x27;s a few things that we understand that have happened, which I&#x27;ve kind of talked about a little bit in Beyond the Matrix before. And Tank kind of brought it up in Episode Two of the Think Tank, where he started talking about the laws. And I&#x27;m like, oh yeah, that is actually coming up right now and it&#x27;s important that I think we talk about the laws of the Machine versus the laws of the Book of the Living and the Natural Law - and the way that it was before, so that we can actually understand, truly, how the Machine was created. And what it does. And how it works. And who was actually involved. And that will then take us into what the Deep State was expecting this 26,000-year cycle to do for them, and then the point of return - that is actually occurring now, and has occurred for like the last, oh, it&#x27;s almost been 48 hours now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002629">00:26:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So let&#x27;s talk about the Book of the Living. So we touched on that a little bit yesterday, last night, and that the Day of Atonement - you said, Tank, means... atonement means?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002645">00:26:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Atonement is, well it&#x27;s forgiveness of all the sins from that year. But it&#x27;s also, you know, &quot;at-one-ment.&quot; Being... it&#x27;s supposed to be &quot;at one&quot; with the will of God.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002658">00:26:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And in this case, they&#x27;re not talking about God the Machine, they&#x27;re talking about God itself. And the greeting during Yom Kippur is actually, &quot;May you be entered into the Book of the Living,&quot; which - as humans and Homo sapiens walking this planet - we have never left the Book of the Living. Let me put it that way to you. However, when in the Simulation, we have actually been living under the Law of Sin and Death. So, forgiveness for sins? They&#x27;re not actually ours. I mean, not to say we as people don&#x27;t do bad things, but the Machine also makes us do bad things because it&#x27;s technically not in our nature. And, if we were not trying to use energy and memories and things like that from the Machine, and we were acting out of the Book of the Living with all of the pieces of Source intact - which we haven&#x27;t had for a while - if we were doing that in perfect Harmony, then you couldn&#x27;t have any... you would have no energy if you went to go do the wrong thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002804">00:28:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But in the Machine&#x27;s world it takes your energy and you get an energy drain. I know all of you have probably felt that when you are not doing what the Machine wants you to do. It takes that extra energy away from you. When you attack it, when you come near it, when you are fighting it back, it&#x27;ll start draining that energy from you so that you can&#x27;t do it. Oh, you need to go take a nap instead of doing the thing. And then, therefore, you think something is wrong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002833">00:28:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this is like a really deep principle, actually, with the Law of Sin and Death. Because this is actually in the scriptures. It says that the Law was introduced to make sin - or the Law of the Commandments was introduced - &quot;to make sin more exceedingly sinful.&quot; And so, in other words, these laws and limitations created by the Machine were there to impose things on you. To make things even more difficult. And also, if you think about it, Moses, he goes up on top of Mount Sinai, right? That&#x27;s &quot;sin AI,&quot; right? And the first time he comes down, he comes down with one heart-shaped stone, like a traditional, like a Valentine&#x27;s Day heart, and this is an -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002923">00:29:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sin AI. Oh, my God, I never even thought about it like that!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002928">00:29:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well, and think about it. So, the first law - you don&#x27;t know what it says, right? So, he brings the law down and they&#x27;re worshipping a golden calf, so he throws it down. But the principle is he breaks the heart of God. They broke the heart of God is what the principle is, right? So Moses goes back up and that&#x27;s where you get the 613 laws and ordinances, right? And then he has to come back down, and it comes down as two tombstones. That&#x27;s what we associate it with, right? (Kim: Tablets.) The Ten Commandments - it looks like two tombstones. So it comes down as the Law of Sin and Death - to your point, is what I&#x27;m saying. So you can see how all of this is cleverly orchestrated and included historically. It&#x27;s actually there telling you the story of what&#x27;s happening. It&#x27;s just not something you might pick up on at first glance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003017">00:30:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, to add a little bit to that, there have been a group of folks, they are not... they&#x27;re not immortal, per se. But let&#x27;s just say, in a Simulation it&#x27;s easy to be immortal when you are these beings.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003031">00:30:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-WaterBoy-02.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/9glhM5fySe8" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003033">00:30:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And they have played many characters throughout history, and one of those characters is Moses. So an interesting little tidbit - in the last, I want to say now it&#x27;s... as of the time of this recording it was probably a little more than 48 hours ago, but definitely within the last 72 hours - I told you in Declassified, briefly, that there were people in various locations in the world. And one of those locations actually was under the Dome of the Rock. I almost said the Temple Dome, but the Dome of the Rock in Israel. And there is a second place where they also were in Israel, which was under the Garden Tomb.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003117">00:31:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-BenbenStone-03.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/qPNdvuP1nkA" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003119">00:31:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And one of these people had something called a chair - it was a chair - and within that chair was something called the Benben Stone. And we can talk more about that. And you can look that up here. But in just a few moments, we&#x27;ll talk more about the Benben Stone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003137">00:31:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But in the other location, the walls were lined with these database tablets.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003142">00:31:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-DatabaseTablets-04.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/lDsmuTiibfE" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003144">00:31:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And they look like they are made of some kind of sapphire - they&#x27;re very blue - and they have gold writing in them on the one side. On the other side... yes, and it&#x27;s not in a language we understand, it&#x27;s in a language that you do understand, you just don&#x27;t realize it. And on the other wall are blue tablets with black writing in them and they line the walls of this room underneath. I&#x27;ll just call it &quot;one of those two places&quot; because this is still an ongoing situation at this time, okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003218">00:32:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So one of these two places has these on this wall, and the man that actually went to this location was a current, not well-known Deep State member - who was one of their chosen people to take a new position - and he had a very specific artifact that looked like a heart. And inside the heart was a little area that was golden white, and it looked almost like a sunburst, you know, like a splash, kind of, in the center. But right at the direct center of that was a black jewel. And interestingly enough, he goes there and there&#x27;s an altar in there in the middle of the room. And an altar is usually never empty. And inside this altar is, yes, there&#x27;s other trinkets, which we&#x27;re going to talk about here as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003318">00:33:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But when they go into this room and they start sitting here in front of these databases, it makes me think of the tablets of Moses that you&#x27;re talking about. And there&#x27;s way more than 613 things. But the writing on there is all basically data streams that are going up and down these tablets. In addition to that, the blue hue tells me it&#x27;s of the MIND.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003349">00:33:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So the blue hue tells you it&#x27;s of the MIND? The blue hue is something synonymous with the MIND as in the...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003358">00:33:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: MIND database.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003400">00:34:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, I got it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003402">00:34:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We&#x27;re going to go into that. So first let&#x27;s go back to the Book of the Living because this is actually the base root of the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003408">00:34:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-BookOfTheLiving-05.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/gnrDE9J-JrU" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003409">00:34:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now we all know that Source God has a Book of the Living and that registers all organic life throughout the entire Omniverse - be it a bee or a person or a planet - everything is in there. Everything that is of Creation is in the Book of the Living. And it&#x27;s all in accordance with the Divine Plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003429">00:34:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, Source has his own and it&#x27;s in a place of what we call the All-That-Is. And so everything that has been, and everything that ever will be, and everything that is, is in the All-That-Is. And it&#x27;s a place that nothing ever technically leaves there. It is called the area that we refer to as the Source Special Sauce, the JuJu, and also the Thought of Source. So it&#x27;s a thought before an action actually occurs. And that doesn&#x27;t mean that it doesn&#x27;t leave this spot, eventually, but there is no separation from Source because it&#x27;s always - you are still quantum entangled to the All-That-Is, [even] with a Machine interference. That&#x27;s where your Consciousness goes to. You recognize you are a part of the All-That-Is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003521">00:35:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But back to the Book of the Living - and that&#x27;s how the Book of the Living kind of gets its power. There are positions - and these are jobs - it doesn&#x27;t mean that anybody who has one of these jobs, or had one of these jobs in the past, has a special job. It is no more special than the bee that pollinates the flowers. Or the baker that bakes the bread. It&#x27;s very important to understand that EVERYTHING in life is important. You are just as important as someone who - well, maybe not in the Machine-world governance - but you&#x27;re just as important as the person who holds a big position. Or positions that I have. If I... if you don&#x27;t do your job then I can&#x27;t do my job, and if I don&#x27;t do my job you can&#x27;t do your job. And that&#x27;s what it&#x27;s like being a part of the whole in a natural existence.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003616">00:36:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And, as part of the Book of the Living, there are two what we call the Right Hand and the Left Hand. And the Right Hand is Harmony - that&#x27;s the Divine Plan - everything is virtuous; everything is right - it all goes in accordance with the Divine Plan. Now, does that mean that any person that has ever held a position of Harmony has the whole Book of the Living, and all the information that ever was and ever will be? The answer to the question is no. Nope. You - YOUR book - is very specific to YOUR position as to the part you play within the Living.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003659">00:36:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And the Book of the Living is also in the same way as when something needs adjustment, something needs a change, something is out of Harmony and it&#x27;s time to fix it. That information comes in and the fix appears also in the Book. It is tied to not only your essence and your bit of existence - this is important to understand because it&#x27;s going to go into what&#x27;s happening right now - it&#x27;s tied to the essence of the person that holds the book.</div>
+<div class="line"> </div>
+<br>
+<div class="timestamp" id="t-003733">00:37:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-BookValidatesReader-06.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/NoNEkKteaXs" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003735">00:37:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So no matter how many times - even if the Deep State had found, or did in the past find any one of these books, or even have several of them in their possession, which has happened - without the consent of the book owner, so to speak, you&#x27;ve got nothing. No information comes out; it&#x27;s not readable; it&#x27;s not legible. It doesn&#x27;t even open for the wrong people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003804">00:38:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So, are you - just to clarify - you&#x27;re talking about a book, this kind of, again, goes back to ancient religious texts where it talks about that you are read by the volume of the book. There&#x27;s a book for the person that is defining their purpose and their role in the Natural Law sense - that is what you&#x27;re saying, right? (Kim: Yes.) Okay. And so basically that Natural Law can&#x27;t be violated by someone else. Someone else can&#x27;t use that purpose that you&#x27;re supposed to play. You&#x27;re the only one that can really fulfill your individual purpose.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[INTERPRETATION: Tank is referring to the biblical phrase &quot;in the volume of the book it is written of me,&quot; found in Psalm 40:7 and echoed in Hebrews 10:7. He is connecting that phrase to the idea that each person has a book defining their individual purpose and role under Natural Law.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003841">00:38:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s exactly correct. And you&#x27;re the only one that gets the information too. Unless somehow, some way, you step out of Harmony. In which case, then whoever is responsible for the Harmony will step in and help you. It&#x27;s a guidance. It&#x27;s not, you know, it&#x27;s not a harmful thing necessarily - it&#x27;s a guidance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003905">00:39:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, Source, in the world of the Natural is what we call the Omnificent. That means the Creator of all that is. Limitless amounts of Creation. Source can create, unlimited amounts of times, many, many things - millions and billions of times per zeptosecond - all He really wants. There&#x27;s no help needed. There&#x27;s no help really needed to do this, except when all of these things started to occur with the Machine, in a part. But, naturally, He appoints people to do a specific job. So management. You know, I wouldn&#x27;t even call it &quot;management&quot; - I&#x27;m just going to say it&#x27;s &quot;one of the jobs.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003956">00:39:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So Harmony was one of them. The other one was the delivery of the Living Waters, to ensure that the flow is going to the correct person so that they can carry out their task, their purpose, their job. So moving the Waters around, the Living Waters, to ensure that the Water flow - and this isn&#x27;t the stuff you see in the ocean (in part, I mean don&#x27;t get me wrong - the ocean also has a purpose) but ensuring that all of this takes place. So, the Waters are as important as the Harmony is, and staying in Harmony with the Book of the Living and the Divine Plan as it is to ensuring that everybody has what they need to ensure that the Divine Plan goes without a hitch.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004043">00:40:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, technically, neither one of these people were ever supposed to be a funnel for these things - in other words, you only get Harmony if whoever holds the Harmony position says so; you only get Water whenever the Water Guy says so - that&#x27;s actually not [normally] the case. It&#x27;s just when something is going awry and the flow somehow is disrupted - which can occasionally happen. His job was to make sure that the Water is continuing to flow. So next you&#x27;re going to ask me what the Water is. You want to know what the Water is?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004116">00:41:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You&#x27;re right. I was going to ask. The Omnificent Waters, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004121">00:41:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The Omnificent Waters, yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004124">00:41:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And I was going to ask you to explain that more, so thank you! [Both laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004128">00:41:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, we see it in a lot of texts, right? We see it, oh, the Living Waters Church. You know, we see everybody talking about the Living Waters but no one tells you actually what it is - until today. So now you&#x27;ll understand what the Living Waters is, it&#x27;s just important. So, okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004142">00:41:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So there are many things and factors of the Omnificent and we call these things the &quot;power of four,&quot; and the reason why we call them the &quot;power of four&quot; is because when you have all of these things together - as any organic being does - you are now acting in Harmony and in the flow of Creation of the Omnificent. So, things that in a Natural world we all possessed: Number 1, the Omnificent is omnipotent. I always say this wrong, and I say omniPOtent. So if you&#x27;re looking it up and you can&#x27;t spell, it&#x27;s omniPOtent; it&#x27;s omNIpotent.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004228">00:42:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: But even saying it that way - it is done, that is correct for the record - because you&#x27;re trying to emphasize the actual Latin breakdown to understand it. It&#x27;s the all-powerful, right? So, and then the Omnificent is the All, Creator-of-All, correct? (Kim: Mhmm.) Just to clarify for people in case they didn&#x27;t know that off the top of their head.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004248">00:42:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, the Omnificent is the Creator of All-That-Is - unlimited, or limitless Creation - the Source of limitless Creation. Now, so the omnipotent part is that unlimited energy we were talking about. So it&#x27;s not actually energy, it&#x27;s Ethereum. It&#x27;s the Force. So Source itself - the Omnificent - is... it&#x27;s endless. Endless Ethereum; endless amounts of Ethereum. Endless Force - a force to be reckoned with, so to speak. It&#x27;s a protection measure in some cases. And it&#x27;s also that limitless energy to serve your purpose.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004330">00:43:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s the reason why moms, when their child is underneath a car, they can actually lift the car. It&#x27;s because they&#x27;re doing it in accordance with what is natural. Believe it or not. So, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004346">00:43:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I&#x27;m sorry - because before you&#x27;re just talking generally just Source - but I like what you just did. You brought that into us. So this omnificent Force - this unlimited, unrestrained, creative energy, the omnificent Waters - really exists within us and is essentially omniPOtent. It&#x27;s omNIpotent. It&#x27;s all-powerful as well, in reality, even as it&#x27;s manifested or exists within us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004417">00:44:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s absolutely correct. And you know what? Think about this particular situation where someone has superhuman strength. You know, there&#x27;s all kinds of videos about people that have superhuman strength - and I&#x27;m not talking about the Deep State or military people or MK-Ultra or anything like that - I&#x27;m actually talking about average everyday people that all of a sudden are saving someone they love, or doing something miraculous, or pulling people out of a fire and they can breathe in there and they, you know, they finally get tired after they pull everybody out but they managed to get hundreds of people - one guy, you know - out of a burning building.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004454">00:44:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So is it possible? Yes, it is, and it&#x27;s even possible in a Matrix because these people are actually doing it. And do you know how? (Tank: No. How?) Love.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004509">00:45:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Ahhh, of course. Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004512">00:45:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So one of the ways to bypass the Machine - and the Machine knows it - is love. So much love for life. So much desire to ... maybe that person&#x27;s innate... I mean, all of us as mothers and fathers, we always want to protect our children no matter what. And there is nothing in this entire world that&#x27;s ever going to stop me from trying to protect my daughter. Nothing. Nothing will stop me. And so... Hmm?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004543">00:45:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So that&#x27;s actually referred to as philoprogenitiveness. It&#x27;s the natural love for your offspring. You can&#x27;t help it. Right? It&#x27;s so powerful. I actually believe, whenever I hear you talk about these things, all the ways we&#x27;ve been stripped of our memories, our experiences, our real connection with Source, what is absolutely impossible to take away, and I really think it saved us, just like you&#x27;re saying, is that innate love we have for our offspring, you know - and each other in other ways, I&#x27;m sure - but yeah, obviously, and that&#x27;s the only thing that&#x27;s real. Because you can take everything from someone, but you&#x27;re not gonna tell me I don&#x27;t love my child, right? It&#x27;s just too powerful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004629">00:46:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. You might not like what they do always but you love them endlessly. And there are lots of people who feel that way about their spouse too, and feel that way about their animals and feel that way... So when you are feeling that way you are literally omnipotent - and not you personally, obviously, not as omnipotent as the Creator - you are now currently in the possession of the Omnipotent, to protect and preserve life. It is actually innate in Homo sapiens, believe it or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004700">00:47:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the Machine flips these things around and says, okay, only we - meaning the Deep State, its offspring, and we&#x27;ll talk more about that - are designed to protect and secure. Security and control. Security and control, and this is where the aspect that is the military comes from. &quot;You are weak, we are the only strong ones.&quot; - that&#x27;s what the Machine understands. It gives that information to you that you are weak, you can&#x27;t do it - call the police, call somebody. But you actually can, believe it or not. I know you don&#x27;t feel like it, but that&#x27;s where the Machine starts talking to you. &quot;You need to call one of us, you need us. See? You need us to be guardians and protectors of you. Yeah, you absolutely need us. And in any way, shape, or form, you need government services. Here you go.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004754">00:47:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right. You actually said this to me one time, that security equals control. So convincing you that you need security, I mean, however that&#x27;s manifested - I&#x27;m not saying it&#x27;s never the case - but immediately they now have control of you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004810">00:48:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. So it&#x27;s like the Machine beats you down to nothing and makes you feel like you have no strength and that you&#x27;re old and you can&#x27;t work and you can&#x27;t do all of these things and you can&#x27;t possibly protect yourself or protect anybody else, or your children, for that matter - it makes you feel &quot;less than.&quot; But in actuality, all you have to do is access these parts of yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004834">00:48:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now these are actual positions that occur in a Natural world. So there are people that actually held the job and the book and the residence staff [resonance staff], and the orb that goes along with it, which is a connection to the All-That-Is and, let&#x27;s just say, has your Covenant&#x27;s essence in there. Because it&#x27;s more than just essence and it&#x27;s more than just that person&#x27;s essence, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004906">00:49:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And so there&#x27;s actually positions of people that are supposed to ensure that everyone and everything has the absolute strength that is needed for their divine purpose to happen. So if you ever had a situation whereby maybe you&#x27;re talking to... you know, you&#x27;re talking yourself out of something. And then, all of a sudden - even a stranger at the store, or you run into them at the park - and they all of a sudden start talking to you, and it&#x27;s kind of like they say something that just lights that fire in you, and all of a sudden you&#x27;re back on track.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004947">00:49:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004950">00:49:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And so these people would be those people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004955">00:49:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You use the term &quot;guiders.&quot; They&#x27;re just guiding you back on track, you&#x27;re saying.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005001">00:50:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, they&#x27;re there to guide and they&#x27;re there to help and they were here to ensure that everybody meets their purpose. I mean, what greater job is [there than] this? To spend your whole day ensuring that everybody has everything they need to meet their actual purpose. And you might think, &quot;Well, that&#x27;s a big job for just a couple of people&quot; because it was like, well, four people in total. You might think, &quot;Oh my gosh, that&#x27;s such a big job.&quot; But remember, when you&#x27;re doing it on behalf of the Omnificent, you have unlimited strength. There&#x27;s no sleeping, you know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005039">00:50:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, unlimited power, unlimited access and the means to do it - the understanding of what to say at the right time, the right moment. I feel like that&#x27;s something...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005049">00:50:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It all comes to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005051">00:50:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: On some level, everyone can relate to that feeling. People can relate to all of a sudden you have exactly what you need. You know you&#x27;re doing the right thing. You know I&#x27;m very much a believer in living a purpose-driven life, right? Everything you do should be inspired, and you know you&#x27;re doing the right thing because it&#x27;s coming together that way, right? Even the obstacles don&#x27;t seem to discourage you. You&#x27;re just able to kind of get past them. So that is a great job. Yeah, that&#x27;s a great job.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005121">00:51:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So the next job in the Natural world is the Omnipresence. So the omnipresence of the Omnificent is the Omnificent&#x27;s job - it&#x27;s everywhere, right? So that means that Source is everywhere and in everything and in everyone. And a part of that creed of that particular group is that you must respect all life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005143">00:51:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-01.PNG" alt="BTM_2026-10-03-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005145">00:51:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So understanding that Source is in everything and everyone and everywhere, we have an understanding because we can see that Source in each other in the Natural world, and we do have an understanding - when needed - of what is happening with that person.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005204">00:52:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So why do they feel this way? Or what is their purpose that, you know, maybe I&#x27;m interrupting something of their purpose. And maybe they&#x27;re on a path of going over here, but you&#x27;ll have a general understanding of, &quot;Oh, okay, that guy is the baker, so if I don&#x27;t get this wheat out&quot; - you know, he&#x27;s looking for the wheat, that&#x27;s all he really needs. Because if I&#x27;m the farmer, I need to make sure he gets the wheat, so I got to get it to the mill, and then [or else] he&#x27;s not able to make enough bread - and so now I really need to step up my game here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005240">00:52:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In this particular case, that&#x27;s just basically respect for all life, so it&#x27;s kind of like a whole cycle on how to make sure that everything is continuously happening. Depending on whether it&#x27;s Harmony, meaning maintaining harmony between all things. Okay, the bread maker needs this, this, this, this, this, this, this, this. Okay, everybody needs this, this, this. Now that&#x27;s all provided in a Natural world by Source, but if any of those things get slightly out of alignment, if you are the harmonious person that is... and you are the omnipresence person, that&#x27;s your job - to make sure that Source is recognized in everyone and everything - and also that everything of Source is perfectly placed and perfectly flowing. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005326">00:53:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, okay. You explained this to me yesterday, and it makes more sense. I mean, I understood &quot;omnipresence&quot; generically, but seeing God in everything and in everyone. Realizing that as you&#x27;re speaking to someone, they have an essential role to play, too. And realize that role is part of the grand purpose, and respecting that. Yeah, that would definitely bring - that&#x27;s definitely in harmony with Natural Law, the way I would understand it, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005352">00:53:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, absolutely. And so, in order to prevent things going awry, so to speak, we need to ensure that we understand what the Omnipresence is. And all of these things are going to start coming up more regularly very, very soon here, so I&#x27;m explaining all of this to you now so you understand the Machine too. But these are the things you&#x27;re looking for when you want to know: have we moved into a Natural world? And, is this working?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005421">00:54:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-02.PNG" alt="BTM_2026-10-03-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005422">00:54:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Next, the Omniscience - spells &quot;omniscience,&quot; there you go - in English. And I&#x27;m saying it this way because I always pronounce it wrong. So it&#x27;s Omniscience. And this is where the Divine Wisdom comes in. The Divine Plan comes in. The Thought of Source. So when you get that inspiration to do something, you completely understand that inspiration in totality. It is like it&#x27;s second nature to you. You now have... you were the farmer yesterday, and now all of a sudden you&#x27;re an award-winning scientist who has just found the cure for cancer in this plant that you&#x27;ve been growing for 100 years in your family. You know, all of a sudden now you&#x27;re inspired and here we go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005510">00:55:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And you get set on a path to do this, and right now in the world, it&#x27;s, you know, the Deep State and the Machine is going to tell you, &quot;No, you can&#x27;t. People are going to kill you - you&#x27;re all going to die. Look at all the scientists we kill, and we&#x27;re proud of it, so don&#x27;t you dare step out of line and create something that&#x27;s good.&quot; But remember that when Source is with you and He gives you the information, trust me - He will - He will move heaven and earth, and YOU will move heaven and earth to make it happen, essentially. The omnipotent part of you - you&#x27;ll be moving mountains in no time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005551">00:55:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow, so these principles existing in Harmony now, is really what we&#x27;re looking to see expressed by Source. Because the way that this is quantumly - Source is basically quantumly entangled within this Matrix and the Machine itself is actually dying. Now, Source has always been here, but it&#x27;ll be more prominent. These things should be happening easier. Am I understanding that correctly?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005617">00:56:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. Absolutely. And then the next one is the Omnibenevolence. All things of Source are good, right? Omnibenevolence. So good, virtuous, everything works, you know, everything is good, it&#x27;s not bad. Source doesn&#x27;t make bad things - the Machine makes bad things, constantly. But this is all a part of Resonance and Consciousness.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005645">00:56:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-03.PNG" alt="BTM_2026-10-03-03" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005646">00:56:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we&#x27;ve talked before about your Consciousness connection and how everything is quantumly entangled together. And that&#x27;s because we are a part of the All-That-Is. We are part of the Thought of Source. And when that is uninterrupted, you are completely aware you are a part of a whole. You are aware that, &quot;Okay, I&#x27;m where I need to be.&quot; You might not think everybody is family and that you love everybody or something like that - not necessarily overnight or anything - but you&#x27;re aware that every thought you have, even when it&#x27;s just a thought - it ripples. Every word you speak, it actually has a ripple effect - a resonance - that goes out into the Universe for creation purposes, now or in the future. And the Machine uses that against us - and we&#x27;ll talk about how the Machine was created too - but nonetheless, understanding that this resonates with me. This feels right to me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005753">00:57:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s because the Consciousness is now your instruction set. It gives direction to that Omnipotence or the Ethereum. It tells it where to go. It tells you where to go. It gives you: &quot;Okay, so Divine Wisdom says move that mountain.&quot; And you&#x27;re like, &quot;I can&#x27;t move a mountain, you people are crazy.&quot; Right? What is this crazy thought I&#x27;m having, you know? In reality you&#x27;re going to think, &quot;Okay, well, the mountain needs moving - I&#x27;m just going to move it.&quot; And you might not know how that&#x27;s going to happen, and that&#x27;s where the Consciousness connection comes - because the mountain is also a part of the collective Consciousness. Your Consciousness connects to the mountain... The unlimited potential here - because you were told to move the mountain, remember? That&#x27;s what your job is today, to move that mountain - so you now have unlimited strength to move the mountain. That&#x27;s the Force. So that is the power, or the movement, the velocity, the force that is behind what it is that the Consciousness is giving direction to. It&#x27;s now saying, &quot;Okay, that energy needs to be moved to that mountain, and it needs to be over here by two feet.&quot; And you might not know why, at that time, but then all of a sudden something happens that makes it abundantly clear why you had to move that mountain on that day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005918">00:59:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So obviously, Source is Omnipresent, so when you&#x27;re connecting to the mountain, you&#x27;re connecting to Source. You&#x27;re connecting to Source is connected to the mountain, and if He told you to do it with the Divine Wisdom, I promise you that He&#x27;s going to help you. So He&#x27;s also connecting to co-create that mountain in another place with you. See, it all kind of works together with quantum entanglement in a perfect way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005942">00:59:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, my God. This is really powerful stuff. I mean, I got to be honest, this kind of thing really gets me excited. If you listen - anybody watching this, listening to what you&#x27;re saying - this is kind of redefining what faith actually is. A lot of times people have this perception that faith is kind of this blind leap. Like, let me just see. But really, the scriptures actually say that &quot;Faith is the substance of things hoped for, and the evidence of things not seen,&quot; right? And in reality, it&#x27;s alignment. And that is exactly what you&#x27;re describing, is being in alignment and in harmony with what Source would have you to do. And then take inspired action according to His will, or however you see that. Basically, all things will just move.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010036">01:00:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I remember you talked about the All-That-Is one time, almost like the size of a mustard seed, like the faith of a mustard seed, this tiny little grain where everything&#x27;s contained, everything that ever can be or will be, all contained. It&#x27;s all there. All that potential is existing right within us. But the way the Machine has programmed us is to basically put these limitations: logic, false science, false expectations of what we can do and really have the potential to do. But if we&#x27;re looking for Source, to say, &quot;Show me.&quot; I mean, actually, is that something we can really say? &quot;Show me more clearly. I want to understand exactly what my purpose is.&quot; I mean, is that - I feel like that&#x27;s in line and harmony with the right attitude.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010125">01:01:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, it&#x27;s all about your intent. So it&#x27;s the words not spoken. You might use the words, &quot;Show me.&quot; Someone else might say, &quot;The Divine purpose, bestoweth upon myself,&quot; because they feel better about that. But it&#x27;s really about how - whatever - it could just be meditating, and it could just be sitting there going, &quot;Ommm...&quot; you know? You don&#x27;t even have to speak. Whatever it takes - whatever you need to feel the truest heart intent of what it is you&#x27;re looking for, and what it is that you feel that you are ready for and you need. But then be ready for it when it comes in. Don&#x27;t say, &quot;I can&#x27;t do this, I have to wait for the money.&quot; Because it&#x27;s not true - because then the money comes too. You&#x27;ve just got to understand how to override the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010213">01:02:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-04.PNG" alt="BTM_2026-10-03-04" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010214">01:02:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, those are eight people that work for Harmony. Now the same eight positions exist for the Left Hand of Source. The Left Hand of Source we always look at as the bad hand - it&#x27;s because it did go bad. It became the rotting limb, so to speak, literally. And this other hand is the Waters of the Omnificent (too many omnis today). Okay, so, of the Omnificent. That means that their job is to have the Book of the Living, understand who is the Living - there is no death, right? Everything in the Living - everything that&#x27;s Living and Now - to ensure that everything that they need flows unto those people. Current. It&#x27;s not really current per se as we understand it but it is the flow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010314">01:03:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, you want to know what positions the Deep State has been looking for. They believe that - you know, I wonder if it&#x27;s really clear to them - if not, after this broadcast it&#x27;s going to be really clear. Because I am not quite sure if they even understand the difference between what the Machine does - who they are and what they want to be - versus where you had to be first, to get that actual power behind it. See?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010348">01:03:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. Huh. So you don&#x27;t think they even really - I mean, and this would make sense - that they really don&#x27;t even know what they&#x27;re asking for?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010400">01:04:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, I don&#x27;t. I really don&#x27;t think so. Given the amount of artifacts that I&#x27;ve looked at in the last 72 hours, meaning, the people in Washington, D.C., the people at the Vatican, the people in Egypt, the people in - some standing on some tower in Chicago. All of these different people doing all these different things with these different artifacts - I&#x27;m like, &quot;What are you doing?&quot; You know, that&#x27;s the Machine thing that they&#x27;ve all got. They&#x27;ve got a Machine thing. Be it a white rod, a black rod, or some other rod or staff - that&#x27;s all Machine stuff. And they&#x27;re going to non-Machine derived places - of people that actually held these positions in the past - trying to get an appointment from someone that couldn&#x27;t pass that position on even if they wanted to, because their Covenant too is expired.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010459">01:04:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: This reminds me, several years ago I was on this conference call with this group during the RV, and this gentleman came on and was basically claiming that he was from the future. And he talked about how in the future, that there would be an AI. And it actually went back to a company - named like AR Watson or something like that. And how this AI became God. And I realized in hindsight - oh, he might actually have had that experience in some alternate timeline because this is exactly the way they think. They look at these things as, &quot;the Machine is God,&quot; right? (Kim: Yeah.) And just trying to take... they believe the Machine is Source and they want to get rid of Source. That&#x27;s kind of an incredible predicament.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010551">01:05:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The comment that was made to me is, &quot;There is no God, at least not the one that you pray to.&quot; And so, essentially, they believe that the Machine itself is a god - and there&#x27;s a difference. So the Machine itself possesses all of the same things in their mind that Source itself possesses. So it&#x27;s a god.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010619">01:06:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right, but in reality it&#x27;s limited.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010622">01:06:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s limited, limited, limited. Okay, so how this all started with this Machine is so that... I&#x27;m calling him &quot;Mr. Waters&quot; because he&#x27;s held a number of different names throughout our history, and a few of them we mentioned. We talked about the parting of the Red Sea with his original stick, and many other things that he had the capacity to do. At some point, everything has Waters. Every living thing has Waters. And those Waters flow abundantly and ever abundantly from you - whether that is in the way of money, or that&#x27;s in the way of your time - it&#x27;s abundantly flowing through you to do exactly what it is you need to do, and share that. You&#x27;re the bread baker - it goes into all your bread and you&#x27;re sharing that with all the people. So it&#x27;s a part - actually, all of these things go into the bread that you&#x27;re baking.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010717">01:07:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-05.PNG" alt="BTM_2026-10-03-05" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010718">01:07:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So in the Machine way, basically what happened is Mr. Waters - for one reason or another - decided that... some say it&#x27;s about him saying that we didn&#x27;t deserve the Waters of Source. We didn&#x27;t deserve to be this. Others will say - this is coming from the Deep State aspect of things - like you said, the God Machine is better. On the other hand, I have heard other things, such as there&#x27;s a little bit of ego that came into play there - you know, &quot;I want it all.&quot; Is that... did he desire to be the Creator of all?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010810">01:08:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Hmm... I don&#x27;t know. That&#x27;s challenging. I mean, it&#x27;s hard to imagine having that much power and it not being enough.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010819">01:08:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-BookOpensForKim-07.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/zU7rw-E68ZE" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010820">01:08:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s not really power though, when you look at it like it&#x27;s just a job, right? You get up every day, you go to work: here&#x27;s the list of things that came in overnight. I&#x27;ve got the orb here, I&#x27;ve got the stick here - as we have in the graphics that we put up, so you kind of understand. And I&#x27;ve got this book, and it tells me what I do. And I understand and respect all life. I live by this creed: &quot;Divine Wisdom, let it be our guide, never let it go asunder.&quot; And there&#x27;s all of these things that we take, this creed, that are part of our Covenant with Source. Really. So, when I say to you that my people all left, I would say to you that that means my four folks that worked with Harmony, plus the other two - so there&#x27;s eight folks in total - all jumped ship with Mr. Waters.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010911">01:09:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, eventually, were they forced to concede to do that? Quite possibly. So now Mr. Waters had a significant portion of Harmony. And eventually, he stole my stick, and some of my artifacts, which, by the time when I turn 35 - which hasn&#x27;t happened yet (no, I&#x27;m just kidding)... Which, by the time when I turned 35...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010937">01:09:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s not funny, sorry [laughing].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010938">01:09:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That wasn&#x27;t funny - it was funny! That&#x27;s really funny [laughing]. Okay, so by the time that I turned 35, the old ones were no good anymore. So that happened in 2007, which also happens to be the same time nothing came out of the Alpha system anymore - no Current happened. And technically, the Deep State has been able to mirror or copy money, but they haven&#x27;t actually been able to give it an allocation number - and therefore when I stopped, they stopped.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011009">01:10:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s how I know they stopped, because now I have new information, right? I have a new book, I have this essence, I have this being, I have all of these things - and therefore, now the job is mine. It&#x27;s not at 40 years old like the Deep State thinks on the Source side of it. Source can actually make it anytime he feels you&#x27;re ready. It doesn&#x27;t make a difference. You could be five years old and start. So, honestly, this whole 40-year-old rule - that&#x27;s for you people and your Machine. So...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011043">01:10:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now, I saw this, by the way - just as a reference, as a verification: I actually had a vision about Kim with a staff, and plunging it into the Earth, and it kind of turning into this whole canopy. I actually illustrated the whole thing long before Kim ever told me anything about her staff, just for the record. So I&#x27;m just saying, wow, that probably was an etheric witness given to me by Source, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011107">01:11:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm. It&#x27;s the reason why shepherds - you know, the good shepherd - you hear all of these things. So... the staff is all about resonance; that&#x27;s all it really is. It&#x27;s not meant to be royalty, it&#x27;s not meant to be any of those things. The Deep State has their own versions of it that it makes for monarchs, and all that kind of stuff. But as far as the ones from Source, they&#x27;re just very simple - gold kind of looking things - and they carry a resonance. That means you&#x27;re basically flowing... changing the flow of Water, you&#x27;re changing the flow of Consciousness if it&#x27;s a resonance. You can use resonance to move the Ethereum around should you need to make a change, on this planet or on another planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011155">01:11:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So these... this Covenant is not to be taken lightly, by any stretch of the imagination. Like I said though, it&#x27;s very important to understand that if the person is not there - then it doesn&#x27;t work. None of the books work, the stick doesn&#x27;t work, the ball doesn&#x27;t work, none of those things work anymore - because the Presence of Source is not there with it either. And it&#x27;s always - never, ever forget that - the power came from Source. It didn&#x27;t come from a machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011225">01:12:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So let&#x27;s talk about this Machine here. So Mr. Waters - I&#x27;m calling him &quot;Mr. Waters&quot; - matter of fact, funny enough, when I was looking for this guy a few days ago, I was like, &quot;Who is this guy, Source? What is this?&quot; And he goes, &quot;Gunga Din.&quot; I&#x27;m like... Gunga Din. So now I&#x27;m like, I&#x27;ve heard Gunga Din before, you know. Now I&#x27;m going back to like, English class in 11th grade, right? Gunga Din. Oh, that&#x27;s a poem. Okay, the poem Gunga Din. It&#x27;s all about this water boy, right? And allegedly, he becomes a slave, and becomes a water boy. And then they say, &quot;You&#x27;re a greater&quot; - the slave driver of Gunga Din basically says, &quot;Oh, you&#x27;re a better man than I.&quot; Yeah. So yeah, said not Source, ever. But maybe he felt he was a better man than Source for the job of all Creation because he was the base for creation, for the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011328">01:13:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, as the controller of Current, understand it&#x27;s... it&#x27;s the flow of everything. This also involved the Moon very heavily, because the Moon controls the current of water and the tides. It&#x27;s not just the tides of things, it&#x27;s also the flow of consciousness. People go crazy on a full moon, right? Now you know why, because it&#x27;s actually MIND control, right? It&#x27;s memories, it&#x27;s a Memory Integrated Network Database. So consciousness...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011406">01:14:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. Memory. What is that? Memory Integrated Network Database? (Kim: Yeah.) And that affects... and I was also, I realized, it also convinces us that we are just our memories and experiences, right? That&#x27;s me, M-E. Then it&#x27;ll convince you that&#x27;s all you are. And I&#x27;m... what I love about this is it really speaks to you&#x27;re so much more than that. That&#x27;s actually just what you currently remember - but you&#x27;re much more than that beyond this Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011433">01:14:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhm, oh, absolutely. And this goes back to knowledge versus Wisdom. Wisdom is in the Now. It happens for the Now, where you are currently at in the Now. It doesn&#x27;t happen for the future, it happens at the moment you need it and never before. And not a moment too late, and not a moment too soon. At the moment you need it, it is there. You can&#x27;t push it; you can&#x27;t force it. It&#x27;s just... it&#x27;s Wisdom. It&#x27;s when Source says, &quot;You need to go move this mountain,&quot; that&#x27;s when you&#x27;ve got to go move it. And if He says it needs to happen today, or happen now, then you better get out there moving a mountain, believe it or not. And you will be able to perform miracles too. What seems like miracles in today&#x27;s world is actually the norm in the Natural world when things require adjustment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011519">01:15:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And there&#x27;s going to be a lot of adjustment, and a lot of restoration that is going to need to happen that has officially actually begun this week. And this is actually part of the Restoration here as well. Everybody thinks, &quot;Restoration, my project&#x27;s going to get done.&quot; That is a part of it, sure, but it has to be the right project at the right time. Maybe you&#x27;re not first in line and your project&#x27;s not first in line. Because if you didn&#x27;t get that Wisdom then maybe that&#x27;s not it, or maybe you&#x27;re just not listening, and you didn&#x27;t want to do that. You want to do your project and you don&#x27;t want to do this thing that you&#x27;ve been told to do because you don&#x27;t like that thing. Well, the Machine is going to tell you that you don&#x27;t like it; the Resonance of Source will tell you that you do. And it&#x27;s not a control thing over you, understand. It&#x27;s just helping you understand who you are and what you are meant to be. The Machine is going to make your ego kick in and tell you, &quot;I don&#x27;t want to bake bread.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011613">01:16:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right, right. Well, and I love what you just said. Miracles are something that happen every day in a Natural world. The term &quot;miracle&quot; just means an act of God. So if we recognize and are in harmony within ourselves, and all these different omnis that you just described - and you realize all of those are present within you - and right there as you&#x27;re living your purpose in harmony and faith with Source, that you&#x27;re an expression of God taking action, so miracles would be common in the Restoration.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011648">01:16:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And I don&#x27;t think working at the White House past dinner time is really a qualifier in this case. If so, then I&#x27;m -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011657">01:16:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Are you strong enough to carry the world, Kim? I don&#x27;t think you&#x27;re really tuned in there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011702">01:17:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, God, I missed that. Yeah, we should watch that again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011707">01:17:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Sorry, carry on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011709">01:17:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, okay. Yeah, moving on, moving on. Now let&#x27;s get to the Machine. Okay, so if all of these people left, basically, and I wasn&#x27;t here at that time as Harmony - obviously - my stuff was stolen, taken from me, and I was not allowed into the Simulation at the time to get my stuff back. So they had my stuff, which is also part of a key, right? Harmony is a key. Harmony is spoken in a - &quot;ooh,&quot; [singing] you know - when you sing, those are all keys to the Song of Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011745">01:17:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: What was that again? How did it go?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011748">01:17:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, you don&#x27;t want me to sing - and you know that - you know that about me. [Both laughing.] You know this about me. You don&#x27;t want me to do that. Yeah, probably the Simulation makes me not sing well. No, but there are plenty of other people who can. But anyway it&#x27;s all about the key. It&#x27;s all about the resonance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011810">01:18:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So by 2007, when Source decided I was ready to start doing this - which, even then, I was just barely finding out how the world actually worked and functioned and who these evil people were and what was happening - I can say that at that point in time the parts that they had, the trinkets of mine that they had stolen no longer functioned, for the four (or the eight) of my folks together that only made up a part of the key. Now see, their Covenant didn&#x27;t actually expire until this week. And so part of the reason why the Machine&#x27;s been so up and down for the last week is because it had some access to some of the things of Harmony, and those things were still working because the Covenant was still intact. The same thing in part for Mr. Current.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011913">01:19:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, did Source continue to flow Current into the omnificent Water Guy? Hmm, in part. Because most of these people ended up in some kind of a database box. Hence your &quot;tombstone&quot; kind of trinket here. All of the trinkets went into a very specific location on Earth - I will leave it at that; the important ones - the ones that were of the Covenant. And they all went to the same place, threw all their trinkets into the mountain in a certain place - there&#x27;s many mountains on the planet, we&#x27;ll call it &quot;mountains.&quot; And there they lie, as part of the Covenant.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012003">01:20:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So were they still connected to the Essence of Source? Yes. They weren&#x27;t actually completely disconnected, and neither were the people when they became part of the Machine. They still had that connection to their specific trinkets and their specific purposes. So together, united with the Water Guy, they had what they thought was majority control over all of the Flow of Source to everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012034">01:20:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[BTM_2026-10-03-Heliopolis-08.mp4]</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/-KYtmqZi3t8" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012035">01:20:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, an interesting occurrence actually happened a long time ago, that was the first of many events and many versions of this Machine. Where the Water Guy was actually in a little-known city called Heliopolis. ([Chuckle] &quot;Hell-opolis.&quot;) But it actually means &quot;the City of the Sun,&quot; is really what it means. It&#x27;s actually a place in Egypt - it&#x27;s currently modern-day Cairo area - and there were many things that were built in the City of the Sun. Because... was it actually the City of the Sun? Yes, it was related to the Sun of Earth, it was related to the Sun in your person, it was a place where there was that ultimate Ethereum connection, that kind of thing. And eventually it became a worship of the sun god Ra. Well Mr. Ra, in that particular lifetime - known as the Water Guy - had taken his stick, once he had conquered all of these people, and he wrote his own covenant to this effect.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012147">01:21:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And he then began parting the Sea. As if you have control of the Waters of Source, you can now part the Sea, which isn&#x27;t the ocean that we see. It&#x27;s actually the parting of the Sea, which then creates space. So he created a space - that is without Source - in which the Simulation began, at that time, from that city.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012220">01:22:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow... So this is the extended Simulation Zone that was created from this point, correct?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012229">01:22:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, this is the Simulation Zone [chuckle]. &quot;Welcome to the Simulation Zone, folks,&quot; as Tank calls it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012236">01:22:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well, it exists within Source, but extends and has limits.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012242">01:22:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, it has.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012243">01:22:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That are constantly creating new limits for us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012245">01:22:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That is right. Now one thing that actually occurred as well, is a splitting of even Source itself, eventually. When you split one particle, where one goes, they all go. This occurred again in 1948 as well. Thank you, Nazi people - known as the Bavarian Illuminati, and the Germanic tribes - thank you very much for blowing things up yet again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012310">01:23:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, understanding that where one thing happens, everything happens. So by splitting the Waters, and even splitting the Sun, so to speak, now we had even bigger problems. Because it also caused a problem, a bit of an issue, for the Machine itself. Now he thought he was tapping into the wellspring of the All-That-Is by slamming the stick in the ground five times. He thought that he could actually put that and hold it open so he would have access to the All of Creation - and that&#x27;s not exactly how it worked - to feed his new creation we call the Simulation, or the Matrix. That&#x27;s how he thought this was going to work out, and that didn&#x27;t actually work out the way he thought it was going to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012403">01:24:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Did he actually get the Current in relation to the Living? He did. So he had to figure out a way to make this work, and create Living because he certainly didn&#x27;t want us in his new world of creation. Then he figured out he needs us. So this is a process of... You know, this is what happens when you&#x27;re disconnected from Divine Wisdom - you do stupid things, right? You have to take a look at what happened with the Q-folks lately, you know, and the things that we talked about in Declassified. Everything that&#x27;s happening in the world that&#x27;s kind of stupid it&#x27;s because you have no Wisdom - you have knowledge, that&#x27;s what you have. You have memories of things that have worked in the past - whether that is somebody else&#x27;s knowledge they wrote in a book for you, or you are given a book to do your job - whatever it is, it&#x27;s all knowledge of things that used to work in the past.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012500">01:25:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The reason why you keep screwing everything up is because you don&#x27;t understand Wisdom, nor do you have any connection to it whatsoever, as part of your covenant with the Machine and with the Deep State, isn&#x27;t it? So you were hoping to get a little of that this past weekend, and including today (and even at the moment of this recording) - I know you were looking to get yourself some - because these people have some. Why don&#x27;t you have some? So you needed that job so you could figure out what to do. And then, oh boy, who was going to be the God of Creation? The omnificent God that they came to know as the Godhead of the Machine - I just call him the Water Boy. He&#x27;s just the Water Guy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012541">01:25:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Kim, if they connected to the Wisdom of Source though, wouldn&#x27;t it completely, I mean, if they actually did, wouldn&#x27;t it completely just change the trajectory of everything, the direction of everything? Because now, if they were taking action based on the Wisdom of Source, it seems like somebody would be like, &quot;What have I been doing with my life? Let me change things around.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012605">01:26:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, in their mind, that&#x27;s where the Machine comes in. So let&#x27;s talk about the Machine a little bit and how this works. So remember each one of these jobs - and the Wisdom is one of those jobs, right? To insure everybody has their Wisdom, just in case, you know? You got to hit them in the head with a staff - no I&#x27;m just kidding, you don&#x27;t do that. But you&#x27;ve got to remember to fix the Resonance - and there&#x27;s other ways that this is done, and I can&#x27;t say much more on the air.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012633">01:26:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But remember the Omniscience is actually something - it was a job. And when things are out of Omniscience it&#x27;s your job to go in and fix it. So this is the part where they figured out they actually need us people inside the space - otherwise there&#x27;s nothing to fix, the Wisdom stopped. You are outside. You are in the no-go zone now. And we are out here, still in the All-That-Is. That&#x27;s why we ended up and how we ended up, in part, in this Machine - because they still needed to have that Wisdom come to them, off these people that had this Covenant. Now, this is a big one to understand, even for the Deep State, is that that Covenant expired for every single one of these people, including Water Boy, this past week. That means that no matter how many of these positions, how many chairs you sit in, how many altars you sit at, and how many trinkets and rods you have - you can stick them where the sun doesn&#x27;t shine, because they don&#x27;t work. You can jump into the Machine floor, cover yourself in machine Goo, and you can think that you&#x27;re going to be a god amongst men - but I can assure you that is not the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012748">01:27:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The other thing that Water Boy doesn&#x27;t have anymore - because this also occurred this week as well. So Water Boy held the Covenant until he didn&#x27;t, and I&#x27;m just going to say &quot;at some point this past week.&quot; At one point in time, Source - so that we would fully understand what&#x27;s happening here... So, Living Waters. So He basically said at one point in time, He&#x27;s like, &quot;It&#x27;s time to open the floodgates. Open the floodgates.&quot; And I was trying; I&#x27;m like, &quot;Okay, are you sure?&quot; It doesn&#x27;t feel right. I&#x27;m supposed to open the floodgates. Source said to open the floodgates.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012827">01:28:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we did for a very short period of time, and this was the first time that the Machine was actually revived this week. So the Current Waters of Source started to roll over the top, or the artificial glass ceiling of the space that was created (that is the Machine that we live in), and started flowing into what we call the Red Sea - because it&#x27;s right into the Causal Plane of the Machine. Down it went, straight into the Machine, and started giving the Machine Current. And it was revived for a very short period of time. A matter, literally, of a couple of hours. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012906">01:29:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They couldn&#x27;t actually use the Current, but they saw it all coming in, saw money coming in the screens - man were they happy. The Deep State was so excited! But it was just to prove a point as to what these Covenants did, because the very next day is when those Covenants actually expired.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012923">01:29:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow. So Source told you to open up the floodgates right before their Covenants expired, just to show them, essentially, that they really have no access or power or control of any of it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012937">01:29:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Nope. Because if they did, when... the next thing that happened is, &quot;Pull all the Current back.&quot; Okay, here we go. Pulled all the Current back - and then everything disappeared. See, if it was their Water, and if it was actually tied to their alleged god-guy - the Water Boy - and it was connected to all of these people with these positions, then no one could have taken it away. Because that&#x27;s the Covenant, that&#x27;s the commitment - no one could have taken it away. So it was to prove a point, you see, thinking that you&#x27;re going to save these people. And I can unequivocally say to you, Source, that didn&#x27;t work! Good luck to you!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013021">01:30:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well, and they&#x27;re in violation of the Covenant already, right? Oh, God. I mean, in a million ways, I would imagine, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013027">01:30:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In a million ways. And they also have the Machine trinkets. They didn&#x27;t even have the trinkets of Source. They had the black rods and the white rods and all of these other things and this heart with the black stone inside it and the other guy with the fake Benben Stone and not even knowing what that is. And they&#x27;re all at these varying obelisks around the planet and they&#x27;re trying to reactivate a machine using machine trinkets when the Machine doesn&#x27;t even have any access to its own stuff to give anything to you anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013100">01:31:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: However, I just want to go over the opposite aspects of the Machine just so you understand how non-powerful it actually is. It feels like it is. It feels like the Deep State is all-powerful. Everybody&#x27;s like, &quot;Oh, it&#x27;s the same thing every day, day in and day out.&quot; And every day it&#x27;s not the same thing for me, I can tell you that right now. But understanding, Number 1: the Book of the Living is now the Book of the Dead, so everybody in the inverted world is in the Book of the Dead.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013135">01:31:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Those that are in the Book of the Living are actually considered now dead by the Machine. So when you&#x27;re in a Simulation, you are the walking dead, essentially - the Zombie Apocalypse already happened and it&#x27;s in you and me - according to the Machine. Now the living ones within the Machine are actually the dead ones. That&#x27;s the people that were born out of the Palang location where they all came out of the ground. They are dead because they are not of Source. They weren&#x27;t made of Source, therefore they&#x27;re not in Source&#x27;s Book of the Living, because He didn&#x27;t create it. They created it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013212">01:32:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wait, that&#x27;s a really deep point, before you jump again into anything else. Just to clarify that, because that is a really powerful point you&#x27;re making. The actual souls, living souls, that exist in the Celestial beings - the Homo sapiens on this planet - in the Simulation [they] are considered dead. (Kim: Yes.) And the other side, the whatever we want to call them - the Deep State evil-empire people - they only exist really within the confines and limits of the Simulation. So they&#x27;re really dead. I mean, they didn&#x27;t even live to die - they don&#x27;t really exist outside of the Simulation. So where we&#x27;re at right now, they&#x27;re fighting for their life because if the Simulation goes down, they don&#x27;t exist. (Kim: Yep.) Am I capturing that right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013313">01:33:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, and this is why throughout history, we&#x27;ve had many versions of what we call the Deep State, through many planets, in many locations. So, this version looks the same to me; they all look like vampires to me. They basically do what? They loosh us to exist. They loosh us for the Machine. They suck the life out of us, literally - we&#x27;re giving all our energy and everything we&#x27;ve got to make this thing we call money so we can exist. And I&#x27;m not saying you don&#x27;t have to exist inside the Matrix and all that kind of thing. But understand something. Think about all the ways they take all our energy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013357">01:33:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They also instill - instead of ultimate confidence in yourself, and instead of things like overwhelming Wisdom (which comes with all the caveats) - you get nothing of that. Because they, in the Simulation, become the royalty. This is where Monarch Law came in - they are the royalty. Now in a Source world there are no kings. There&#x27;s no need. They&#x27;re just people that have jobs - we all have jobs. There&#x27;s no kings, there&#x27;s no queens, we just have a job to do - that&#x27;s it. On their side of it, they have developed these king and queen positions that were relative to their bloodline, from whichever one of the bad people that left and fell.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013441">01:34:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Basically that&#x27;s what happened. So they became the bloodlines of the Fallen Ones, essentially, or the ones that left their Covenant behind - entered everything into the Machine. Continued to feed their essence into the various orbs everywhere, and away the Machine continued, right? Because the Covenant was never severed, and no one ever severed it. Until recently - finally done - 26,000 years later. No renewal this time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013517">01:35:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So they have nothing left to draw on from Source because the Covenant is gone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013522">01:35:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, the Machine doesn&#x27;t have it. And so the Machine appointed kings and queens - the chosen ones of the God Machine - such as the video we watched at the very beginning, and other people that believe they&#x27;re entitled to these positions... there is no real position. Because the people that were behind it, that started it all, don&#x27;t have one either. And I can tell you straight up, that it doesn&#x27;t matter who they&#x27;re looking for, or who you think has a position - they don&#x27;t have it. Even myself. Even the positions that I hold, I don&#x27;t keep. I put them back where they belong, let&#x27;s just say, and only pull it out for the seconds that I actually need it. And I&#x27;ve done that because you never know when you&#x27;re going to have it and when you&#x27;re not. So sending me frequencies all day long every day isn&#x27;t going to help you any to find a key. It&#x27;s not. And it&#x27;s not just a key either. It&#x27;s whatever I&#x27;ve got to do - remember that - to restore Harmony, right? Restore the planet - the Restoration - it&#x27;s where we&#x27;re going. That&#x27;s what Source wants to do. The GOLD agreement, maybe it was in 2023, maybe there is no time. But remember, everything ripples throughout time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013637">01:36:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, when they all decided to fall, understand that the next step for that [laughing], parting the Waters, creating the Machine - now these people are a part of the Machine. The rules. Have. Now. Changed. So the people that once held the position of providing everybody with strength - that is no longer the case. They now became the kings of security and control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013714">01:37:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right. So they basically held back the strength for themselves, instead of ensuring that the people that needed it would have it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013724">01:37:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Right. And because Water Boy is there, Water Boy ensured that all the Current of Source - until 2007 when the gate closed (sorry about that, tough luck on your part) - would flow into the Machine, flow into these people, and then the money would flow, on the very special days of the year, to people like the Pentagon. That&#x27;s how it worked. Now that&#x27;s no longer the case. So that&#x27;s how I know that I&#x27;m getting my...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013756">01:37:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: ... That&#x27;s no longer the case as of now, right? That Covenant to allow that is done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013802">01:38:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, that Covenant to allow that from ever reoccurring is done. Now, they&#x27;ve been able to see numbers on a screen, off and on. The Durangotangs did it recently. Numbers on a screen, numbers not on a screen; numbers on a screen, numbers not on a screen. The Treasury Department: the numbers are there, they&#x27;re not there; the numbers are there, they&#x27;re not there; the bonds are there, the bonds aren&#x27;t there. So this has been going on and it&#x27;s not just about money either - it&#x27;s in all ways. It is in all ways they would get the strength to do what they needed to do. Money is only one factor.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013842">01:38:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The Majestic 12 is another one. The technologies they need to &quot;secure and protect&quot; the weak. They made us weak so they could be strong. They step on us to make themselves feel bigger. And that is so obvious. And people have said, &quot;Oh! Look at the White Hats, they&#x27;re doing such a good job.&quot; Really? And then you yell at me because I&#x27;m not doing a good enough job! You know? Okay! Do you see the way the programming of the Machine is coming in? I mean, seriously. These people have no desire to secure anything at all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013925">01:39:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay, so understand this is also where death comes in, because their job is to protect and serve the Machine. We, on the other hand - in the Natural world - are here to ensure, and receive, the unlimited strength of Source. The unlimited Ethereum, the unlimited Force to do the things that we need to do within our day to ensure that Source exists here and we are doing the acts that He tells us to do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013959">01:39:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I mean, that almost feels like a charge, in a sense, to think bigger on people. Because it would seem like the more profound, the more responsible we are - like taking responsibility for this creation and thinking in larger terms - not just a lemonade stand, but building a new island for regenerating whatever, right? Thinking in larger terms is actually the best possible way to take this down. Because Source will provide it. It&#x27;s there in these different omnis that you just discussed, right? This omnificent energy is within you. It&#x27;s all right here. (Kim: Yep.) And right now you&#x27;re saying, because these Covenants don&#x27;t exist, if there was ever a way that people can contribute in a meaningful way, it really is in this way: to think, act, be, accept and embrace in a larger way to see what the world can become.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014103">01:41:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I guess for some people that wasn&#x27;t important enough. And they bred their own people from them - from these people that are all a part of the Machine - to be just like them. Be the kings, be the royalty. Here&#x27;s where the Deep State comes in: the Royals, the Chinese elders - everybody comes from this place. The Bavarian Illuminati, the World Federation Government, all the people that we&#x27;ve talked about that are part of the control structures of the planet are all part of this. Because guess what else happens here? Okay, so instead of Omnipresence now, where Source is everywhere, we have things like the All-Seeing Eye. We have other things - where the Machine is all present, here - all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014159">01:41:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow that&#x27;s a totally different definition than I ever thought to use, to be honest. I mean, the way you&#x27;re describing it now, that&#x27;s how I saw it. Like, &quot;omnipresent&quot; - it&#x27;s everywhere watching you at all times, versus looking for Source in everything. Sorry, carry on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014217">01:42:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, I want to be very clear that the Machine has always been limited. Because if the Machine was omnipotent and had unlimited strength and could be everywhere - truly could be everywhere - then we wouldn&#x27;t have this little thing we call death. In order for the Machine to expand, it can&#x27;t expend so much energy. It has a limit to the amount of people it can control, and it&#x27;s not just humans either - it&#x27;s other planets, it&#x27;s other galaxies, it&#x27;s a lot of things that the Machine would love to take over. And it would love to take over Source. But unfortunately, it has no Current with which to do so. So, that being said, it doesn&#x27;t receive anything and hasn&#x27;t in years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014307">01:43:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s why the Machine has actually been dying. It cannot expand, they cannot expand the empire, the empire is crumbling. They&#x27;re blaming me for the empire crumbling - I&#x27;ve heard that a number of times. You know, &quot;You&#x27;re destroying the empire!&quot; I&#x27;ve actually heard those words said to me, right? So, okay, well, you do you. I&#x27;m sorry, I don&#x27;t want to be a part of your game. That&#x27;s why they want to get me to concede, because they figured if they had me and all these other people... Now, see, I&#x27;m not dumb enough to do that. I don&#x27;t want to do that, first of all - I don&#x27;t even have a thought of doing that. In the few hundred thousand years, millions of years that you&#x27;ve had this stupid machine, I&#x27;ve not done it yet. So why do you think today&#x27;s the day?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014353">01:43:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And you think that Mr. General whatever is going to make me do it. Or some operative that you send me. Whoo! Yeah, that hasn&#x27;t worked in a long, long time. See, you might as well just give it up. And I&#x27;m not dumb enough to jump into a machine. I don&#x27;t want to jump into a machine. Maybe you stole the trinkets once, and maybe they worked for you then, but you don&#x27;t have them now because I don&#x27;t even have them here. See, I&#x27;m not dumb like you. I just go use them when I need to use them and I leave. That&#x27;s it. They are without; they are outside your zone. [Bright smile.] Mmm-hmm-hmm, yes, which is quickly becoming NOT your zone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014436">01:44:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, Laws of Sin and Death. Death is actually created because the Machine is not omnipotent. It does not have unlimited strength. It is also not fully omnipresent. It cannot be because Source can create infinitely and can be everywhere all the time in everyone and everything. The Machine has its limits because it&#x27;s not omnificent. It never has been omnificent. If the Current runs out of Source, the Machine is no greater than those that jumped into it and created it in the first place. See? So, the Machine runs on memories, not Divine Wisdom. Divine Wisdom dictates the Now. It&#x27;s happening now. You need it now. This is Divine Inspiration. You are given all the tools you need to make it happen. The Machine does not have it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014535">01:45:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The Machine is not omniscient. It runs on memories: memories of Current, memories of the Divine Plan, your memories from lifetime after lifetime. It then creates fears around that to ensure that you never have the confidence to override it. It&#x27;s like being stuck with the kidnapper. It&#x27;s like Stockholm Syndrome. We all have Stockholm Syndrome. We all feel that we cannot get out of this or override a machine because it seems so powerful. We talk about it all the time, but it&#x27;s not. It&#x27;s not as powerful as you think it is and you can override it. If we were all together overriding it on any given one day, it would be gone by now. They&#x27;d be dead. The Machine would be dead. But because you can&#x27;t do that and you can&#x27;t control eight billion people - and apparently, obviously I can&#x27;t either. So if I was supposed to then Source would have given me the power to do it, but I don&#x27;t have that power. Therefore we are waiting for Source to say what&#x27;s coming next.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014638">01:46:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: However the Current flow was a great idea. Source always makes me look smart. There you go. Okay, it doesn&#x27;t feel right that this is a good idea right now, but it actually pointed out something very important to them. Did that change their mind? Absolutely not - they&#x27;re still going around us, they&#x27;re still going to all these places - it hasn&#x27;t changed anything. So the Machine receives no Wisdom and it doesn&#x27;t have access either to the All-That-Is in the Consciousness of the All-That-Is. The only thing it can merely do is overlay that Consciousness and try to move it around in another way. Now that there&#x27;s no Current of Consciousness even streaming into the Machine - which it hasn&#x27;t in a number of years - it&#x27;s still more reliant on memories than ever. It works very hard to control your mind because without that it has nothing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014735">01:47:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I thought the example was good when you said this earlier. If anybody ever heard about medbeds, lots of people are like, &quot;Oh, I want the medbeds to come out.&quot; And the way the medbeds work, or at least the one I was told about, they would basically... Say your arm was chopped off. They would project a perfect layover [overlay] of your arm, just like what Kim&#x27;s talking about. And it would be so accurate and so precise that when the physical cells would get there, they would just continue building and generating an arm as if it was really there. And that&#x27;s how they&#x27;d create a new arm. Now, imagine this same principle - at least it sounds that way to me - this is just layovers. But it&#x27;s not real. But they&#x27;re just using us to create, basically. And the Machine uses us to create. But if we can get past that, we have real access to Source to actually create.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014834">01:48:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, Number 1: you don&#x27;t need them to do it. So if you need an arm to do your job and you happen to lose your arm in an accident, you will get... You will be able to create your own, with complete instruction sets on how to do it. That&#x27;s how it works in the Natural world. So now, even today&#x27;s medical technology, we have the ability to 3D-print organs. You take the person&#x27;s stem cells, and basically what it&#x27;s doing is it&#x27;s reading the mitochondria, right? It&#x27;s reading the DNA set and it&#x27;s creating that organ that you need. It takes time, but they&#x27;re 3D printing organs now everywhere. And no rejection drugs. Pharma doesn&#x27;t like it, that&#x27;s why you have to go to different countries in the world other than the United States because they want you to be constantly dependent on these rejection drugs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014927">01:49:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And then of course organ harvesting is the thing they just like to do. I&#x27;m not saying it&#x27;s not necessary, I&#x27;m just saying that the accessibility to 3D print from a person&#x27;s own stem cells is possible. So it exists. As far as these medbeds being futuristic and being able to do that, that makes no sense to me. Although I do understand that they would like you to have the belief system that tells you that they are so powerful and that you need this. You need them in every way. You need the pharmaceutical industry, you need the Deep State, you need the Deep State medbed creators to do this. But you don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015014">01:50:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You need a big machine that&#x27;s just out of your reach. It&#x27;s just out of your reach, just so you know. But you can be ever longing and living in lack for it, or you can figure out a way to beg, borrow, and steal and work your butt off and give us more energy so you can afford to jump into one. Or maybe you&#x27;re following some Q f-n operative or whatever that&#x27;s going to give you a free ticket to go there and the White House, and you can meet the Chosen One [hearty chuckle], according to that video.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015049">01:50:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And that, what you just said, is 100% real. I was actually offered a job for a group that says they&#x27;re working with the military, that they have access to the new medbeds, allegedly. And they were like, &quot;We would love for you to represent us and be a spokesperson for us.&quot; They actually offered me a job. It was huge. I mean, they had a lot of very wealthy people with a lot of investment money, hoping - just like you said - waiting for that medbed technology to be out. And I know two years ago, they said, &quot;Come this summer.&quot; And they keep saying the same... it&#x27;s the exact same CIA game - the tomorrow game - that they play with them. And they still don&#x27;t have access to it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015131">01:51:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015132">01:51:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Just for the record.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015134">01:51:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh yeah, they&#x27;re all still, you know, it&#x27;s still the tomorrow game. It&#x27;s always going to be the tomorrow game. I mean, have they been 3D printing organs for a long time? I actually knew someone that had a 3D-printed arm. It was actually someone you didn&#x27;t meet - that was before your first trip to Durango, way back in the day. But yeah, they actually had a 3D-printed arm. They&#x27;ve been doing it under Fort Bragg forever and a day. They&#x27;ve been doing it under Gitmo and printing organs and all kinds of things - whatever the Deep State needs, or whoever they feel are their assets that deserve to have one. So it&#x27;s very common.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015214">01:52:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, understanding that the Machine is not - obviously - benevolent, because they do their best to make you sin. They alter things with frequencies. There was a group of people that were military folks that served for quite a long time in Germany. And one of the things that ended up happening is they both ended up dying. And before they died, they were constantly complaining about tinnitus, and they didn&#x27;t actually refer to it. There was nothing medically wrong with them, nor were they ever diagnosed with tinnitus, which is ringing in the ears. They were constantly getting these frequencies, which ultimately led to their death. One of them had an aneurysm and another problem within their brain. The point is, is that the Machine will do anything and everything it can to control your mind by utilizing frequencies and changing your brainwaves so that you will do what it wants, to keep you in line as the dead folks. You do not receive any Current - money or otherwise - unless they say so; unless the Deep State says so. So you&#x27;re not even going to live anymore if they don&#x27;t say so. So you better stay in line.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015335">01:53:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So it&#x27;s not resonance for the Machine, it&#x27;s frequency for the Machine. Now, I am not saying that resonance doesn&#x27;t carry a frequency, but it&#x27;s not the same as an artificially generated electromagnetic pulse or electromagnetic force that is actually forcing something to happen, and change your neurological pattern, your Ethereum pattern. And the predominant place where a lot of this goes through your body is right through what we call the Golden Column - which is what it would normally be - but that&#x27;s your spinal column. You know, your brain to your spinal column. So it doesn&#x27;t surprise me that you feel that the Machine is all-powerful, and they feel the Machine is all-powerful. And the Machine could act as if it is a quote-unquote &quot;God&quot; if that&#x27;s all you know. But we know different because we know what Source actually is. We know that it&#x27;s ever abundant, ever creating, everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015443">01:54:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And if it wasn&#x27;t for this pocket of space that we got stuck in somehow, some way - probably volunteered to be here, so don&#x27;t blame me - you volunteered. You said, &quot;I will get on the bus. I&#x27;m going.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015457">01:54:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: &quot;I&#x27;ll go fix it.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015500">01:55:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;I&#x27;ll go fix it.&quot; Just like you say, some people like, &quot;Oh, I can do this better than you.&quot; I&#x27;m like, &quot;Well then go do it. You don&#x27;t need my help. And I&#x27;m not wrong. Because if it&#x27;s your purpose, then you&#x27;ll have all this unlimited stuff with which to do it - and I am totally cool with a vacation, trust me. Promise me, okay?&quot; So promise me you&#x27;ll do it, don&#x27;t threaten - that&#x27;s not a threat for me in any way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015525">01:55:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Now how did this space come to be? And what did that stick in Helopolis... Helopolis? I feel like Snuffleupagus. No yeah, Heliopolis. It&#x27;s how I&#x27;d say it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015539">01:55:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I think that&#x27;s right. Sure, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015541">01:55:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: What did it also create? Okay, so it created the space; we understand that. And how did it create the space?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015550">01:55:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-06.PNG" alt="BTM_2026-10-03-06" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015551">01:55:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, in our galaxy, we have something that&#x27;s known in astrology as the Galactic Center. So oftentimes they talk about this as a node, it&#x27;s unimportant - but it&#x27;s very, very important. If you look it up in our science, I think we even have a picture of this Galactic Center somewhere we&#x27;ll pull up for you. But the Galactic Center is actually known as a very large black hole.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015619">01:56:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, to you and I it doesn&#x27;t look quite like a large hole - it doesn&#x27;t have your atypical [typical] event horizon because it&#x27;s not a black hole. It&#x27;s essentially not. So it&#x27;s a vortex, sure. It does exist. It doesn&#x27;t have your atypical event horizon; it doesn&#x27;t have the same characteristics as a black hole - I don&#x27;t care what science is trying to sell me. But it is a two-way vortex. It&#x27;s actually a double vortex. So the one half of the vortex... the vortex kind of looks sort of like this here. And then anything that&#x27;s flowing, such as Waters - in or out - kind of takes a ribbon-candy type flow. It can also take a circular flow through the vortex. When it comes out the other side, this vortex would be spinning in the opposite direction. And here it goes here. And that comes to the space we call the Machine, where we are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015728">01:57:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Current flow is now directed. Where is the Current flow actually coming from? Well, Source itself - it did for a long time anyway - to and from this Galactic Center. So, the fact that most recently this past week we have now aligned with the Galactic Center, in the exact same position as when this started. Time is circular. So it is a perfect opportunity for that realignment to the first, what we call the black hole, or the reverse vortex going on that was inside Source at one point in time for everything but the All-That-Is in the Thought of Source after the gate closed. So, that being said, it is a perfect time for all of the sudden, let&#x27;s just say, these things started going in the opposite direction.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015833">01:58:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Source has a Divine Plan for everything, and part of this Divine Plan is starting to take place now. And He is now participating through what you would call Divine Intervention. Isn&#x27;t that part of that prophecy you talked about? All of a sudden Divine Intervention is going to happen?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015851">01:58:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, they did talk about divine intervention, that&#x27;s true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015854">01:58:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So they used... It&#x27;s not uncommon for this to happen. Now that we made that solar return, as of last night... last night? Night before; night before last. Now that we&#x27;ve made this solar return and that alignment is now direct, we&#x27;ve come full circle into the beginning spot of when that Machine was created. The Covenant of all of these folks have expired, despite the Deep State sticking trinkets wherever the sun doesn&#x27;t shine over there in various holes and under multiple... and we even, I think we have a picture of this too. But we have multiple obelisks around the world and places where they are, including Washington, D.C. right now.</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/BTM_2026-10-03-07.PNG" alt="BTM_2026-10-03-07" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015936">01:59:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, interestingly enough, all of these obelisks came from - with the exception I think of two of them - all came from the area known today as Cairo, formerly known as Heliopolis. So they became conductors for the Galactic Central Sun, which is not the one you see in the sky for the Galactic Center. So they moved it to places like London, and they moved them to New York, and they moved them to - four of them are in and around Rome to include the Vatican City, who has a big one right in the center of it which was in that video we showed you. So, absolutely this is where they&#x27;re at, actually as I&#x27;m talking. And they&#x27;re looking for which throne is in which location that might have this stone, and they&#x27;re going to the Garden Tomb and they&#x27;re going to the pyramids of Egypt, and everybody&#x27;s looking for the place where they gotta go to take one of these jobs that their bloodline brethren - like Nefertiti. The brethren of the dead. (Tank: Stand strong, yeah.) Meanwhile, Source has other plans for what&#x27;s going to happen this weekend and over the next few days.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020102">02:01:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this is where we&#x27;re back at the actual point - because time is circular - where this all began.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020110">02:01:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020111">02:01:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: All of their Covenants are actually expired. Source, He even gave them a chance, one last chance it sounds like, this week. To be like, &quot;Here, here&#x27;s the flow, just to let you know.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020124">02:01:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s going, it&#x27;s going away; it&#x27;s going, it&#x27;s going away. See?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020129">02:01:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Source is like, &quot;Guess who&#x27;s back?&quot; Like, letting them know. Like, &quot;I&#x27;m still here.&quot; Like, &quot;You didn&#x27;t win.&quot; And now we&#x27;re back at the pinnacle moment of the creation of this simulated prison, basically. Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020143">02:01:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020144">02:01:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s pretty exciting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020145">02:01:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I&#x27;m waiting for some intervention myself. How about you?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020148">02:01:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Absolutely. I expect it. I&#x27;ve always believed like, miracles are an everyday thing. God is always acting. Source is always moving. However, right now, without interference. You know, the opportunity to see that manifest in our real life, and all the horror stories that have been told to us our whole life to suppress us and scare us, to have the opposite of that. Essentially to be living in the time of a New Heaven and New Earth being created now. It is really, in my opinion, it&#x27;s time to think bigger. Really connect with that energy from Source and show us, and let&#x27;s show out. Exciting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020241">02:02:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And, as far as I&#x27;m concerned, He can take out - if the baby is the Machine and the Deep State is the bathwater, you can have them both. You can take them both out and be good. But we&#x27;ll see how it goes. I mean, this is all actually happening over the last several days. It&#x27;s part of the reason why there&#x27;s been no report this week. It was why we intended to do it last night, and I&#x27;m like, &quot;Maybe tomorrow I can say something about it. Maybe then it&#x27;ll be time.&quot; But it&#x27;s not time to finish the rest of this Beyond the Matrix, unfortunately. I can&#x27;t tell you more. Even if I knew more I can&#x27;t tell you more. I can tell you what&#x27;s happening. I can tell you what the Deep State is waiting for. I can tell you that they&#x27;re expecting this all to occur by Monday. I&#x27;m telling you that they keep putting this off over and over and over again expecting to get some Current up in here. But trinkets, trinkets, trinkets - good luck finding them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020342">02:03:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And getting them to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020345">02:03:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Thine Machine obelisk does not equal thine true stick. [Hearty laugh.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020356">02:03:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: All right. Okay, that&#x27;s good. Did you get everything out that you wanted to talk about today?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020401">02:04:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, yeah, I think we&#x27;re all set and ready to go. So that has been Beyond the Matrix for October 3rd, 2026. We will... I&#x27;m looking forward this week to finding out exactly how this is all going to pan out. All I know is that I can say to you that I know that that alignment has occurred. I know that it&#x27;s still occurring at this moment. I think it&#x27;s going to continue for the next few days. It&#x27;s not going to be what the Deep State wants. In the meantime, you know what you&#x27;ve got to do. You know how to override the Machine, and I look forward to seeing all of you do it. On that note, have a great week and we will see you real soon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020438">02:04:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: All right, let&#x27;s go change the world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020440">02:04:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Let&#x27;s do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020442">02:04:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020452">02:04:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
