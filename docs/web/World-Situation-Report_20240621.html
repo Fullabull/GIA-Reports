@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jun-21</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jun-21 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jun-21
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=VN2bso6X6mY&amp;t=2171s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=VN2bso6X6mY&amp;t=2171s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240621_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the June 21, 2024 report by clearing up several false news stories. Power outages in Montenegro, Croatia, Bosnia and Herzegovina, and Albania resulted from heat-related grid overloads, not a Deep State attack. Rumors of an event involving Iran are also unlikely to materialize without the money discussed Wednesday. Meanwhile, Trump operatives are circulating a fake Biden death certificate dated 2018, although Kim confirms his death occurred much later.<br>
+<br>
+Kim discusses former U.S. Representative Jackie Speier, who survived being shot five times during the 1978 Jonestown tragedy and now warns that Trump&#x27;s following resembles a cult. Kim shares her concerns about the Q movement and the extreme devotion of some Trump supporters. She discloses that cult leader Jim Jones was connected to the CIA and that Trump participated in an Order of the Black Sun ceremony, raising further concerns about mind control and the potential consequences for his followers.<br>
+<br>
+Insider information reveals that BRICS&#x27; hopes of launching its own currency collapsed within the previous 48 hours, while the NSA is barely hanging on. The Light system continues eliminating Deep State infrastructure, including ancient SSP equipment discovered in Argentina. Attempts to exploit the Solstice have centered on money and control, including a fake Federal Reserve server and counterfeit Mariana Project currency used to entice countries into war. Without the promised funding, those plans are unlikely to succeed.<br>
+<br>
+Kim explains that the Solstice brought the Central Sun into alignment with Zero Point, between the Alphaverse and Omegaverse. This accelerated progress against the direct-current system, allowing the destruction of remaining Dark infrastructure to proceed from both the bottom up and the top down. With the alignment expected to continue through Monday, Kim anticipates further progress despite ongoing Deep State activity. She closes by explaining the revised recording schedule and promising an update on the Solstice results Monday.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003657">00:36:57 - Heat wave</a></li>
+<li><a href="#t-003843">00:38:43 - No power-down war; Iran rumors.</a></li>
+<li><a href="#t-003932">00:39:32 - Fake Biden death certificate.</a></li>
+<li><a href="#t-004004">00:40:04 - A Jonestown survivor sounds the alarm.</a></li>
+<li><a href="#t-004211">00:42:11 - &quot;Suicide before Biden&quot; -- is Q a cult?</a></li>
+<li><a href="#t-004355">00:43:55 - Jim Jones, CIA; Trump and the Order of the Black Sun.</a></li>
+<li><a href="#t-004610">00:46:10 - BRICS currency dead; NSA &quot;hanging by a string.&quot;</a></li>
+<li><a href="#t-004655">00:46:55 - Light system burning ancient SSP equipment.</a></li>
+<li><a href="#t-004755">00:47:55 - Solstice plays</a></li>
+<li><a href="#t-004946">00:49:46 - Solstice meets Zero Point.</a></li>
+<li><a href="#t-005239">00:52:39 - Why the news runs late.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUN-21</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003621">00:36:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Good afternoon, everyone. Happy Friday. And happy day after the Solstice and Full Moon. We&#x27;ll talk about that in just a little bit. It&#x27;s been an interesting couple of days just based on, you know, any time there&#x27;s an alignment or change, these guys have a tendency to go a little crazy. But I don&#x27;t think it&#x27;s over yet. So let&#x27;s talk about some news and some false reports first that are out there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003657">00:36:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, there is a heat wave. It usually lasts about three to five days, depending on where you are. And it started on the west coast of the United States. And it has been moving across through Europe, and now I guess today it started to hit Greece. And it&#x27;s going to move through the Middle East, and yes, the temperatures are probably 10 to 15 degrees higher Fahrenheit than they normally are. Which is quite warm, and I understand that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003733">00:37:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">However, there are people making false claims that the grid of the following countries: Montenegro, Croatia, Bosnia and Herzegovina, and Albania crashed. And that the Deep State did it. That is absolutely false. If you know anything about this area or you&#x27;ve ever been to this area, then you&#x27;ll know that they are fairly poor countries. Bosnia and Herzegovina is obviously war-torn. They never go back and fix a lot of that stuff in particular areas there. So you know, it&#x27;s a grid failure when it gets that hot in that type of an area. I wouldn&#x27;t call it a grid failure. I&#x27;d just call it an overload. A lot of electricity being utilized in order to keep cool. It is, it happens here in the U.S. It happened over in San Diego, where the power was going in and out, and that&#x27;s in America. So, Lord knows our infrastructure is probably better than there, but it is falling apart here in the States too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003843">00:38:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So nothing weird, nothing malicious there, no major attack. If you do not know - or if you do know, you might be concerned about this - because one of the steps of warfare in certain types of war would be that they would shut the power off. Then they shut the social media off and those types of things. But that is not what&#x27;s happening here. That is not the case. There are also a lot of rumors going around that there&#x27;s gonna be an event dealing with Iran. If that money that we talked about on Wednesday came out, I&#x27;m sure there would be, but until that happens I don&#x27;t really see any of that taking place - at least not on a grand scale.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003932">00:39:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. Next false news. The Trump organization/Trump operatives whatever you call them has been putting out a fake Biden death certificate, which says that he died in 2018. Now, that is not the case. I didn&#x27;t say he wasn&#x27;t dead, but that didn&#x27;t happen until much later. As far as the Trump Organization calling Biden dead, that&#x27;s kind of the pot calling the kettle black here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004004">00:40:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There&#x27;s also some other interesting news that I wanted to bring forward because, this is getting... I mean, I think it&#x27;s getting out of hand. And it is related to the Trump organization. But there is a woman, her name is Representative Speier, that put out a report saying that she herself is a survivor of the Jim Jones cult. She had actually gone down there with a U.S. representative back in the 70s in Guyana.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004042">00:40:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Those of you that don&#x27;t know who Jim Jones is, Jim Jones - back in the late 50s to the late 70s - was a major cult leader. He built an area in the country of Guyana, called Jonestown. And he had a lot of members of his religious cult that lived down there on this site. He is the same person who had intentionally spiked Kool-Aid with cyanide, and over 909 people died in one day. Not to say that there weren&#x27;t others that died previously.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004127">00:41:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But he&#x27;s actually the originator of the statement, and I know I&#x27;ve mentioned this before, &quot;You just want to drink the Kool-Aid.&quot; In other words, you just don&#x27;t want to deal with something, or you don&#x27;t believe something.  Now Speier makes a comment - her name is spelled S P E I E R - so if I&#x27;m pronouncing it wrong sorry about that, but you should look her up. She was down there, like I said, had been shot 5 times, almost didn&#x27;t survive. She remembers what she saw down there, remembers seeing all those people dead. She talks quite a bit about it, and so she knows firsthand what it looked like down there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004211">00:42:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I&#x27;m gonna tell you something. I can&#x27;t say I disagree with her, and I can&#x27;t say I&#x27;m not concerned about it. She makes a mention of a fan of Trump&#x27;s that has attended over 220 rallies of his, and he made a comment to, I guess the press or somebody, and said that he said that, &quot;suicide before Biden.&quot; Which means that he would commit suicide before Biden would get back into office. And I can tell you this whole Q thing, honestly, it&#x27;s looked like a cult for me for a long time. It is weird how people just are so brainwashed with this thing. And I can&#x27;t help but wonder if maybe there&#x27;s not something to what this lady&#x27;s saying - you know, Democrat, Republican, or whatever.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004309">00:43:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But seeing that article come out made me really think about it. And I&#x27;m like, how many people, if it was ever announced that he had passed away, God forbid that it had been going on for 3 years and didn&#x27;t tell anybody or close to 3 years and nobody told anybody. But I can&#x27;t help but wonder if there wouldn&#x27;t be some kind of a massive response like that. I do know that there are a lot of people in the Patriot community that have kind of fallen away from following that group, let&#x27;s just say. And partially because people like myself and other people are telling people, look, this makes no sense.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004355">00:43:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But Jim Jones, for those of you that don&#x27;t know, was a member of the CIA. And Trump also worked for the Order of the Black Sun, or was part of the Order of the Black Sun. Went through the ceremony, did the whole bad things to a young girl, and there&#x27;s some blood there and all kinds of bad things - no different than the leaked Hillary Clinton ceremony with a young girl, that happened a few years back on the Deep Web. And I gotta say it totally looks like some kind of weird, mind-control cult situation that&#x27;s happening there. And knowing the SSP operatives, you know, they above anyone else know how to do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004449">00:44:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, Wednesday&#x27;s news might come in kind of handy when it comes to some of these people that have been following Trump in the near future, should this not work out. Whether they&#x27;d stage a fake election or not, I have no idea. We&#x27;ll see. We&#x27;ll see what ends up happening with that. But I did want to mention that just because you got to have some sympathies for these regular people that just aren&#x27;t getting it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004516">00:45:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But there&#x27;s a lot of people out there that are so diehard. I was listening to a friend of mine, I was talking to this friend - who&#x27;s a regular friend and knows about all this stuff, knows what I do, that kind of thing. But I was listening to this person&#x27;s husband watch the indictments. It was like a few weeks ago, I&#x27;d called her about something else. And I was shocked. I mean, he was so angry, swearing and yelling and screaming, and it&#x27;s like his whole life was over. It&#x27;s like someone burned his car down or something. You know, it&#x27;s a little scary, it really is. But this is also a person that bought an entire garage full of toilet paper back in the toilet-paper crisis of 2020. So, you know, I guess take it all with a grain of salt. But anyway, I just wanted to mention that real quick.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004610">00:46:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, more news. We did receive a few phone calls after that news. And the news is coming back for people that kind of really don&#x27;t believe the Deep State&#x27;s gonna pull anything off. So they kind of leak us information here and there. And one of them is the main programmer for BRICS. And he said that any hope they ever had of launching a currency of their own died within the last 48 hours. That&#x27;s not a surprise based on our conversation that we had on Wednesday, and all the work that&#x27;s been done in the last couple of days.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004655">00:46:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Also, the NSA is &quot;hanging by a string,&quot; quote-unquote. In other words they really don&#x27;t have anything left really to do much. So the Light System is doing its job. Some of it&#x27;s automated, some of it is obviously in cooperation with us, all day long every day. But we are burning, and I mean burning, anything and everything that we can possibly find right now that they could possibly do anything with. Or that even remotely - even 100 years ago - was connected to some military somewhere. Even a thousand years ago, 10,000 years ago - some SSP equipment in the middle of Argentina, that was earlier today. Anything we can find, anywhere, that remotely they could possibly even use - or screw up, in their case - is just going away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004755">00:47:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I don&#x27;t know at this moment either, the end result of what they&#x27;re planning for Solstice. I can tell you that over the last 24 hours there&#x27;s been a lot of attempts to do certain things. Fake servers at the Federal Reserve, normal stuff. I haven&#x27;t seen, it&#x27;s been more about money and control than it has been bombing and killing and wars, at this point. I know that they did show a lot of fake currency from the Mariana Project - as we talked about on Wednesday - to a lot of different countries to entice them into war. And when that went away... yeah. I&#x27;m not so sure anybody&#x27;s gonna move anywhere at the moment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004848">00:48:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they did try, like I said, to install a fake server earlier today at the Fed to show some fake money to try to get a fake war going. I don&#x27;t see that happening. Number 1: the fake currency&#x27;s not gonna happen. Number 2: I don&#x27;t know how much longer people can pay out and pay out and pay out, and work and work and work, without any funds. So, we&#x27;ll see. We&#x27;ll see how that works out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004915">00:49:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now as far as today, today is also a Full Moon, and within 24 hours of the Solstice. Technically not the exact times, it&#x27;s a couple hours off. But are they going to continue through the weekend? I do believe so, and thankfully so, because we will use that to our advantage, as always, anything else that we could find that starts sending off a signal. So that&#x27;s a positive thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004946">00:49:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But today, well, early early this morning my time, probably about 2 or 3 o&#x27;clock in the morning - the Solstice is not just the longest day in the year in the Northern Hemisphere. It also is a time of year where the Central Sun of Source and Anti-Source - well, when it was there - aligns with the Zero Point of the Universe. So that is the point right between the Alphaverse and the Omegaverse and all its respective densities and so on and so forth. It&#x27;s actually a whole density that exists there. The same thing existed in computers as well. And once that started happening, it actually helped us get over the hump, I should say, of this direct-current system, meaning it pushed us further faster.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005046">00:50:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">It&#x27;ll take some time to come out from that point and come back up to us. But I know that we&#x27;re seeing a lot more progress in computers a lot faster. We&#x27;re now burning from the bottom up, and also the top down, which is a positive thing for us. And I&#x27;m looking forward to seeing what happens over the next few days because we will be there until Monday as I understand it. So it doesn&#x27;t move very fast during this time of year. So kind of excited about that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005123">00:51:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I&#x27;m also expecting to not have a quiet weekend with these people in full swing, hoping for some kind of a something from the Solstice. But hey, what are you gonna do? A weekend is just another weekend, another couple days ending in Y, and yeah, can&#x27;t expect a lot from these people. I really truly think that there&#x27;s something wrong with those people. I know they&#x27;re human but I just think that they&#x27;re so pre-programmed that I don&#x27;t think we&#x27;re going to come back from this. I think you&#x27;re going to lose them all before that happens.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005209">00:52:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So. I haven&#x27;t heard about any progress just yet on those that have come forward to make an attempt to work together. We&#x27;ll see what happens with those folks. I know that they said that they were setting things up, we&#x27;ll see. I haven&#x27;t heard anything in the last couple of days. I didn&#x27;t expect to, because a lot of people - when there&#x27;s some kind of an alignment like this - it&#x27;s kind of an all hands on deck sort of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005239">00:52:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Yeah, so I know today&#x27;s report is a little bit short, it&#x27;s a little bit late. It&#x27;s a lot late. I know if you don&#x27;t know, we changed the time that we record news based on Deep State activities and problems with our connections. So I record at one time, Sunny records at another time, and it just seems to be a smoother broadcast. So that&#x27;s why the news has been coming out late, a little bit late, so I apologize for that. But it seems to help us and Production get things done.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005314">00:53:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So again, I guess if you are watching this, Happy Solstice! Happy Full Moon, if that means something to you. And have a wonderful weekend. Hopefully on Monday I&#x27;ll have the end results of the Solstice alignment. And we really don&#x27;t play into the full moon too much, but it&#x27;s more the alignment with Zero Point that we&#x27;re looking for. And looking for that boost. So it just started probably 12 hours ago. So it&#x27;s not a lot of time, but we&#x27;ve seen a significant amount of progress in a short period of time. So hopefully I&#x27;ll have some good results for you on Monday when we talk. Other than that, everybody have a wonderful weekend and I will see you then.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005401">00:54:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005500">00:55:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=VN2bso6X6mY&amp;t=2171s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
