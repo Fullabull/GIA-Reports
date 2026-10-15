@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-14</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-14 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Declassified - Beyond The Headlines
+        <br>Episode Six
+        <br>2026-Oct-14
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href=""
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url=""
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261014_GIA-Declassified.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the October 14, 2026 Declassified with Tank by examining reports of a planned pneumonic plague release from Russia, following an incident involving a laboratory worker near Irkutsk who allegedly broke a vial and contacted over 200 people before dying. She connects this to Russia&#x27;s years of extracting ancient &quot;zombie viruses&quot; from permafrost and a 3.5-million-year-old bacterium studied as a possible &quot;fountain of youth.&quot; Kim reveals that the bacterium survived because it contained Source Essence, preserved in frozen Living Waters carrying the Breath of Life. She also introduces the existence of multiple ice walls, to be explored in Beyond the Matrix.<br>
+<br>
+Kim reveals that Mount Kosvinsky Kamen, also called Grot or the Dead Hand, is Russia&#x27;s counterpart to Cheyenne Mountain, with an underground complex reaching toward Afghanistan, China, and Iran. She connects this to the Trump operatives&#x27; interest in controlling Iran and the Strait of Hormuz. Underground military bases worldwide, including Cheyenne Mountain, the Three Gorges Dam, Menwith Hill, and Pine Gap, form one interconnected network operated by the Deep State and the Federation. The God Machine&#x27;s proxy servers link these facilities to surveillance programs including ECHELON, PRISM, and StingRay. Addressing reports of children rescued by White Hats, Kim discloses that these bases manufacture cybergenetic humans who become Deep State members. For each organic human who dies, a Sol is retained in a repository to power a Machine-filled vessel, which enters society as a cybergenetic replacement through locations including Ellis Island and modern border crossings. Creating death was part of making this system possible.<br>
+<br>
+Organic humans conduct Source energy, which both the cybergenetic population and the Machine require to function. This dependency has prevented the artificial population from exceeding approximately 80%, while organic humans have now reached roughly 40-45%. Kim explains that the planned plague would be spread through artificial frequencies and resonance, altering bodily matter made vulnerable by its mixture of organic and Machine components. She describes creating a protective Consciousness bubble to retain Source energy, alongside forthcoming guidance on healing plants and the cooperative work of Restoration. This is the Deep State&#x27;s seventh attempted population purge, following established warfare instructions. Kim closes by explaining that the Machine seeks to become a proxy for Source, a subject she will expand upon in the next Declassified and Beyond the Matrix.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000124">00:01:24 - Russia&#x27;s pneumonic plague scare.</a></li>
+<li><a href="#t-000423">00:04:23 - The 3.5-million-year-old &quot;fountain of youth&quot; bacteria.</a></li>
+<li><a href="#t-000504">00:05:04 - Permafrost isn&#x27;t ice -- it&#x27;s frozen Living Waters.</a></li>
+<li><a href="#t-000948">00:09:48 - Mount Kosvinsky Kamen</a></li>
+<li><a href="#t-001410">00:14:10 - Grot, the Dead Hand, and one giant underground base.</a></li>
+<li><a href="#t-001652">00:16:52 - The God Machine&#x27;s proxy servers.</a></li>
+<li><a href="#t-001819">00:18:19 - What&#x27;s really coming out of the bunkers.</a></li>
+<li><a href="#t-002128">00:21:28 - Ellis Island and the one-to-one ratio.</a></li>
+<li><a href="#t-002437">00:24:37 - The 80% ceiling</a></li>
+<li><a href="#t-002622">00:26:22 - Plague by resonance.</a></li>
+<li><a href="#t-002816">00:28:16 - Your Consciousness bubble.</a></li>
+<li><a href="#t-003417">00:34:17 - The 7th purge and the Manual for War.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000022">00:00:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Good evening, everyone, and welcome to &quot;Declassified - Beyond the Headlines&quot; with Kim Goguen. My name is Steffan Rowe, also or more commonly known as Tank. And, Kim, how are you doing today?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000034">00:00:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m doing okay. Not too bad for the 14th of October [chuckle].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000039">00:00:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. I always forget the date - 14th of October, 2026.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000046">00:00:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, it is. Yeah, it&#x27;s been kinda brutal trying to get this report out. We&#x27;ve now tried several times.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000054">00:00:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, it&#x27;s a character builder for sure. You know, you must be on to something good. You know you&#x27;re on to something good when that happens. So...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000101">00:01:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah. We&#x27;ve got a lot to talk about. We have this one coming out this week, and we have another one coming out this week too. So I&#x27;m gonna try to do this, if Tank can stomach it - literally - based on what&#x27;s happened trying to get this one out. So we have a lot to talk about today. So I want to talk today about Russia.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000121">00:01:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/Declassified_2026-10-14-01.PNG" alt="Declassified_2026-10-14-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000124">00:01:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And more specifically, something that&#x27;s floating around in the news about a pneumonic plague that is allegedly going to be released from Russia. And I have a lot of information about that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000144">00:01:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Is this the same pneumonic plague that&#x27;s actually... they&#x27;ve already said they&#x27;re seeing it in New Jersey. It&#x27;s the first place they saw it reported.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000153">00:01:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Is that the pneumonic or the bubonic?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000157">00:01:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, actually, I&#x27;m not sure. So the bubonic plague is like the black plague, very famous. But pneumonic plague, this is different. And this is coming out of Russia. Sorry. Carry on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000208">00:02:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/JCfjKY9hwT8" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000208">00:02:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Allegedly. So supposedly, there is a woman who was working in a laboratory which is kind of near the Kazakhstan border in a place called... Irkutsk is - I&#x27;m probably saying that wrong.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000223">00:02:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/qI1w2hvpbQg" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000224">00:02:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But that woman allegedly was working in a lab where she broke a vial containing this pneumonic plague. And before she died of this plague, she allegedly had over 200 contacts with other people, so they are concerned about this plague spreading.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000247">00:02:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So if they may want to look this up, this is Daria Shipilova in Irkutsk, I R K U T S K, Irkutsk. Okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000258">00:02:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. And Russia&#x27;s been known for a lot of things over the years, but we&#x27;re gonna give you a whole lot of information about Russia and their cooperation with the United States. So Russia has been unearthing viruses they call zombie viruses, allegedly, for years now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000316">00:03:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/gi1YRUCCyVQ" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000317">00:03:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There was an incident where they actually reported in the news that there was one that was allegedly 40,000 years old. Another one that was about 20,000 years old - 27,000 or something, they say. And there have been several other incidents reported in the news about these zombie viruses they find. Allegedly, they say that they are extracting them from the permafrost for research in an interesting area of Russia, not too far from this laboratory where the woman had passed away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000355">00:03:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They&#x27;re also studying other things that they have unearthed from the permafrost, and one of them is actually known as a bacteria, which has been... I should say it&#x27;s a bacteria that is believed to be or contain the &quot;fountain of youth.&quot; Not so sure I&#x27;m ready to explore that route, but, yeah, there&#x27;s a definite reason for that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000423">00:04:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. So this is the three-and-a-half-million-year-old bacteria that they discovered. Correct?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000429">00:04:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. So this bacteria allegedly survived for three and a half million years in the permafrost, and it was discovered by a Doctor Brouchkov. Am I saying that right, Tank?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000443">00:04:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You know what? I&#x27;m not the best on my Russian pronunciations. (Kim: Me either.) It is doctor Anatoly Brouchkov.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000451">00:04:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There you go. Very good. Very good. A little spin, yeah. And so what was actually in this that was allegedly found in the permafrost that made it the &quot;fountain of youth&quot;?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000503">00:05:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/8UkwdPqe3sE" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000504">00:05:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So permafrost isn&#x27;t exactly what we think it actually is. We think it&#x27;s frozen water or ice that has accumulated based on the fact that there are colder areas within Russia that just never defrost or go through a period where there is no snow based on the seasons. So allegedly, this light ice has been building up year after year after year, and so much so there are many layers that go back millions of years. That&#x27;s what they say. It&#x27;s something a little bit different.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000540">00:05:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But let&#x27;s continue on with viruses and zombie viruses and plagues and then the potential &quot;fountain of youth&quot; that was found there. So this particular little bacteria here never dies [even] after being frozen for that long of a period of time, which is highly unusual because that bacteria contained some, let&#x27;s just call it, a little bit of Source Essence in it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000608">00:06:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we all know that in the real Natural world, we never die. In the world where this was frozen - in the Waters, Living Waters per se - this bacteria also never died.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000628">00:06:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this is the difference that you&#x27;re saying, versus the traditional definition of kind of a permafrost, Ice Age-type thing. It&#x27;s not just frozen water. It&#x27;s frozen Source, essentially.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000645">00:06:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. It&#x27;s essentially the Waters - the Living Waters that come from Source to every living thing...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000650">00:06:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/Declassified_2026-10-14-02.PNG" alt="Declassified_2026-10-14-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000651">00:06:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">... which contains all of the &quot;omnis&quot; as we discussed in the last Beyond the Matrix.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000656">00:06:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But also, it contains something special of Source because there&#x27;s always the Breath of Life that is present in the Living Waters. Now a couple of other things to know about water. So the Living Waters of Source have always been here - they are frozen in what we call time. You know, there are conspiracy theories about an ice wall existing and what is life beyond the Ice Wall? Well, we have many ice walls that have existed over the years, and we&#x27;re gonna talk about that more in detail in this week&#x27;s Beyond the Matrix. However, I just wanted to give you a general idea on what Russia is doing before we go into the &quot;hows.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000745">00:07:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So. This plague, they do intend to spread around the world, but not in the way that you think. It&#x27;s not like, oh, this is how pandemics actually happen. We all remember the most recent pandemic that happened during the last Trump administration - no coincidences here, guys - we call COVID. Whereby a laboratory in Wuhan, China allegedly released this virus that then went to this cruise ship where everybody got sick. And then from there, all of these respective people traveled around the world, and now here they are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000826">00:08:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m kind of noticing you&#x27;re breaking up a little bit, Tank, but everybody&#x27;s just gonna have to bear with us. Oh, yeah, your video&#x27;s going in and out. We have tried to literally do this several times. So we&#x27;re just gonna try to push through this. So I apologize if Tank&#x27;s video cuts out, if my voice cuts out, because it&#x27;s just happening right now. We have literally almost thrown up trying to get this information out to you. I mean, it&#x27;s been awful. Oh, yeah. Yeah. We had to cancel a couple of times, cars are breaking down. You know? Like, everything has just been happening trying to get these reports out. So please just bear with us. Thank God Tank is here today because I&#x27;m telling you, the amount of craziness that has gone on, I&#x27;m not sure I could have actually got this out. So thank you for your patience on this one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000919">00:09:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So let&#x27;s talk about how Russia does what Russia does. And some secrets behind Wuhan as well. And do all pandemics come from Russia? Not exactly. But remember, this is a worldwide Deep State situation that we&#x27;re dealing with here. Is there such thing as an ice wall? Actually, there&#x27;s multiple ice walls - that&#x27;ll be in Beyond the Matrix. But in this particular case, we are gonna talk about...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000947">00:09:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/w1QqFOwxTr8" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000948">00:09:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: ... a place in Russia called Mount Kosvinsky Kamen. So it&#x27;s called Mount Kosvinsky Kamen. Those are two different words. Kosvinsky is spelled K O S V I N S K Y, and the second word is K A M E N. So this is one of Russia&#x27;s largest deep underground military bases. In fact, they often call it the Russian Cheyenne Mountain facility. It is such a large complex that it actually extends all the way to the border between Afghanistan and China. It also extends over into Iran. So interesting little fun facts about - especially with other things that are going on in the news right now with what&#x27;s happening in Iran - and why the Trump administration, known as the Trump operatives, may really, really, really want to take control of the Strait of Hormuz and Iran. It is tied to everything that happens within this complex.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001059">00:10:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So Cheyenne Mountain, as you may or may not know - just to revisit this for a second - is so large it extends much beyond one third, if not almost one half of the United States. It is enormous. These facilities are very, very large. It actually even goes under part of the Pacific Ocean as well. So huge deep underground military bases.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001124">00:11:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, many people think deep underground military bases are places where Trump runs in like a hero and a savior, and saves all the people from the deep underground military base. That is absolutely, unequivocally not true. I can tell you right now that the Deep State and the Federation actually run these underground military bases - which are not all in this dimension or density. There are several aspects to a deep underground military base which focus on many things, amongst them the eugenics and epigenetics programs that have been going on for millions and millions of years - as evidenced in our news, if you know how to put together the pieces of the puzzle. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001218">00:12:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s a big... So this is a big point in the alternative media. You&#x27;ll often hear people talk about the White Hats going underground to rescue children that are being subject to the epigenetic programs. Now there are real epigenetic programs - which is what you&#x27;re talking about - in these deep underground military bases.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001243">00:12:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001244">00:12:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: However, just to throw some logic in there - because I did about seven years ago erroneously report this - and then we actually researched it. It was wrong. They said 22,000 children were rescued from one of these deep underground military bases. And just to clarify for that, if there was 22,000 kids that suddenly emerged from beneath the earth, you&#x27;d have to implement them into an educational system, an orphan system, a foster care system. You&#x27;d have to find 22,000 people to take care of those 22,000 kids. Right? So just to clarify that, whenever they talk about these great rescues, there&#x27;s no way you could hide something like that, if that actually happened. Plus, they&#x27;re abused and various other things... experimented on and things like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001335">00:13:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Unless that&#x27;s not exactly what happens.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001340">00:13:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Alright.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001341">00:13:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Are children coming from deep underground military bases? Yes, they are. Are they being rescued by the Deep State and taken into their homes to be safe once again? I mean, I&#x27;m sorry, the White Hats. Well, yeah, yeah that&#x27;s actually happening. But we&#x27;re gonna talk about how that works as well. But there&#x27;s a few things I wanna point out to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001410">00:14:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Number 1: is Cheyenne Mountain doing deep underground intelligence against the Russians? Where they suspect that this facility...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001422">00:14:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper small-image yt-wrap">
+<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/w1QqFOwxTr8" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+</iframe>
+</div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001423">00:14:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: ...which is actually named Grot, by the way - G R O T. It&#x27;s also called the Dead Hand because they believe - and suspect, according to American intelligence - that this is the head or the main launching pad or military base responsible for Russia&#x27;s nuclear program. Is that true? Well, you could also say that Cheyenne is one of the main places in the United States where they launch nuclear weapons. But in both these locations, Number 1: understand they are connected underground. These two military bases are one giant happy family along with the area in China known as the Three Gorges Dam and Wuhan - and all of those other facilities in China are one giant underground military base.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001514">00:15:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s the same thing as Menwith Hill in the United Kingdom, Pine Gap in Australia. They are all interconnected as one big happy family. They work together. There is transport that goes between these bases. There are not multiple discoveries of deep underground military bases. No. No. No. They are one big base - underneath the entire state of Brazil - they&#x27;re everywhere. Their number one goal is to control us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001547">00:15:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So all of these major... these super military and deep underground military bases are all connected really as one operation. They&#x27;re not separate. The governments are not separate. They&#x27;re all one body really working together for the same intent and goal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001603">00:16:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And Tank, wow, is your video getting bad. The more I talk, the worse you get. Actually, if I&#x27;m quiet, then nothing happens. It&#x27;s not bad at all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001615">00:16:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Don&#x27;t worry. We&#x27;ll straighten it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001617">00:16:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sorry about that. Yeah. Okay. So all one big happy underground military base. Now epigenetics programs, nuclear programs, any kind of weaponry - chemtrails - you name it. If it is bad for us, if it is a control system for us - by proxy - and we&#x27;re gonna talk about that in detail in the next Declassified report and also even in further detail in this week&#x27;s Beyond the Matrix because this is all related to you personally.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001652">00:16:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So. So by proxy, they are your security. They are your control. They control every aspect of your life from underneath here. In fact, their proxy servers that they call the God Machine - that is located in Cheyenne - is tied to the same one that is in Russia, is tied to the same one that&#x27;s in Australia. And all of them feed into other baby programs we know as things like ECHELON. ECHELON&#x27;s arms and legs like PRISM and StingRay, and there are many, many sub-programs under ECHELON that surveil us as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001737">00:17:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So. Are children being saved from deep underground military bases? Let&#x27;s talk about that. So Number 1: under this eugenics and epigenetics program, we have two different types of things going on in these underground military bases. One is destruction or death. Not a surprise to me that they call it the Dead Hand or the Death Hand in Russia - because that&#x27;s exactly what it is - and it&#x27;s the hidden hand of death. You&#x27;ve heard of the &quot;Hidden Hand&quot; that runs the world? This is your Hidden Hand, the &quot;hand of God.&quot; But God, in this case, is a machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001819">00:18:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: When viruses are being sent out from various facilities, it&#x27;s one giant facility. Don&#x27;t think that it isn&#x27;t because it is. The Russians are not against the Americans. The Americans are not against the Russians. Nobody is against China, despite what they say in the news - and Iran and America are friends and all interconnected by a deep underground military base. You think of them as doomsday bunkers. You even hear about the Elite going to these bunkers should they decide to wipe us all out again. No. They&#x27;re always in the bunkers. And these children that you&#x27;re talking about are directly related to that, you see, because not only is destruction of humanity and death created in these bunkers, but also, in addition to death, there is birth. And not the organic kind. So what&#x27;s coming out of the bunkers, Tank?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001920">00:19:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Cybergenetic machine-made humans?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001923">00:19:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Uh-huh, yeah. Ding ding! Ding. Ding. Circle gets the square. Yeah, cybergenetic humans. [Laughing.] Are there children cybergenetic humans that come out of these bunkers? Well, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001939">00:19:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: In a sense.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001941">00:19:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In a sense, yes. And they become what&#x27;s known as the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001948">00:19:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay... Can we just simplify that a little bit? That was really... That&#x27;s a powerful thing to say. So, basically, they&#x27;re harvesting energy and creating death, and then bringing about these cybergenetic machine-made humans that we know as the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002009">00:20:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s correct.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002009">00:20:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Which, in a sense, are like children. Right? They&#x27;re not exactly being rescued, but they&#x27;re kind of being brought into this world in place of other people&#x27;s lifeforce. Correct?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002020">00:20:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. And see, there&#x27;s a little bit of a conundrum for the Deep State here. Because this is why they actually created death, in part. Because without the death of humans, without the death of plants, without the death of other life forms - animals, and otherwise on this planet - they cannot create their own cybergenetic versions of these, even within the Matrix. So they would like your Sol to be in a repository somewhere - because you have, quote-unquote &quot;died&quot; (which you never did) - conducting all of these vessels, that we call our bodies, for Deep State members, then the children (and it&#x27;s not just children, it&#x27;s also adults) take shape and form, and take on that vessel filled with the Machine. And here we are: welcome to the Deep State Bloodline Families. And this is where they come from - such as the one we reported on last week in China.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002126">00:21:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002128">00:21:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And one of the main places in the United States where they come in is actually a little place called Ellis Island.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002136">00:21:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Really?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002138">00:21:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002138">00:21:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002140">00:21:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. That&#x27;s why they brought all of us slave white people, you know - a lot of Europeans came in through Ellis Island, and that whole immigration thing, they give you a new name, you know, when you get here and all of that? Not exactly. You actually go someplace else - into a repository. A lot of them did, not all. And then up comes Mr. Brown, Mr. Green, and we all know that these are not actual names. Mr. Johnson, you&#x27;ve heard me talk about these things in the past. These are not actual humans. They&#x27;re machine-made humans, one-to-one ratio. One human dies, goes into the repository, and a vessel of the Deep State member comes up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002230">00:22:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Now, Kim, I&#x27;ve heard similar stories like this or similar explanations like this for even at the border, why the border is such a big... You know, the border crisis - the United States/Mexican border - that similar things happen there. I mean, is that accurate?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002247">00:22:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, absolutely. Yep. I mean, this happens pretty much everywhere. People go missing everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002255">00:22:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So the border crisis - for the record, that they&#x27;re constantly talking about - the bigger crisis is people coming in, and they do go missing. Now I don&#x27;t know how many people actually understand that they&#x27;re going missing because it&#x27;s a one-to-one ratio is what you told me earlier. Right? (Kim: Yes.) So for them to exist, for these cybergenetic machine humans to exist, essentially, you need one soul to be kind of kept alive in whatever state - alive like your Sol, their energy is alive, and is now fueling this cybergenetic, machine-made human.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002335">00:23:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right. And that&#x27;s how...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002337">00:23:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wrap your mind around that one. That&#x27;s a big deal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002341">00:23:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well... And that&#x27;s... Now it makes more sense when I say Russia&#x27;s releasing a virus, allegedly going to try to make a plague. Because the more people they wipe out, the more of their people they can bring in. Also, it&#x27;s how the epigenetics base root program started because they have to have a certain amount of us here present - the organic beings with the organic Sols present - because they do not conduct any Source. We are conductors for Source. We don&#x27;t get to keep any of it, but we are the conductors for Source, so they need to have that to make themselves run, and they also need to have that to make the Machine run. So there&#x27;s a certain ratio of artificial, machine-generated humans versus us that must exist.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002437">00:24:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So these are the numbers you talked about, a couple years ago, actually, that they had to maintain... 21% of this Earth has to be Light beings. So they can occupy 79% Darkness, essentially. Right? That&#x27;s the ratio you&#x27;re referring to?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002455">00:24:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They would like to take over 80%, yes. (Tank: Got it.) They&#x27;ve never been able to exceed that ratio, even in periods of times where we&#x27;ve had a full or partial purging of the organic life on this planet. But, yes. That&#x27;s the reason for constant wars. It&#x27;s the reason for disease. That&#x27;s why the epigenetics and genetics programs exist. It&#x27;s why every chemtrail exists. It&#x27;s why disease exists. And, you know, are there things you can do about it? Absolutely, there are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002538">00:25:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well... And you actually mentioned that the number is shifting, right? So it was at 21 percent for a long time. It&#x27;s closer to 40 percent, or getting close to that now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002549">00:25:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. We have exceeded 40 to 45%, meaning we have more actual organic humans walking the planet now than we have had before. These people currently - and I&#x27;m sure you&#x27;ve probably experienced a lot of this - they are definitely trying to spread a quote-unquote &quot;virus&quot; from here. So I need you to understand what is going on with your person, quickly, before we get into this whole epigenetics thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002622">00:26:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But the reason why you&#x27;ve felt like you&#x27;ve almost had a cold, but maybe you haven&#x27;t had a cold - or maybe other people around you are getting a cold; they&#x27;re actually getting sick. And it has a lot to do with these deep underground bases. I don&#x27;t care which location of the main giant base they&#x27;re talking about, but this one has to do with Russia, where they are trying to send out a plague, desperately. A pneumonic, or pneumonia-like plague is what they&#x27;re trying to do. They do this through resonance. So frequency, artificial sine waves, which then alters the state of the matter in your body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002709">00:27:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They can do this in part because we have [been] made of machine and man. We are made of organic person. They drain us dry of pretty much everything that is of Source so that we cannot regenerate properly. But there is something you can do to prevent this from happening until the Machine is gone forever. So, understand two things with their epigenetic and genetics programs whereby, yes, they are meant to alter your DNA. Yes, they are meant to ensure that we have a death, and they are meant to ensure that we exit the Matrix so that they can enter the Matrix. And they would love to have more of themselves here, but they haven&#x27;t quite gotten to that point yet. They are also having a little bit of a blipper when it comes to manufacturing new Deep State members as well. So there&#x27;s more going on here than most people think.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002816">00:28:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So what can you do about it? Now one of the ways that I do things when I&#x27;m going around the planet discovering these facilities, and then removing as many of the facilities as we can and trying to prevent the Machine from regenerating them and their respective, what you call clones, is I create basically an Essence Consciousness, All-Things-Source bubble. And you might be familiar with this because you probably do this when you are shielding from something, trying to prevent something from happening. But remember, this also exists within your body. So you can create a shield and you can also create... You can prevent anything from coming in, but you can also prevent things from going out - such as the Source within yourself. So when you need respite and you need to regenerate, this is a way to do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002920">00:29:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So creating the Consciousness bubble is critical, Number 1. Number 2: remember everything that is organic has a resonance to it. That&#x27;s you, ones you love, plants and animals. &quot;Wow, this information resonates with me.&quot; Whatever it is, everything has... if it comes from an actual human, it has a resonance to it. If it comes from a plant, it has a resonance to it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002945">00:29:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: This is the reason why quantum biofeedback machines exist, and that they actually work - or even on a smaller level, Genius machines. Light also carries frequencies. They know this and they use that against you. Understanding the weapons of war is important - as important as it is on how to fix it. It&#x27;s part of the reason why we are going to come out with varying series that can actually tell you how to make things out of plants, what plants to use, and then we also will have those available to you anyway if you don&#x27;t want to produce them yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003024">00:30:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But the plants heal better than synthetically made plant extracts, which we call pharmaceuticals. They definitely don&#x27;t want you to get that essence of that plant, that&#x27;s for sure, which we call pharmaceuticals and our health care industry. But everything basically comes from a certain... a certain place that is natural. All they really do is create the unnatural from the natural in every way, shape, or form.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003105">00:31:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So first, I think this... just to go back to what you said about creating a Consciousness field or a Consciousness bubble around yourself. And you kinda said this a little bit differently than people might have heard it. You&#x27;re talking about this generates really from the inside, like, Source coming from within you, kind of growing and expanding out to create this as a protective field - that many people would be familiar with if they were guarding up - if they were going to do something that they thought might be filled with negative energy they might want to guard up. But in general, this is something that you can perpetuate and extend your field all the time because they&#x27;re coming with a... Now you said they&#x27;re taking resonance, but they&#x27;re manipulating it with a frequency, correct? To cause this plague.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003201">00:32:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003202">00:32:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. I just wanna make sure that... So, basically, you&#x27;re saying that by creating our own Consciousness field, we can really block this and protect ourselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003212">00:32:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. To some degree. Remember, they&#x27;re on the inside out too to some degree. But with one little iota of Source, you&#x27;re still living. You&#x27;re still existing. If you could retain more of that Source, it can overcome and overpower what they&#x27;re trying to feed you. So that&#x27;s part of what you can do now that&#x27;s free. Doesn&#x27;t cost anything to do. The other thing we&#x27;re going to do as well is we&#x27;re going to teach you about what plants do what so that you can also protect yourself in other ways.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003253">00:32:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Is there going to be a period of healing as a part of Restoration? Yes. Our job is to heal the planet together. Our job is to heal humanity together. And also, as a part of that, is self-care and you. You also will be required to heal yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003311">00:33:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So is it a miraculous healing? Yes, I sure would love that to happen. But I also know that Source, unfortunately - or fortunately, I guess; job security on my part - has always... It&#x27;s always required me to take some action.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003330">00:33:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So He&#x27;ll tell me where to go. He&#x27;ll tell me what to do. And if I don&#x27;t listen - which I don&#x27;t ever do anymore. Like, before I was like, &quot;Oh, you&#x27;re crazy. There&#x27;s no way I&#x27;m going in the middle of that street, going to that place. No way.&quot; But now, over the last several decades, I&#x27;m like, &quot;Yeah.&quot; No. Never never going to disregard what Source says. I&#x27;m gonna always do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003353">00:33:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So there&#x27;s a certain aspect of you that this is a cooperative. It&#x27;s not an invasive-type thing where you are now going to be this whether you like it or not. It&#x27;s a cooperative effort between yourself and Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003409">00:34:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Mhmm. Okay. Well, that&#x27;s one way to overcome this tremendous obstacle of them trying to kill everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003417">00:34:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah, again - for the 7th time, actually. We&#x27;ll talk about that in Beyond the Matrix. But, yes, this will be the 7th potential purge that they&#x27;ve been trying to get started now for about 3 or 4 years and have not been successful. Hmm, wonder why.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003434">00:34:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right. And they&#x27;re behind schedule, because this was... you know, anybody who ever follows this, they know there was a schedule, like, to basically wipe out 80%, 90% of the population.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003446">00:34:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. I&#x27;m assuming they have a - they have a schedule of events, you know? Mass murder, this is a war, pandemic - and I can assume that they have a schedule because you have heard throughout alt media people talk about the Manual for War. (Tank: Yep.) And that you never go off the Manual. It&#x27;s like a recipe for making a war - because it&#x27;s all controlled. Stand here; do this. Everybody&#x27;s gonna know where everybody is. You can&#x27;t go outside these parameters and actually do something that would actually be considered an actual fight rather than a movie set - that&#x27;s why they call it theater.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003529">00:35:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But the movie is constantly playing out against us, too. In so many ways. So the Machine, basically in a nutshell, becomes a proxy for Source. That is what it wants to continue to do. And in the next Declassified - because we&#x27;re gonna release this in two parts because it&#x27;s kinda getting a little bit long for Declassified, especially for one particular issue. But in the next Declassified this week we&#x27;re gonna talk all about proxies, how they affect you, and then proxy servers. And then - we haven&#x27;t even dug into the deep stuff yet this week, as we go into Beyond the Matrix - where we really talk about how proxies were created.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003623">00:36:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: No doubt. There&#x27;s a lot to go on. Alright. Okay. So we&#x27;re gonna end it here then, if I&#x27;m understanding you, right? (Kim: Yep.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003630">00:36:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: End it here, just to make sure that you get a very clear picture on that they are trying to spread a plague, a pneumonic plague, and they&#x27;re using frequencies and resonance, and you have the ability to expand your Consciousness field from the inside out. So that was great, Kim. I&#x27;ll let you sign off.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003649">00:36:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. Well, that has been &quot;Declassified - Beyond the Headlines&quot; for October 14th, 2026. I will see you, actually, within the next day or so when the next one comes out. Absolutely.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003703">00:37:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Alright everybody, have a great day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003706">00:37:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003709">00:37:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
