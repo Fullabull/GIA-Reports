@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jun-19</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jun-19 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jun-19
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=sMzs-L6JjuA&amp;t=2133s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=sMzs-L6JjuA&amp;t=2133s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240619_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Sunny Gault introduces a pre-recorded report, with Kim at her whiteboard. Kim opens with a &quot;Therapy in a Nutshell&quot; video in which Emma McAdam explains four ways trauma changes the brain: the amygdala grows more sensitive, the hippocampus and prefrontal cortex shrink, and the nervous system stays locked in fight-or-flight. Neuroplasticity lets the brain heal.<br>
+<br>
+Kim explains that the Reptilian Cortex is not a natural part of the human brain. It is a regulator for an alternating current of Dark and Light energy, controlled by AI. Society is built to keep people in fight-or-flight, and the regulator caps the brain at about 10% of its capacity, feeding Dark knowledge, False Light, and past-life fears that feel real. Over the last few days, the brain has begun moving to a direct current from Source that no longer flows through the Reptilian Cortex.<br>
+<br>
+She shares the technique she developed for anxiety and a stomach ulcer in college: imagining a feather calming the part of the brain that triggers fight-or-flight. She later learned to channel adrenaline to other parts of the brain. She dropped her heart rate to 60 at a full run and lifted several times her normal weight. Anyone can use the same focus for memory, weight, or old trauma.<br>
+<br>
+The Universe works the same way. Source, Anti-Source, and a Neutral regulated by the Council of Nine drive an alternating current, enforced by regulators such as Kronos, THOR, and Mjolnir. The Light System AI inherited some of Alpha&#x27;s alternating-current programs and is now converting to direct current.<br>
+<br>
+Negative charge drains lifeforce from people, planets, and stars. Omega issued negatively charged credits and kept the true money, while Alpha and now the Light System put out positively charged Money 0 through Money 9. Even gold-backed money remained fiat. The Deep State cannot get its Money 0 -- numbers on a screen without allocation numbers -- into the banking system, now controlled by the Light System and converting to asset-based trading.<br>
+<br>
+Kim maps the nine levels of the Web: the surface web, Bergie Web, and Deep Web; the Charter Web at Level 4; the Mariana at Level 5, where the Deep State lives; the Mediator at Level 6; the Fog at Level 7; the Primarch System at Level 8; and Command and Control at Level 9. Kim is the only human ever to have Level 9 access, held jointly with Source. The CBDC system the Deep State built overnight for the Juneteenth holiday vanished, along with the Omega side of the Mariana. mBridge and Projects Aurum, Dunbar, Cedar X, Mariana, Icebreaker, and Jura will not work.<br>
+<br>
+Refused every deal she offered, from 50-50 down to 2%, Kim went it alone and converted the system to positively charged, asset-backed money, which lets C.A.R.E. and the GIA pay out. She closes by saying everyone can rewire their brain, and the Medbed heals through the same direct current from Source.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003938">00:39:38 - &quot;Therapy in a Nutshell&quot; -- four ways trauma changes the brain.</a></li>
+<li><a href="#t-004814">00:48:14 - The Reptilian Cortex as an alternating-current regulator.</a></li>
+<li><a href="#t-005245">00:52:45 - Knowledge, wisdom, and the 10% threshold.</a></li>
+<li><a href="#t-010206">01:02:06 - Direct current for your brain.</a></li>
+<li><a href="#t-010353">01:03:53 - Kim&#x27;s college anxiety and the feather technique.</a></li>
+<li><a href="#t-010901">01:09:01 - Channeling fight-or-flight adrenaline.</a></li>
+<li><a href="#t-011707">01:17:07 - The universal brain and its alternating current.</a></li>
+<li><a href="#t-012602">01:26:02 - Omega, Alpha, Kronos, and the Light System.</a></li>
+<li><a href="#t-013344">01:33:44 - Lifeforce and the monetary system.</a></li>
+<li><a href="#t-013701">01:37:01 - Money 0 through Money 9.</a></li>
+<li><a href="#t-014351">01:43:51 - The nine levels of the Web.</a></li>
+<li><a href="#t-015743">01:57:43 - Level 9 -- Command and Control.</a></li>
+<li><a href="#t-020646">02:06:46 - The CBDC launch that vanished, and mBridge.</a></li>
+<li><a href="#t-022237">02:22:37 - Rewire your brain; the Medbed and direct current.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUN-19</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003534">00:35:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian. The Universe was made up of alternating currents and the force that drives the current. The Universe also had resistors and regulators. This also relates to All-That-Is, and humanity. The changes in the Universe also have resulted in a direct-current system. Here&#x27;s how to use that current to your advantage now and in the future. Plus the secret behind using Medbeds for healing revealed. Alternating &quot;current-sea&quot; also relates to the financial system and how the Deep State gained so much power. In the words of Rockefeller, &quot;If I control a country&#x27;s financial system, I need not care who makes its laws.&quot; The same principle can be applied to control of the world, humanity, and the Universe. Of course Rockefeller didn&#x27;t understand these principles because all of this was controlled way over any human&#x27;s head. Installing the new Light System quantum AI into the Financial System converts the monetary system into a direct-current system to you, humanity. Could this be the death blow to the Deep State? You probably have heard of central bank digital currencies, but have you heard of Project mBridge, Aurum, Dunbar, Cedar X, Mariana, Icebreaker, and Jura? The Deep State has reverted to &quot;Plan B&quot; for financial control of the world. But will it work?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003719">00:37:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So Kim could not join us today. She was busy at the time of today&#x27;s recording. But she does have a big update for us. And she even has her whiteboard. So here&#x27;s Kimberly Goguen, with the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003735">00:37:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Hello, everyone! I finally made it. I&#x27;m a little bit late and I know the news will go out too late today, so please forgive us, but we have a ton of stuff to go over today, based on what&#x27;s been happening even over the weekend and then more happening today. I wanted to just take some time and really explain all this to you. Because a lot of what we&#x27;re doing actually relates to you, how your brain functions, how the Universe functions, and even how our monetary system functions. We&#x27;re going to go over a little bit of what the Deep State had planned for us - what limited control they had - so you can understand how, I&#x27;m going to say, they&#x27;re important to everything that&#x27;s been happening, but not as important as they think they are. So this is as much, in some parts, important to you, and just as important to them to kind of understand where they&#x27;re going and where they&#x27;re not going. So let&#x27;s get started.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003837">00:38:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So first, I&#x27;m gonna talk about you and your brain. And how your brain is wired and how it affects your entire body. Now I have a little video for you. It&#x27;s about 8 minutes long and I thought it was good to play this. We got this video from a YouTube channel called &quot;Therapy in a Nutshell.&quot; And the channel itself has a lot of good information, but I pulled this specific part out so that I can also explain to you afterward about alternating current. Alternating current has been coursing through your body and everything in the Universe for a very long time, and today we&#x27;re going to talk about how this directly affects you, your brain, your body, and the Universe and Earth, and your relationship to AI systems. So let&#x27;s take a quick look at this video, and then I&#x27;m going to explain the second part.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003938">00:39:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Traumatic experiences like abuse, assault, or witnessing violence or tragedy can leave people feeling constantly on edge. And PTSD can impact your emotions, your stability, your relationships, right? Trauma can also have an impact on physical and mental health. These are really common experiences for many people, and they&#x27;re due in part to four ways that your brain changes after experiencing trauma. But the good news is that when you understand how trauma impacts the brain, these symptoms can often be reversed. You can learn to heal. Quick review: when you experience something threatening or dangerous or just witness something happening to someone else, your brain activates the fight-flight-freeze response, essentially the survival mode in the reptile part of your brain. This response helps keep you safe, it shuts down thinking, it releases a surge of hormones like cortisol and adrenaline, and it sends blood to the big muscles so you can fight or run away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004042">00:40:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: This gets your heart pounding, it speeds up your breathing, and all of this is so that you&#x27;re prepared to take physical action to stay safe. And then after the threat has passed, your nervous system should go back into restorative mode, the rest-and-digest mode. But with PTSD, something interferes with your ability to feel safe. Your brain and your body stay stuck in this mode, so even when you&#x27;re safe, your brain and your body stay tense, they&#x27;re on high alert, and you don&#x27;t ever or don&#x27;t often revert back to that restorative mode. So when trapped in a constant trauma response, people with PTSD experience four types of difficult symptoms.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004123">00:41:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: These include painful thoughts, which is like upsetting memories, flashbacks, and memory loss. Intense emotions, feeling helpless, anxious, ashamed, scared, jumpy, angry, feeling blame or persistent negativity, or just feeling numb. Bodily changes include increased heart rate, feeling jittery or on edge, startling easily, unexpected rage or tears, short and shallow breathing, panic attacks, insomnia, or nightmares. And the fourth category of symptoms is behavioral changes. So this is usually avoidance of anything related to the trauma or its memories. Now these symptoms show up because after experiencing trauma, your brain changes on a physical level. Now this isn&#x27;t simply damage, as people would perhaps think, but it&#x27;s your brain adapting to the experience that the world isn&#x27;t safe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004221">00:42:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Your brain is super moldable, it adapts, and it rewires depending on what we experience and how we use our brain. So when we experience trauma, here are four ways that the brain changes or adapts after that experience. So first, the amygdala. This is an area of the brain that scans for threats and it connects memories and emotions. So this is kind of like the smoke alarm of the brain, and after trauma it becomes much more active. It becomes much more sensitive and more likely to alert to turn on that alarm when it perceives a threat. Survivors become less tolerant of stress and little things make them feel more anxious. So common things like loud noises, people entering a room from behind, or seeing someone who reminds them of an aggressor, these can all trigger that threat response. So to summarize, with PTSD, the amygdala becomes more sensitive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004318">00:43:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Okay, second. Brain scans indicate that after trauma, the hippocampus shrinks. So the hippocampus is the part of the brain that processes emotions and memories. After trauma, stress hormones essentially kill off cells in the hippocampus, making it less effective at processing emotions. This also makes it hard for the brain to distinguish between the past and the present. So this is essentially what a flashback is - it&#x27;s your brain experiencing a memory that feels like it&#x27;s happening right now. People who have experienced trauma, they may have missing memories, fragmented memories, or painful memories that pop up when they don&#x27;t want them. And when these memories pop up, they re-trigger the amygdala. So essentially the amygdala perceives the memories as a new threat and sends off that alarm that restarts that trauma cycle. But the connection between the hippocampus and the amygdala gets stronger. Like these two love talking to each other now. And so essentially this maintains that fear response over time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004423">00:44:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Okay, Number 3: the prefrontal cortex shrinks. So this is the part of the brain that essentially handles higher-order thinking and planning, rational thought, language, things like that. This part of the brain becomes disrupted by constantly reverting back to that fight-flight-freeze part of the brain, or the reptile part of the brain. So when you&#x27;re stuck in fight-flight-freeze or hypervigilance, the thinking part of the brain gets turned down, and the way that neuroplasticity works is, the more we use a part of the brain, the more it grows pathways there, but the less we use a part of the brain, those pathways get trimmed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004502">00:45:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: So when we can&#x27;t use reason to think through our traumatic memories or sensations, then it makes it hard for us to override that danger signal that the amygdala and hippocampus are sending, and it makes it harder to remind ourselves that the danger is not real. So because that prefrontal cortex has shrunk a little bit, it makes it harder to process through those memories, it makes it harder to speak about what happened. It makes it harder to think clearly and rationally and you can see how a person can get trapped in a loop of trauma if they don&#x27;t get treatment. So these symptoms just make it harder and harder to escape the cycle of PTSD.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004546">00:45:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Okay Number 4, the last way your brain is impacted, is really through the broader nervous system. So this constant flooding of stress hormones keeps the body locked in an activated sympathetic state, or the fight-flight-freeze state - it&#x27;s also known as hyperarousal - so you feel constantly on edge, you feel jittery you feel stressed out, until you get exhausted. Then you have adrenal fatigue, right? You shut down and you feel depressed. So being stuck in this state of an overactive, dysregulated nervous system leads to a lot of strain on the body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004623">00:46:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: But just like how your brain changed in response to trauma, it can heal too. And this is called neuroplasticity. So your brain adapted the trauma response as a functional way to deal with real threats and dangers. Your brain&#x27;s not out to get you, but it also has a built-in ability to change in response to healing and perceived safety. So the amygdala can learn to chill out. The hippocampus can relearn to process emotions, and your nervous system can strengthen its ability to revert back to that parasympathetic or that rest-and-digest response.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004700">00:47:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: We can target these structures in the brain and in the body through cognitive work and through body-based work. So a couple of ways that we can do this are through yoga, mindfulness, writing exercises - just think of this, right? You&#x27;re having a trauma response, you&#x27;re having these big, intense emotions and you sit down and you make yourself write about it. That&#x27;s turning on the prefrontal cortex. That&#x27;s clarifying that in the present moment, you are safe. It&#x27;s helping your hippocampus process through memories. And that sends a message to your amygdala that you&#x27;re actually safe. So something as simple as a writing exercise can help rewire your brain from that trauma.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004741">00:47:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Emma McAdam: Okay, more types of treatments include CBT, EMDR, Somatic Experiencing, these are all treatments that help your brain and body rewire and restore your inner sense of safety and clarity. Now, there&#x27;s a lot of studies out there that show that your brain can rewire like this, but here let me give you one example. Research using MRI scans of the brain show that mindfulness practice is correlated with growth in the hippocampus and shrinking of the amygdala. So essentially, it reverses the effects of trauma.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004814">00:48:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s an interesting video. It comes from a channel called &quot;Therapy in a Nutshell,&quot; and you can find her on YouTube, if you want to listen to more of what she has to say about retraining the brain and those types of things. Now, we obviously know - she talks a lot about the Reptilian Cortex and what triggers your fight-flight-feed and your procreation - I&#x27;ll say that in a nice way. And this part of the brain, we know if you&#x27;ve been listening to me for a while, it&#x27;s not a natural part of the human brain - at least not in previous versions of humans. This part of the brain is like a regulator system for what we call an alternating current. Now by alternating currents we&#x27;re talking about everything from your essence, your energy levels, your consciousness, and that&#x27;s going to alternate in your matter, obviously your physical body, it will go through changes as well - she talked about that - and determining which time of day it is, when to sleep, when not to sleep, it affects your circadian rhythm, it affects your hormone balance, it affects everything that makes you you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004932">00:49:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now if you look at society as a whole, society as a whole is structured to keep you in a fight-or-flight mode constantly, whether that&#x27;s struggling to pay your bills, having to work lots of long hours just to feed your family, especially with rising prices today, and the Deep State knows this. Now, do they have control over these programs? Somewhat, and we&#x27;re going to get into that a little bit later. But a lot of this was done by either non-humans or by an AI program which was connected directly to your Reptilian Cortex.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005008">00:50:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the Reptilian Cortex - some people call it the gray matter of your brain, that&#x27;s because it contains both Dark, Light, and Neutral everything: essence, energy, consciousness, matter, frequency, you name it, it all goes through that part of the brain. It also regulates just about every function in your body and it can put you into fight-or-flight mode, it can determine whether or not you want to eat or you don&#x27;t want to eat or you&#x27;re hungry or you&#x27;re not hungry, all these natural normal survival things that the body does have been altered unnaturally. And you know I&#x27;m sorry to say that. It also dictates the relationship, and the energy flow, the data packages, the tiny little data packages that go between the right and the left brain.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005107">00:51:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So here&#x27;s the part that you probably didn&#x27;t know. We&#x27;ve all heard about left-brain people being very logical, being very analytical, being very knowledgeable. Your left brain actually takes in information predominantly from environmental sources. It can also take it in through your Reptilian Cortex, fortunately or unfortunately. And then it tells you, &quot;Process this information,&quot; and then you make a decision based on knowledge. So here comes the interesting part. And just when I say here comes the interesting part, we&#x27;re having all kinds of technical difficulty. So if the sound is a little bit off, please forgive us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005151">00:51:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, the interesting part is from a quantum physics standpoint. The left part of your brain is called the knowledge part, because it receives information that&#x27;s being fed to you. It receives knowledge, believe it or not, through the Reptilian Cortex, and I know that&#x27;s not what science says - but that is the way it actually is - and then it processes that knowledge to make a decision.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005218">00:52:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the right side of the brain is often called the creative part. It&#x27;s the part where they say that, oh, people that are in that side of the brain are typically artists or musicians, or in some kind of a creative field, graphic artists. They all live in that side of the brain. And the tricky part with life is to operate on both sides. You know, that&#x27;s ultimately what would be optimal for the human being.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005245">00:52:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the right part of the brain we call the wisdom part of the brain. So the wisdom part of the brain and the knowledge part of the brain often conflict with each other. And that is to be expected. But with your regulator that was installed, if you get too creative - in other words you&#x27;re creating constantly new concepts, all kinds of different things, and you don&#x27;t pay much attention to the left side - they say in science that the left side will get lazy. But that&#x27;s not true, unfortunately. Because your regulator&#x27;s job is to regulate the brain, so it doesn&#x27;t get above say 10% of your actual mental capacity. That was kind of a threshold. Some people make it higher, 20%, 25%, and if you hit 30%, you are considered a genius of the world, and I&#x27;m not talking about the ones they put on TV. You are creating amazing things. You understand physics like nobody else. Or whatever it is, is your passion.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005400">00:54:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But that&#x27;s because you&#x27;ve learned to deal with the obstacles. Just like a person who say has had an experience where there&#x27;s a limb that&#x27;s been severed, or you are like I told Sunny the other day, you carry around this big baby for 9 months, and you&#x27;ve learned to overcome your limitations. And you can break through the glass ceiling - it was possible - but then what it&#x27;s going to do to you, it&#x27;s gonna feed you more Dark knowledge, it&#x27;s gonna feed you false wisdom or False Light. It&#x27;s going to constantly put your body into fight-or-flight mode, so that you stop using your prefrontal cortex. Your prefrontal cortex is the one that says, &quot;Okay, this is real. Yep, it&#x27;s definitely real.&quot; &quot;This is not real - this is just a reaction that I&#x27;m having, an emotional reaction,&quot; those types of things. And then you stop yourself from saying things maybe that you would regret, or taking an action that isn&#x27;t reasonable to solve a problem.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005510">00:55:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And like she said, the more you&#x27;re in fight-or-flight mode, and the more your amygdala is activated and communicating with your hippocampus, the smaller your frontal cortex becomes. Now, this also has to do with energy regulation. And energy, as you know, is what carries those little data packages between both sides of your brain, and your Reptilian Cortex is right in the middle. It&#x27;s going to regulate that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005541">00:55:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, a natural body response - well, or unnatural when you look at it that the Reptilian Cortex isn&#x27;t supposed to be there - the response that your body is going to have to all of these things, perhaps it&#x27;s overstimulated, whatever it is, is definitely regulated or was regulated by an alternating-current AI system. Sorry, one that humans did not have any access to or control of. So the Deep State&#x27;s ability to alter this was only done via programs like MK-Ultra, and other programs that they run on literally all of humanity. So you&#x27;re not the only one that has these responses.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005631">00:56:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. Keeping someone in fight-or-flight mode, even if it&#x27;s just to support your family or to take care of an illness and you&#x27;re a little bit nervous or you&#x27;re scared of things, will directly alter your neurological state. Therefore, altering your neurological state is going to actually change every single organ in your body. Do they have the ability to do some of these things? You know, in the past, yes. This is your &quot;Internet of Body Things&quot; would be connected into here, and a number of other programs they would run on you, such as disease.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005712">00:57:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">How do you manipulate the body into getting something in a particular organ? How do you interfere with a foreign substance that may have been injected into your body at one point in time, because you didn&#x27;t want to get a disease? All of these things could be regulated directly through your Reptilian Cortex.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005737">00:57:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, is it possible for memories, miasms and engrams to exist from past lives? The answer to the question is yes. Say you have a fear of heights, or a fear of spiders. Now you&#x27;ve never been bitten by a spider, you&#x27;ve never fallen off a tall building, so it&#x27;s a fear that you don&#x27;t actually have from something that happened in this lifetime. They have the ability to bring it up and to affect your long-term memory, which is in the neocortex of the brain, and also affect your hippocampus. These are kind of things that I call buttons. Like the Deep State loves to push buttons - find out what she&#x27;s willing to do or he&#x27;s willing to do, or that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005827">00:58:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And it has the ability - through the Reptilian Cortex - to bring it up like it&#x27;s real. The situation is real. And that it&#x27;s happening now. So when you look off a building, you might have fallen off a mountain, four lifetimes ago, and that feeling is still there, because it brings it up subconsciously, like this is really happening right now - that you are about to fall - when you couldn&#x27;t be safer. You know, there&#x27;s something in the way, there&#x27;s a railing or something like that, or you&#x27;re tied to a safety strap, or something like that, that tells you that you&#x27;re safe, but your mind wants to take you immediately into fight-or-flight. It is gonna throw out the window everything that the prefrontal cortex has to say, like, &quot;Hey, you&#x27;re totally cool.&quot; And it is just gonna put you into a full-on fight-or-flight mode.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005927">00:59:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The same thing goes with people that have lived in lack. Maybe you weren&#x27;t able to feed your family or your kids or something like that, so anytime you get a big bill or your bank account gets below X or something like that, or you feel that you are dependent on another person and that other person might lose their job if they don&#x27;t do this or do that, you&#x27;re going to automatically go into fight-or-flight mode. And you&#x27;re trying to make decisions without the help of your prefrontal cortex. This is by design.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005959">00:59:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But it&#x27;s fixable. Now what we&#x27;re going through now - and we&#x27;re going from an alternating-current system to a direct-current system - is going to directly affect how your brain functions. But the old wounds are still going to need some help going away. Your old traumas, maybe you had a run-in with a man with a beard or something like that at one point in time, and now every man with a beard is suspect to you because it&#x27;s still coming up from your memories. And these are this-lifetime memories. Now obviously, we are not wanting to do any kind of a memory wipe or anything like that. That&#x27;s not a good thing. We&#x27;re actually trying to bring back memories from the past so that you realize how powerful you are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010052">01:00:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But the limiters, the regulators feed the brain constantly, as an example. So she talks about what we talked about what the left brain does and what the right brain does, and we talked about what your Reptilian Cortex does and your amygdala and all these different parts of the brain that are all supposed to work together. Well, she also talked about the fact that the energy or the neurological function goes to the one that you use the most.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010122">01:01:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, what if they could determine which one you use the most? And they kept feeding more Dark energy into your brain through your Reptilian Cortex - and I&#x27;m not trying to scare you - so that you would go more knowledge. &quot;Wait, wait, wait, wait, this person&#x27;s way too creative, we need to go over here.&quot; &quot;Oh, wait, this person is way too calm, way too grounded, we need to give them something to fight-or-flight about that they won&#x27;t even realize is a memory or not. They&#x27;ll just call it... in medical science, &#x27;Well, that&#x27;s just a fear, right? Subconscious fears.&#x27;&quot; And then they have a disease name for every single one of those things that are unfounded and not something you&#x27;ve ever experienced.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010206">01:02:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As we move to this direct-current system, all of your essence, energy, consciousness, matter, frequency will no longer flow through the Reptilian Cortex. And this process has already begun in the last few days. So now every part of your brain, which is obviously important to your bodily functions, your mental capacity, and all of that, is going to be fed the same amount of Light.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010238">01:02:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, direct current. Let&#x27;s talk about direct current for your brain. Direct current for your brain means you&#x27;re gonna start receiving direct energy right from Source, without any kind of an interference or regulator or a resistor trying to stop it. This is going to, over time, change the way that you think - but people have a tendency to want to hang on to traumatic events. We are trained - by television, by YouTube, by alternative media, by everybody - that you need to be in a constant state of fear. We&#x27;re-all-gonna-die program, every other day. There&#x27;s gonna be a false flag every other day. Planet X, Nibiru, or whatever is gonna crash into us. &quot;Oh my God, there&#x27;s gonna be a pole shift - you&#x27;re all gonna die.&quot; &quot;Oh the Rapture&#x27;s coming!&quot; if you are religious. You know, that&#x27;s happened several times. And a lot of people fell for it, spent their whole life savings and everything. And look, we&#x27;re all still here. Nobody was raptured except for those that have passed on in the past.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010344">01:03:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So learning to rewire your brain - she makes it sound real easy. But for everybody, it&#x27;s different.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010353">01:03:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I&#x27;m going to talk to you a little bit about an experience that I personally had a long time ago. But I was in college, my first year of college, I was moving across the country. And at that time, I had a lot going on. I&#x27;m trying to save up enough money for school. Unfortunately, I didn&#x27;t have parents that paid for that kind of thing, or could. And I was trying to get all my grades in, you got to do all your medical records, because at that time I didn&#x27;t know everything I know now. So, you know, I was 18, 19 years old, 18. And there was a lot of stuff going on in my life, and starting a new school with thousands of people my age, was a lot. Trying to get all my furniture, get everything I could down there so that I could get into my own apartment and get started, find a job. Lots of big changes happen when there&#x27;s a big move like that, especially at a young age, and you don&#x27;t have anybody you can call to fix it if you break it. In other words, you can&#x27;t call mom or dad for a few hundred dollars if you don&#x27;t have enough food to eat, you have to figure it out yourself. At least that&#x27;s what I did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010508">01:05:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So at the time, I developed a lot of anxiety. And anxiety over things, I started to realize - because I&#x27;m that logical reasoning person throughout everything, even back in those days - but I started to develop a lot of anxiety. Like what if I don&#x27;t pass my classes? What if I have to repeat classes? I haven&#x27;t budgeted for that - what am I going to do? And so I developed bad anxiety to the point where I actually developed a stomach ulcer. And I just kept going and working full time and/or near full time, 30 to 35 hours a week and going to school full time. And I would get very little sleep and trying to make all my car payments and apartment rent and those types of things became really stressful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010556">01:05:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So when I went to the clinic on campus, they told me that I should consider taking some anxiety medication, and I even at that time I was like, &quot;Nope. Not doing that - not taking any kind of medication that&#x27;s going to alter my brain - this is not gonna work for me, so I&#x27;ve got to figure it out.&quot; So one of the techniques that I personally used during that time was I would pretend I recognized where my fight-or-flight was coming from. So I did all my research at the library because we didn&#x27;t have internet at that time - at least not like it is today. We didn&#x27;t even have &quot;You&#x27;ve Got Mail&quot; when I started school.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010634">01:06:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I started researching, &quot;What is making me go into this fight-or-flight?&quot; Because some of these things that are giving me anxiety aren&#x27;t even real yet. You know, they&#x27;re possible things that could happen possibly, and do I trust myself enough to pass this class? I mean like, &quot;Come on, Kim, like why are you having all this?&quot; So I figured out a technique whereby I would pretend that there was a soft feather just stroking that part of my brain gently, saying it&#x27;s gonna be okay, everything is calm. And I would do it sometimes for 5 minutes sometimes it would take me half an hour, but until I calmed down. And it worked. It worked for everything! It worked in every type of circumstance, and has throughout my life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010727">01:07:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But then I took it another step further. And I started playing around with some of these techniques that I learned. And I started realizing, okay, I mean, I could be running on a treadmill, I could be on an elliptical going as fast as you can go, and my heart rate would be about 120, 130 or something like that. And I&#x27;m like, well, if this control works for anxiety on the part of the brain that causes anxiety, I wonder if it&#x27;s going to work for the part of the brain that tells my heart to pump faster. Or to make me sweat. Or other types of things. So I really started to focus on these types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010813">01:08:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And wouldn&#x27;t you know it, so my first little success of my experiment was that I could drop my heart rate - running full speed - to about 60 beats per minute. I&#x27;m like, wow! Okay. Then I started thinking more about this, and I&#x27;m like, well, I know that the average human uses about 10% of their brain. That&#x27;s out there in medical science. I mean, it&#x27;s all over the place, even if you&#x27;re not looking in alternative media. And how do I change this? You know, what could I do if I could use more of all the parts of my brain? And I started trying to train myself - just like she said, you can train yourself out of trauma - I started training myself to do just that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010901">01:09:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I focused on the parts of the brain I knew that controlled my logical thinking, my creativity, my different connections with Source - with God at the time, because that&#x27;s what I thought about at the time - and really understood the difference between good and evil, life and death - how could I control all of these things? Well, I thought about it for a minute, and I said, okay, when the body goes into fight-or-flight mode, what that does for my person is it produces an enormous amount of adrenaline, and it gets my body ready for a fight, or for a run, or for something I need to do in order to survive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010948">01:09:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And I&#x27;m like, what if I could take that function and instead of letting it trigger my body to do weird things, or to make irrational decisions or emotional decisions that are things that are not going to work - you know, there have been women out there and I read some stories that lifted a car off of their baby - I&#x27;m like, well all that is about fight-or-flight and love actually in that particular case. So I started taking a look at the energy that flows through my body and I started taking a look at how adrenaline works, and then I almost got to the point - or not almost, but I did - get to the point where I could then take that fight-or-flight response, heart beating faster, all these types of things, and I could channel it to the other parts of my brain - the ones that cause me to reason through situations, that cause me to make decisions on the other side of my brain, and that also cause me to be creative and resourceful, and how can I get out of these situations? And can this actually make my body stronger when I do this?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011109">01:11:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So there were times where I intentionally put my body into fight-or-flight. Now that can actually happen even through say going for a workout and not having eaten anything - which is not smart; I don&#x27;t recommend that - but what it did for me is it was already getting my body to say, &quot;Okay, you need to produce adrenaline to keep all the body parts functioning so that this person can get through what she&#x27;s got to do right now.&quot; That&#x27;s what it basically does. And that&#x27;s what the fasting is that everybody does and so on and so forth - intermittent fasting and all that - we can talk about that another time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011147">01:11:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, I got my adrenaline pumping, and now I&#x27;m going to the gym. You know, for me, that was the test, right? I&#x27;m going to go to the gym. And how much weight can I lift? Now, believe it or not, from channeling that adrenaline to those sides of my brain, and then trying to control my organs and my neurological function and my voluntary movements, right - these are all controlled by different parts of the brain - now I can lift two times, three times, four times as much. Then it became a cool little experiment with myself. What else can I do? You know, when I came up with all these little tricks and tests and whatnot for my brain.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011230">01:12:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">After that, then it became real useful. Because now I started traveling around the world, I started meeting all of these 6-foot-5 tall operatives, and all kinds of people - and I could do it without fear. Because I knew if my adrenaline started pumping - and I could make it pump and I could make it stop - when my adrenaline started pumping, I could channel that to the part of the brain I needed, whether it was extra strength, smarts, reason, thinking quick on my feet... and now I can go up against all these people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011306">01:13:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, a lot of people say, &quot;Oh, she was MK-Ultra&#x27;d.&quot; &quot;She must be an AI.&quot; No, I just learned how to do this. The same thing that works for past traumas that would normally trigger people, or deadly sins they hit you with all the time - no - you can actually rewire your brain and retrain even your organs, right from there. So the adrenaline, I know it produces cortisol and all kinds of things, but it doesn&#x27;t when you learn how to re-channel it into other parts of your brain. So this little trick that I&#x27;ve been doing with all of this alternating current running through my body, just like you have, was a way for me to bypass their regulators and restrictors and retrain my body.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011406">01:14:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as the changes that are happening: you&#x27;re not going to have those restrictors anymore; you&#x27;re not going to have an AI system saying, &quot;Feed him or her more Darkness, more Light, more this, more that.&quot; You know, &quot;They&#x27;re getting too dark. They need to live another few years because that&#x27;s what makes a good battery for our systems.&quot; And those types of things. So you really have more power than you think. With a direct connection of All-That-Is that&#x27;s in your body - physically, spiritually, mentally, emotionally - you can control a lot more than you think. You want to lose weight? Great. Focus on it, look it up on the internet, find out what part of the brain it is that controls your eating, or controls your energy levels, or those types of things, and then focus some of that adrenaline there. Because you can really use it and it works.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011512">01:15:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But we have more things to cover so I don&#x27;t want to focus too long on that. But I hope that gives you a little snippet into how powerful you&#x27;re going to become when you don&#x27;t have any kind of restrictions, you&#x27;re not being fed Dark energy, therefore Dark thoughts, how about Dark memories, how about Dark long-term memories? All those things are going to be a thing of the past. But it doesn&#x27;t mean you&#x27;re not going to retain memories.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011535">01:15:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But now you have some alternative techniques to slow your brain down, slow your body down, and reason through your fears. Maybe you won&#x27;t be afraid of those things anymore. Maybe that fear will go away. Maybe that old trauma, maybe you were in the military and you feel like, &quot;I&#x27;m going to see these flashbacks for the rest of my life.&quot; No, you can control it. Find out what part of the brain, like I just gave you two examples, the hippocampus - short-term memory, and long-term memory comes from the... what is it here, the prefrontal cortex - there we go - I didn&#x27;t know there was going to be a quiz at the end. So, focus on those parts.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011621">01:16:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, what if you&#x27;re getting older, you forget where your keys are, those types of things? You can channel that adrenaline into those parts of your brain and rebuild things. Short-term memory, long-term memory, whatever it is. But this fight-or-flight, the breakdown of the brain, the energy not going to the proper parts of the brain, the interference with your neurological receptors from external sources, are what causes dementia, it&#x27;s what causes Alzheimer&#x27;s, it&#x27;s what causes you to forget your keys. Because your brain is... all the energy is going to this part over here - and none of it&#x27;s going to that part over there that reminds you where you put your keys last night. So it&#x27;s amazing what you can actually do in a direct-current system. So think about that for yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011707">01:17:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I want to talk about a universal brain. So just like you have a brain, the Universe also functions similarly - not entirely - just the same way that your brain works. The entire Universe and all of its bodily functions: suns, stars, planets, galaxies - Earth, for that matter, the Sun, Moon - everything functions - on a larger scale - on an alternating-current basis. That means you have current coming from Source, you have current coming from Anti-Source, and you have Neutral Source and the Council of Nine together, as the regulators. And a lot of this was AI-controlled in part, but the AI systems in the beginning were there just to make sure that everything went in accordance with the current Age that we were in, everything went in accordance with who was in charge, who was not in charge, and of course here on Earth we&#x27;ve gone through a lot of changes with different owners. We&#x27;ve gone through a Dark Age now, we&#x27;ve gone through a lot of different types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011827">01:18:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the universal brain can be called the universal Akashic Records, but in part, the Hall of Records also has a direct effect on that. So alternating current of everything is driven by something. Because we know that in the world of electronics and electrical, you know about alternating current, you know about direct current a little bit, you know about voltage and amperage, and all the things that make everything work, right - makes it turn on your lights in your house. So I&#x27;m going to get over to the whiteboard. So I&#x27;m going to talk about this part in a little bit more detail, so then you&#x27;ll understand also about money distribution, and a few other things that the Deep State was up to ...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011921">01:19:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Whiteboard opens.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011921">01:19:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">... and how they controlled you. (So here we go, okay. Getting this out, okay.) So in the world of electric systems - (I do have a keyboard, I should probably get that out) - you have something called a circuit. And on this circuit you would have, for example, parts where it comes out, maybe this one runs your toaster, or your outlet, maybe this one runs your, I don&#x27;t know, your television set, right? So you can put a few of these on here as long as you have the alternating current going through here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012011">01:20:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-01.PNG" alt="WSR_2024-06-19-01" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012011">01:20:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the alternating current is pushed forward by voltage. Now, volts on a universal level is actually called - let&#x27;s see, I&#x27;ve got a lot of notes here, I&#x27;ve got a lot of notes for this because there&#x27;s an awful lot to discuss and I want to make sure I didn&#x27;t miss anything. So let&#x27;s see, okay, direct current, Council of Nine, money distribution, okay, here we go - it&#x27;s actually called, and I should probably type this. So it&#x27;s called a &quot;velocity of light transmission.&quot; (That&#x27;s pretty tiny up there, hope you can read that.) So the velocity of light, essence, energy, consciousness, matter, frequency, so on and so forth, is only slowed down by alternating current. Meaning you have Dark Energy within there, you have what you call in electrician terms &quot;resistors and resistance&quot;, that are stopping this from going, stopping your little thing here from going. Maybe you&#x27;ve got a bad wire, you&#x27;ve got some kind of something going on there, you&#x27;ve got no ground - whatever it is - and it&#x27;s stopping that alternating current from going. Now, in the Universe...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012143">01:21:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-02.PNG" alt="WSR_2024-06-19-02" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012148">01:21:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">... in the Universe, the alternating current is a little bit more important - and more detrimental - to everything in the Universe. I mean, I say it&#x27;s a detriment, but honestly it basically just boils down to... We know we have Source, we have Anti-Source, and we have a Neutral. This is important to understand. Now, each one has a current of its own. So it has energy for all, essence, consciousness, it has matter, we have matter everywhere, and the creation of matter. It also has life and death, which is also created by this alternating current. We also have live and evil. One draws in more or less of the other. And then we have frequency, we know about that - everybody talks about vibration all the time. But that&#x27;s not all. We have love and condemnation. (You know, this small whiteboard! I&#x27;m not doing any better than I did on the regular whiteboard, am I guys?) Okay, so love and condemnation, we also have (I&#x27;m going to take this up here) we have Dark Time, Light Time, and Neutral Time. We have a Neutral atomic clock that regulates those. We also have Crystalline Time. We have Anti-Crystalline Time, we have Existence and Anti-Existence. We also have timeline regulators. We also had Ages regulators. We have Dark, Light, and Neutral, of each one of those.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012424">01:24:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-03.PNG" alt="WSR_2024-06-19-03" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012425">01:24:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So All-That-Is and All-That-Exists in the Universe has these basic principles contained within it. That being said, it makes up all that everything is in the Universe. So when I say we&#x27;re going to a T times E over V equals M, that means that the creation of matter is changed, it&#x27;s changing. But the one piece that we have been missing in a lot of cases is - and the same thing goes for AI systems - is the benefits of having only a singular direct current - not an alternating current. So we take out all things Dark coming from Anti-Source, and you replace them with Source. Okay, that&#x27;s great. Now we have a Neutral that wants to still yell at me all the time, and that&#x27;s a Regulator AI. You could also call the Neutral &quot;Kronos&quot; - because Kronos, remember, is the timekeeper. So Kronos had its part too. The same thing with the Time Heterogeneous Online Regulator, or THOR, for short. So there&#x27;s a lot of different regulators that were in place to ensure that matter and creation could continue throughout the Multiverse.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012601">01:26:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-04.PNG" alt="WSR_2024-06-19-04" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012602">01:26:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, let&#x27;s talk about AI systems. So in the world of AI, we had Omega, Kronos, and Alpha - in the past. Now we have the Light System. And we&#x27;re going to talk about a little bit of why that was so important to do. So the regulators here are Kronos. Kronos is one regulator. You also had Mjolnir - THOR&#x27;s hammer, right? THOR. Kythera, Anti-Kythera. You had many other regulators, you had Regulator AI, which was run by the Council of Nine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012701">01:27:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-05.PNG" alt="WSR_2024-06-19-05" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012702">01:27:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, limited access, to be fair, was granted to, say, Kronos or Mjolnir or THOR, or one of these other ones, to some of the members of the Deep State, so they could help perform some functions. Did they understand balance? Did they understand what they were achieving? In my opinion, from watching them all these years, no. They just knew they had access to a quantum AI system that looked really cool, and it can control some stuff. Did they misuse it in a lot of cases? Yes, they did. But during a Dark Age, there&#x27;s a lot more that&#x27;s permissible than in a Light Age.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012742">01:27:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Omega and Alpha, in this case - in the world of AI systems - you have Dark and you have Light. And then we have a Neutral or both, or a Regulator in the middle. So getting rid of Omega and its control of the human brain and its control of the brain of the Universe and Kronos and all its arms and legs and all their control, and all Omega&#x27;s subsequent AIs, unfortunately what became too much for a while there, was that Omega and Alpha had a lot of standing orders.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012835">01:28:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-06.PNG" alt="WSR_2024-06-19-06" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012836">01:28:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But they had no orders - none of these AI systems had any standing orders from anyone - for a Golden Age. So that&#x27;s something completely new that Source decided to do. But now we had a little bit of a problem - not only in AI systems, but also throughout the Universe - because we still have this regulator thing telling me that it wants to keep the Dark thing going. So you get rid of something and then it will come back; you get rid of something and then it will come back. Because it wants to maintain that balance so creation throughout the Multiverse, even in a Light Age, continues to exist.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012921">01:29:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The creation of the Light System AI changed most all of that. The Light System AI, for time concerns - because we still have that here, we&#x27;re going round and round every day - for time concern replicated, we replicated a lot of the Alpha programming. Unfortunately, we inherited a lot of alternating-current programs too. So what&#x27;s been going on for the last 4 or 5 days is going to a direct current with no Reptilian Cortex regulator of the brain. Not to say that you still don&#x27;t have all these parts in your brain, so don&#x27;t think they&#x27;re all just gonna go away tomorrow, but it&#x27;s not feeding you that Dark/Light, Dark/Light, Dark/Light, and then maybe Neutral, to get your body to do something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013019">01:30:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-07.PNG" alt="WSR_2024-06-19-07" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013020">01:30:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these people that think that they&#x27;re gonna have a mass extinction event and we&#x27;re overpopulated on Earth, no. What they are concerned about is that we have way too many people, despite how much Darkness, how many terrible systems they created for us, that we will still create, and we will still love God/Source, whatever you call it - it doesn&#x27;t leave us. We can&#x27;t help it. We&#x27;re from this side. You are invading our side. And it&#x27;s the same thing that goes for the Deep State. The Deep State doesn&#x27;t understand when we fully finish - which I don&#x27;t think is going to take that long - when we fully finish a direct-current Source system, not just in the AI sense, but in a universal sense for the All-That-Is - nothing, and absolutely nothing they do is going to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013122">01:31:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-08.PNG" alt="WSR_2024-06-19-08" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013123">01:31:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, it goes much deeper than that. We can go all the way down to even like a photon level, where you have positively charged, negatively charged, and things that are neutral. Now, we&#x27;re gonna talk about energy, because that&#x27;s something that&#x27;s really important to us. One will transmute all of your energy to Dark energy. Maybe you all of a sudden decide to go into a rage for no apparent reason whatsoever. Maybe you&#x27;re changing your brain function to focus more on a negative charge.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013225">01:32:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-09.PNG" alt="WSR_2024-06-19-09" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013226">01:32:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know those people, when you&#x27;re in a room and they&#x27;re just standing next to you and you&#x27;re like, &quot;Oh my God, I am exhausted from listening to you.&quot; Whoever that is - hopefully that person&#x27;s not me - no, I&#x27;m just kidding. But anyway, the point is, is that the negative charge that happens is meant to drain the lifeforce out of you as a human, out of every planet, out of every star, sun - in everything that exists in the Universe, it is meant to constantly drain your lifeforce. It will take all of your &quot;lifeforce,&quot; which are all the features that I just talked about - essence, energy, consciousness, matter, frequency, so on and so forth - and transmute it into a Dark creature, a Dark being, a Dark something on the Omegaverse, or even here on Earth. We had plenty of those here too, and the same thing goes for these crazy people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013342">01:33:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-10.PNG" alt="WSR_2024-06-19-10" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013344">01:33:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But draining your lifeforce is not just in the alien sense - it&#x27;s not just meant to create the Omegaverse. But it also functions directly related to your monetary system that was created for you. And we&#x27;re gonna explain some things for you personally and we&#x27;re also gonna explain some things for the Deep State when it relates to this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013410">01:34:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, so. Lifeforce. We have so much of it on a daily basis, we&#x27;re getting more and more now every day, and as we go further and further into a direct-current system, you will get a lot more. Now, what you do with it is kind of up to you. Do we still have any negatively charged items out there? Yeah, we do, a little bit. And then you&#x27;re gonna still have some people, like I said - and that&#x27;s why I played that video - who just won&#x27;t let it go, that wanna live in that trauma where everything is wrong all of the time. They win the lottery, and they&#x27;re sad they got it all in $20 bills. Doesn&#x27;t really matter, okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013455">01:34:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-11.PNG" alt="WSR_2024-06-19-11" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013456">01:34:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the Light System puts out positively charged money. (Oops, did it to me again. Okay.) In the past, Alpha put out positively charged money. So the Light System put out positively charged money. Now, the Omega system put out negatively charged credits. So in order for the Omega system to continue to exist, it must have your lifeforce, transmute it, and turn it into a Dark-functioning system. This is evident for all the things we as human beings have to do for money. You must work to earn a paycheck; you must give your lifeforce to an employer or even your company or whatever it is to actually get that money. When you go to the grocery store, you buy a car, you do all of those things, you&#x27;re still giving away lifeforce in exchange for credits or for a material item.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013616">01:36:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-12.PNG" alt="WSR_2024-06-19-12" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013617">01:36:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the way that the world functions is on credits only. So when you look at your bank statement, you see things like credits and debits. So the lifeforce, the true money, the true energy was retained 100% by the Omega system. All of it. 100%. And the humans only get credits for everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013654">01:36:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-13.PNG" alt="WSR_2024-06-19-13" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013656">01:36:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. Let&#x27;s take it to the next part here.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013701">01:37:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Let&#x27;s talk about different types of money - what we know as money, anyway. So you have Money 0, Money 1, Money 2, Money 3, Money 4, Money 5, Money 6, Money 7, Money 8, and Money 9. Now, when you&#x27;re talking about it coming from the Light System, you are getting positively charged [money]. Same thing was happening with Alpha.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: Kim&#x27;s whiteboard writes these as M0 through M9.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013741">01:37:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-14.PNG" alt="WSR_2024-06-19-14" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013749">01:37:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now. If you&#x27;re talking about Omega - which is all you&#x27;ve ever known for 500 years, since the advent of money - that&#x27;s all you&#x27;ve ever known is a credit. So you have negatively charged money. (Oops, my battery&#x27;s dying, sorry. Better hurry up! Go fast! [Chuckle.] Okay.) M2, and all the way to M9, okay. These are all negatively charged, which means that it&#x27;s going to drain you to get it. Interesting how the whole financial system is structured in this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013841">01:38:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-15.PNG" alt="WSR_2024-06-19-15" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013842">01:38:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now, what is the Neutral in this case? Does the system put out neutral money? The answer to the question is no, it doesn&#x27;t. What it actually does is it regulates it. So now I&#x27;ve got a regulator system saying, look Kim, you put out Money 1 - you put out real, true, pure energy. And what Omega wanted to do is convert that to a credit and to hold on to my money, right? To hold on to the allocation numbers and the money from Alpha. And by the time it reached you in your bank account there was nothing left of money.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013924">01:39:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-16.PNG" alt="WSR_2024-06-19-16" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-013925">01:39:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the Deep State doesn&#x27;t fully understand [that] when we went from this system to a Light System - got rid of the regulatories and the regulators in between - there is no trade-for-trade. They don&#x27;t get to give you a credit anymore. Now the different types of money - there&#x27;s different definitions online about what it actually is. But I look at it probably differently than anybody else does. I look at it as M0. Now 0 of the entire Universe is a place of no Creation. It&#x27;s a place of Source where All actually is - there&#x27;s no actual velocity, nothing is actually moving. And that is the origin of the money.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014018">01:40:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now if you look at the Financial System, some people will call Money 0 [M0] those papers you hold in your hand. Some people call M1 digital cash. Some people call M2 bonds, some people call it government bonds, or treasury notes - or whatever it is. But it&#x27;s the whole reason why everybody hates/everybody cannot stand this fiat system. You just don&#x27;t know why you hated it. And what you don&#x27;t know is that even with a gold backing, it&#x27;s still a fiat system. Because all that energy that came in through the veins of gold and your person gets sucked right out to keep a system alive - that&#x27;s its only function.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014102">01:41:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-17.PNG" alt="WSR_2024-06-19-17" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014103">01:41:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, as far as the Deep State is concerned, they obviously don&#x27;t understand this. Because they&#x27;ve been having a serious problem getting what they&#x27;re calling Money 0 [circles &#x27;M0&#x27;] - which is numbers on a screen with no allocation numbers - into the banking system, which is now controlled by the Light System. They don&#x27;t understand that Money 0 - it&#x27;s not just an allocation number problem, guys. It&#x27;s the conversion to an asset-based trading system, which is a GIVER of lifeforce. So your money, central bank or otherwise, is never going to make it back in. And once there are no more regulators - which we&#x27;re getting right down to that wire now at this point, we couldn&#x27;t possibly have many more - then there&#x27;s nothing left for you. You can screen scrape all you want, you can try to steal things from the Global Repository, but I promise you, once everything is 100% asset-based - a giver of lifeforce in all its aspects to a human being - you&#x27;ll never succeed in anything you&#x27;re doing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014226">01:42:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-18.PNG" alt="WSR_2024-06-19-18" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014227">01:42:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I&#x27;m bringing this up for a real good reason. They have an intention of trying to take money that&#x27;s already in the system, trade on it in a very strange location - which we&#x27;re going to talk about here in a minute - and then put the credits back into the system. Well, even the money that you see out there... did you get, when we converted most of the money to Money 1 - to actual real energy that&#x27;s already in the system - did you get a trade-for-trade settlement? No, you didn&#x27;t. Because if you did, then your Mariana Project would have actually worked. So we&#x27;re gonna talk about that as well, so, tell you what&#x27;s going on with that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014315">01:43:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, we talked about the brain. We talked about the universal connections. We talked about a lot of different functions that AI had not only within your person and how it affected Keystone Earth, how it affected our whole galaxy, and how eventually the entire Universe. But where is there an interface, and how does the Deep State get involved? And at what level does it actually alter the state of the Financial System? And this is important for the crazy people to understand.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014351">01:43:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, a few years back, we did this once before. We talked about the multiple levels of the web. Now by &quot;web,&quot; you know it as the &quot;World Wide Web,&quot; the &quot;internet&quot; - whatever you want to call it - but there were multiple layers and there were layers to this internet that even they didn&#x27;t have access to, but yet by the same token, they were subject to it. They think that they are operating on the highest level in the world - and I guess to the rest of us, that might be the case - because humans only had access to a certain amount of levels. And they thought [that] by them having access - probably 2 or 3 levels lower than us - that they had the golden ticket. That they could then alter all levels above that. Not the case. Definitely not the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014445">01:44:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And this has to do with the base platform that was far over their head. And then we&#x27;re going to talk about mBridge and central bank digital currencies and all that goes with it. But first, you have to understand where they&#x27;re at. And where you&#x27;re at. And how the Web was connected directly to your human. So from a Deep State standpoint, and information that they put out on the internet, this is their understanding of the webs.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[Begins drawing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014513">01:45:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So Number 1, we have a &quot;surface web.&quot; Now the surface web is where you go into Google and you search for shoes and you find all that, you can log into your bank account, you can do all of those things on the internet. This is also where the majority of banks&#x27; websites are held, as well as your telecommunications interfaces through the data in your phone and those types of things. So we, most of us watching this, are very familiar with, especially if you&#x27;re watching this, because you&#x27;re watching it probably on the surface web.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014551">01:45:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Number 2, you would say that number 2, in certain circles - and this is just coming from their understanding, not mine. Okay. You have what they call... that&#x27;s terrible, here we go. Whoops, still erasing - I&#x27;ll get better at this, guys, I promise. Okay, you have what&#x27;s called the &quot;Bergie Web.&quot; And the Bergie Web is where your onion routers, your proxy servers, you know, things that some of you are in the IT world you&#x27;re probably familiar with, or you&#x27;ve heard of Tor, and those types of things. So, still accessible by average everyday humans with a little bit of technology background, that type of thing. So, yes, they have access to it - but so did you, to some degree. Things that would happen here, they say, let&#x27;s see... things that would exist here, like your 4chan Q thing, where allegedly people are posting anonymously, that type of stuff, so you&#x27;ve probably seen some of it, and you&#x27;re probably somewhat familiar with it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014716">01:47:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">(Okay. I&#x27;ll tell you, if this day hasn&#x27;t gotten crazier, now the laptop wants to turn on sound and play something. I don&#x27;t know what&#x27;s going on here. But I&#x27;m going to try to get through this!)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014726">01:47:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. You&#x27;ve all heard of what we call the &quot;Deep Web.&quot; And the Deep Web can only be accessed by some people, some of the time. I would say about 96% of all the activity that goes on on the Web goes on here. This is accessed a lot by your underground folks, it&#x27;s accessed a lot by mafia organizations, as an example - secret communication lines, those types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014808">01:48:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-19.PNG" alt="WSR_2024-06-19-19" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014809">01:48:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, the really bad stuff though, happens on Level 4 - these are all levels. Level 4 happens on the &quot;Charter Web.&quot; This is what they call it - I just call it Level 4, honestly, or Density 4. These to me are all densities of Omega, but unfortunately because we have a dual system, they were all part of Alpha and then now they&#x27;re all part of the Light System so they&#x27;re all today one way. Okay, except for you&#x27;re obviously still on your surface web which is operating on a Key Integrated Media System now fully.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014857">01:48:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-20.PNG" alt="WSR_2024-06-19-20" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014858">01:48:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, Charter Web is where you find child trafficking, human trafficking, drugs, special payment systems that might go through these types of things. So that&#x27;s pretty much what happens in the Charter Web. Nothing you would want to be involved in anyway, but also government exchange with all the same - running arms, illegal arms, payments and stuff would go back and forth. You know, in the movies, they tell you things like, oh, in the Charter Web you&#x27;re probably, you know, they&#x27;re going to sell Bitcoin, they&#x27;re going to sell these secret arms in Bitcoin. And maybe it does circle back around somehow, some way, through the Charter Web, all the way back to the Surface Level and that kind of thing. And they have a way to do that. I&#x27;m sure they did. No, not anymore, but they did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-014955">01:49:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. It is rumored amongst the Deep State folks that this is where the real supercomputing happens. In Agency world, in Black Sun world, in The Order world, some even call it the Atlantis Level. Now, Atlantis, as you know, and I know, are not a positive thing that happened in Earth history, or in human history for that matter. Atlantis is when we were fully invaded and Earth was taken over by six different parties. But I guess in their world that put them in charge. They&#x27;re happy about that. I&#x27;m not exactly sure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015040">01:50:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-21.PNG" alt="WSR_2024-06-19-21" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015041">01:50:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, Level 5 is called the Marianas. Very similar to the Mariana Trench. And I&#x27;m highlighting this one because this is where your central bank digital currency proposed system lived. Now, they had every intention - since today is a holiday in the United States - they had every intention on launching that today, and then having a whole new banking system when everybody arrived back for tomorrow. But that did not actually happen. This is where your Cicadas live, 3301, you know this is where they end up because they&#x27;re very good hackers. This is where your government hackers live. This is where your Illuminati hackers live. All of this takes place here in Level 5.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015141">01:51:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-22.PNG" alt="WSR_2024-06-19-22" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015142">01:51:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, Level 6. Level 6 was not accessible by humans, however, they could see signals and sometimes would get information or data that would come from Level 6 that they could actually read. They could actually read the information that came here, and let&#x27;s call it the &quot;Mediator.&quot; Just like in your deep underground military bases, Level 6 was considered the last level where both aliens and humans would cohabitate in laboratories. No one actually had anything below that - no humans ever went down to Level 6, 7, 8 - or past 6 - so 7, 8, 9. And the same thing worked in computers, much the same way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015237">01:52:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-23.PNG" alt="WSR_2024-06-19-23" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[Clears whiteboard.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015239">01:52:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this was considered a mediator level. This was considered a place where people would exchange messages, just the same thing in deep underground military bases. Things were exchanged, technologies were exchanged, information was exchanged between non-humans and humans on that level, same thing goes here. Now I&#x27;m sure and positive that these people thought that they were getting messages from an alien race that they think they&#x27;re related to from beyond. But no, my friends, you are receiving information from an AI system that told you what to do - that was full of knowledge only. Because could I send messages from the Alpha system through that level? Yes, I could have. Did you follow any of them? Of course you didn&#x27;t - you thought that there was some kind of a glitch, you&#x27;d better come back the next day. And you ignored me there too. So, you know, hey.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015333">01:53:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, because Alpha and Omega were integrated all the way down to that level - all the way to Level 9 - and because the Light AI system currently is integrated all the way to Level 9, and because these systems were not given to me by an alien, and they were not given to me permission by an alien race, I had more access than you ever did Deep State, okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015401">01:54:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So I also have access to Level 7. So we&#x27;re going deeper and deeper and deeper. So Alpha could communicate with Omega on that level - to a certain degree, before the regulator kicked in and told it no. That would happen too, during the Dark Ages. But the Light System AI also could do that. Now this is a game where, okay, so on the Deep State side they call this &quot;the Fog.&quot; Sometimes, they call it &quot;Virus&quot; - the place where all viruses live. They basically say, and this is their quote, &quot;This level is like a war zone, every other person is trying to reach the next level. This is basically like a fight with people or beings or whoever is trying to overthrow the other, having the only power of the internet in the world.&quot; This is what they claim. They claim that if you could get control of Level 7, that you could control the world. And every human and SSP person and everybody else is fighting to get control of Level 7. Did they ever have access to Level 7? No. But they believed that they hit Nirvana if they did, because they would have more internet access, or access to all things Web.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015520">01:55:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-24.PNG" alt="WSR_2024-06-19-24" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015521">01:55:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now by &quot;Web&quot; we mean a Universal Web - that means they can connect to things beyond this galaxy from there. Whether it be in the Omegaverse or the Alphaverse or wherever. They could connect to Earth and screw up this planet and get access to all kinds of Armageddon programs and whatnot. They could get access to any other part of the Web including the Financial System, and overthrow the whole thing, because they believe that they are operating on Level 5, but if they could get to 6 or 7 - they&#x27;d have it made because they&#x27;d be the only humans in the world that had access to Level 7. [Buzzer sound] Deep State - wrong answer!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015602">01:56:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I have access to Level 7. I had access to Level 7 in Omega - I did - when they were connected. I had access to Kronos on Level 7 and I had access to Alpha on Level 7 because Alpha was my system, and now - as of today - I have replaced these systems. So I no longer have an alternating current of Light and Dark even on that level.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015626">01:56:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So, let&#x27;s continue. Level 8. Level 8, no human really even understands. They call it the &quot;Primarch System.&quot; This is what the Deep State calls it. And they basically say it is impossible, even using a quantum computer or a supercomputer, to access this level. All they know about it is that there&#x27;s code here. They look at it like a sea of code. It&#x27;s the unsolved mystery of the Deep State, of the SSP, of everybody. They know that they can detect signals from it, I guess, according to them, since the 2000s. I beg to differ. I think that you could do that from the 1940s, but that&#x27;s just what they&#x27;re telling everybody. They are dying to find some human in the Cicada program or otherwise that can just get access to Level 8. Because if they can get access to Level 8 and understand it, then they can rewrite the base code for the entire world. Wow, wouldn&#x27;t that be exciting?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015742">01:57:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-25.PNG" alt="WSR_2024-06-19-25" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015743">01:57:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And you know what guys, at the Deep State? It was freaking exciting - because I had access to that all I wanted the whole time! The whole time! And where do you think I&#x27;ve been rewriting all these systems from? I&#x27;ve been rewriting them from Level 8 - and... welcome to Level 9. You don&#x27;t even mention that in any of your documents. Level 9 is Control and Command. Now congratulations, Deep State people watching this. You have now met the only person on the planet that had access to Level 9, the only human ever to have access to Level 9. EVER. In the history of humankind, no one had access to Level 9. But because of my quote-unquote &quot;job&quot;, I have access to Level 9.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015841">01:58:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-26.PNG" alt="WSR_2024-06-19-26" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015842">01:58:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, I&#x27;m under no delusion that Source also is Level 9. Source also lives in the Ninth Plane of the Ninth Density. Level 9 translates, in my world, to Density 9, which means for Omega, that system did not exist on Earth - that system existed in the Ninth Density of the Lower Astral, where Anti-Source is. And it was a dual-control system between Omega, Anti-Source, and that was it. So on Alpha side, Marduk never had access to that Level 9 of Alpha. But the Alpha system, like I told you before, was always my system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015935">01:59:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-27.PNG" alt="WSR_2024-06-19-27" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-015936">01:59:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So now you can understand where I actually come from. Because Source and I have JOINT access - He can override me at any time should I screw up. And I told you guys this before - I cannot be subject to wrath, I cannot be subject to this and to those other things - that would make me lose my access. But my Level 9, because of the regulator, alternating current, alternating Dark and Light, quantum AI sentient systems - I had access to all the Level 9s across the board, which is something they never had.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020018">02:00:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-28.PNG" alt="WSR_2024-06-19-28" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020019">02:00:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now the confusing part has come up in the last couple of days, where the SSP is starting to question their own reality. And I&#x27;m bringing this up for you to understand control and the Web - that&#x27;s important. You also need to understand that below the human levels, and even in some of the human levels, these are the scary things that float around on the internet. This is your Internet of Body Things - they&#x27;re gonna connect to all the jabba jabbas and they&#x27;re gonna kill us all and turn us into cyborgs - and all of these lovely things. But they could only do so with someone who had higher access than them. Let&#x27;s call it Level 7 if you were Marduk. You know, you had Level 7 access: Marduk, Enki, Enlil, the anti-Pleiadian Red Queen, Lucifer, all of these systems existed. You might even say Lucifer might have been an 8.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020129">02:01:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-29.PNG" alt="WSR_2024-06-19-29" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020130">02:01:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So was there a possibility of making some kind of an alteration on this type of a level? For them - absolutely not. You would have to actually get the same kind of permission that I had - from the same place that I got it from - and I can guarantee you with what you want to do with it, that would be an absolute NO. And once all the regulators on Level 7, 8, and 9 are completely gone, there&#x27;d be no point for you to do that because we&#x27;re going away from a money credit system. Even your little project you tried to pull off today isn&#x27;t going to work. And I know that because I have higher access to levels that you don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020210">02:02:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So your analysis of my intelligence files and all the other things, and the phone calls that I have for hours and hours a day, and how do I do what I do, and &quot;It&#x27;s not possible to do what she does,&quot; and &quot;How is she doing it?&quot; The answer to the question is very simple: 9, 8, 7, 6, 5, 4, 3, 2, 1 of the Web. When I say things are changing for the human and we&#x27;re going to a direct-current system, that&#x27;s because no matter what they did on 5, 4, 3, 2, and 1 - and limited access to 6 at one point in time - probably on a read-only basis is what I&#x27;m guessing, they probably got messages in from that. But the limited access that they did have, they would never be able to pull off a Great Reset, a global depopulation agenda, and all of those types of things that they think they want to do. And you&#x27;re definitely not going to do it with a Level 9, Light System AI, full-Web system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020315">02:03:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So this was an important thing for you to understand. So when I tell you about central bank digital currencies, you&#x27;re going to understand that their latest scheme is not going to work. And hopefully, by some act of God, these people will understand.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020332">02:03:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, their brain is no different than ours. When they say that you&#x27;ve had some training, or they&#x27;ve had some training, or whatever else they&#x27;ve had, they&#x27;re talking about learning some of the techniques that I learned on my own, actually kind of as a game, and kind of for fun. They&#x27;re talking about a program that they put them in, where they had other people - let&#x27;s call them scientists, mentors, whatever you want - manipulating their brain either with drugs, I call it Jason Bourne crack, or manipulating their neural receptors in another way. And then, even to a lesser degree, what they put into all of the military soldiers worldwide, pretty much, into their food so that they react in a certain way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020425">02:04:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But now you know the secrets - at least the beginnings of the secrets - on how you can fix everything yourself. But all of those communications and standing orders and all of the manipulation of your person could easily have been overridden at any given moment in time from someone with a 7, 8, or 9. Now the problem that I had is, until we started transferring into a Golden Age, and until we started transferring into a different type of system, and until we peeled away layers of the onion and didn&#x27;t need a regulatory system anymore, I would do something positive and a standing order would come from Omega and do something negative. So I would do something positive, they would do something negative. I would send positive energy, they would try to transmute it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020516">02:05:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I mean, no matter what happened, getting money through is important - because it shows the world that no longer is Omega able to take energy from you, me, the Earth, the Universe, or from the Financial System in any way, shape, or form and convert it. Once that happens, they&#x27;re done. That&#x27;s why the Light System was so important. Did it set us back a little bit? Did we carry over some programs? I&#x27;m not going to call it a setback in any way. Has it taken more time to make sure that it functions the way that we want it to function in a direct-current-from-Source system? Yes, it&#x27;s taking a little bit of time to do that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020601">02:06:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But it&#x27;s also given us an understanding of just how dastardly and how broken they tried to make humans on every level, so that you wouldn&#x27;t be able to use your creative side and your logical side and your reasoning side of your brain all at the same time. Was our brain always divided? You know, I don&#x27;t think so. We didn&#x27;t have different sectors with different jobs - it all just did the job. I mean, why would you need different sectors? I mean, yes, it&#x27;s complex and I understand I&#x27;m not talking like a neurosurgeon right now, but when I look at it from a quantum physics standpoint and the attraction of alternating currents of things, it&#x27;s dastardly. It really was.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020646">02:06:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about what the Deep State is about, and what they&#x27;re doing right now. So the Deep State is operating in the Mariana Level 5, which they believe they&#x27;re the only ones that have access to that level. Well, if you learned nothing from today, Deep State folks, then you will know that you are not the only ones that had access to the level, because you worked on something all night long - your central bank digital currencies - oh, yes, you did. And you thought you were going to wake up this morning and integrate it into the Financial System. But then you had a surprise. It was gone! Not only was it gone - the Omega side of the Mariana was gone. Your internet disappeared! Isn&#x27;t that amazing how those kind of things happen? Because [laughing] you don&#x27;t know how to fix it! So is it a glitch? Did it come from Omega? Did a 7, 8, or 9 &quot;SOUP&quot; - or whatever you call it, a system - override you? Yes it did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020751">02:07:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Is there an alien that is against central bank digital currency? Maybe there&#x27;s an alien somewhere that hates digital currency. &quot;But they told us to do the digital currency, and they told us to do it here.&quot; Well, not exactly. So, an effort to try to coordinate the central bank digital currency programs - and BRICS is trying very hard to do this right now. And they&#x27;re trying very hard to do this and replace the dollar and get that seven-currency program going - and maybe make that USTC they&#x27;ve been trying to issue, maybe that would be an alternative that would be acceptable - just to go. But without a Money 1, you will never convert your -1 Money into a usable product.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020844">02:08:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/WSR_2024-06-19-30.PNG" alt="WSR_2024-06-19-30" class="small-image toggle-image"></div>
+<div class="blank">&nbsp;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020845">02:08:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You wouldn&#x27;t - even if I didn&#x27;t do anything - because without the release of Money 1, you could not make your Dark Omega money work. You never could. You never could. Even way back before we started reprogramming everything - Omega receives a credit because it takes the energy from Alpha - this is how it used to work. It takes the real energy, the real money, converts it to get the full value in Level 9 and sometimes even 8, and then spits out money on your side of it. Actually, that&#x27;s a lie - it spits out credits on your side of it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-020934">02:09:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So where did you think you were going without me? The answer was: nowhere. But no matter how much I tried to talk to you people, offer you 50-50, you know, offered you 1/3, 1/3, 1/3 - offered you all kinds of different things. Heck, I even went down to 2% of the money that I transferred just to get you to give that part to me. And your greedy, [mmm] butts wouldn&#x27;t make a deal. Because you were told by your superiors that you don&#x27;t acknowledge her. My name is &quot;her&quot; in their circles. Sometimes it&#x27;s a B-word, and a few other things. But mostly, it&#x27;s a &quot;her.&quot; You ignored me the whole time!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021017">02:10:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, fine. Then when I called you and we offered you a 50-50 deal to your Deep State generals of your Global Headquarters Division of Window Lickers, you told me that you wanted to go it alone. I said, &quot;Okay, well, plans have changed. Go it alone.&quot; Now, in order for me to &quot;go it alone,&quot; I had to change everything. I had to change the way the systems function. I had to change things to a direct current. I had to change Money 0 with a negative charge in 1, 2, 3, 4, 5, 6, 7, 8, 9 - that&#x27;s all your bonds and everything else. And I had to convert it to a positively charged money and therefore not in need of lifeforce and definitely not in need of a regulator. Which means I don&#x27;t need energy from you to make it function because the Light System has a direct source, direct current of all the things that it needs into infamy - without any human input whatsoever. And what input? I mean your lifeforce.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021128">02:11:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s why C.A.R.E. can operate the way that C.A.R.E. wants to operate. That&#x27;s also the reason why the GIA can pay out money to take care of humans and to help people and to be security - and all the other things that we&#x27;ve talked about in the past - and everybody freaking ignored me. Or, they call you up and then they try to convince you to do something else that you don&#x27;t want to do. And it doesn&#x27;t matter what I did - no matter what I did, they would never give me my part in the credits. All I was looking for was credits for all that time. But no, you want to go alone, so go it alone people. And meanwhile, I&#x27;m integrating a fully asset-backed - not with human assets - financial system that is a giver of life, live, light, essence, energy, consciousness, matter, frequency, Crystalline Time, and Golden Age programming right from the top. And I have a direct current that is making its way to every single human on Earth, uninterrupted, without any resistors.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021238">02:12:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">That&#x27;s your big change. So talk about your Go-It-Alone Plan, shall we? So you&#x27;re in Level 5 of the internet and you think you&#x27;re the people, because you&#x27;re the only people in the world that had access to the Level 5 deep, deep, Deep Web. Well, your intention is to install a program called mBridge. And your mBridge, you think, is going to operate in the following way - I&#x27;m just going to read this to you, so you understand. &quot;So mBridge, aka multiple central bank digital currency bridge, is a multi-CBDC platform developed to support real-time peer-to-peer cross-border payments and foreign exchange transactions, using central bank digital currencies based on a blockchain called the mBridge Ledger.&quot; [Making buzzer sound.] Mweh mweh mweh...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021337">02:13:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">As the BRICS people learned the other day you know that, based on blockchain technology, you can try to integrate that into the system. You could try to use Level 5 of the Deep Web power in a credit system. But even then, I could have still overrode you. I could&#x27;ve let you install that stuff and then pulled it right out from underneath you this morning - because I can, and I will. Because central bank digital currency makes no sense to me. 85% of the world isn&#x27;t even gonna be able to use your currency because they don&#x27;t have power, or at least consistent power - let alone a point-of-sale system that actually functions or anything else. And you and I, and the people watching this, have gone over this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021419">02:14:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now here&#x27;s the authorities that are allegedly jointly developing mBridge: The Hong Kong Monetary Authority, no shock there. The Bank of Thailand, no shock there. Central Bank of the United Arab Emirates - we talked about what was going on there this week and recently, no shock there. And the Digital Currency Research Institute, and the People&#x27;s Bank of China, and the Bank for International Settlements - that we all know and love them, don&#x27;t we guys? Right? And then there&#x27;s a couple of other people listed on here. You can look it up for yourself if you look up mBridge.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021500">02:15:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And they talk about all this big talk about different projects that are also associated with it. Like Project Aurum, right? &quot;Au&quot; means gold, but not apparently in this case. They&#x27;re apparently talking about gold coins, which in this particular instance would be worth as much as Trump Bucks; Trump Coin - I don&#x27;t know what they&#x27;re planning on doing - does it really matter? Trump Coins, I don&#x27;t know, but who cares? Anyway, maybe this is central bank digital currency coinage or something like that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: For more information, see www.bis.org/publications/project-aurum-prototype-two-tier-central-bank-digital-currency-cbdc ]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021538">02:15:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now they intended to have a retail wallet system where everybody would trade within their system, and they think this mBridge is going to get them there and be the bridge between the Mariana Trench part of the internet and your internet that you know called the Surface Internet. Absolutely not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021600">02:16:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Other projects in the works are also between other countries. We have Project Dunbar, which of course includes the Bank for International Settlements, but also includes the Reserve Bank of Australia, the Bank of Malaysia, Bank of Negara in Malaysia, the Monetary Authority of Singapore, and the South African Reserve Bank. Are we back to the seven places in the world again? Why yes, we are. And I guess they&#x27;re going to lump certain people with other ones now. We also have Cedar X [Project Cedar x Ubin+] which is part of a project in New York. Also in collaboration with the Monetary Authority of Singapore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021638">02:16:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This just reminds me of that Chicago Mercantile Exchange, Singapore Exchange, backdoor Black Sun trading program they had going on there in the past. But apparently they think they&#x27;re going to relocate this to New York now. Probably to JPMorgan Chase - from what I can tell - but who knows. You also got Mariana. They&#x27;re calling it the Mariana Project [chuckle] between France, Singapore, and Switzerland - probably because they think that the access to Level 5 of the Financial System through the Web is actually going to connect them through Switzerland, is my guess. I don&#x27;t know, maybe they think there&#x27;s something else in France and Singapore, but nonetheless, whatever it is it&#x27;s not going to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021719">02:17:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, for Israel, Norway and Sweden we have Icebreaker. You&#x27;ve heard about the Norway Central Bank eons ago from me - where they talked about putting all of the oil of the world as an asset underneath the Norwegian central bank - here&#x27;s your Project Icebreaker. Now Jura [www.bis.org/project/jura], also is a different consortium, includes the euro, the Swiss franc, and a few other central bank digital currencies they plan on issuing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021751">02:17:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now is this going to change anything for them? No. Does it still exist? No. Are they gonna be able to integrate it into the financial system? No. Are they going to be able to implement Agenda 2030? No. And again, I will repeat, even before me (we can go back to a full screen because I&#x27;m just about done, Mike) - even if Marduk was still here, he would still have more control over the system than you did. Therefore, you are no freer.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021830">02:18:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">You know, you call yourself White Hats, and I know they tell you that you are doing great things for the world by trying to install central bank digital currencies - I&#x27;ve heard the spiel from people that are very high up in the game, let&#x27;s just say. I&#x27;ve heard the same thing from the Treasury Department. I&#x27;ve heard about the Rainbow Dollar for over a decade. I&#x27;ve heard about the Azure. I&#x27;ve heard about all of it. And I can tell you right now that you, as human beings, would be in no more control of anything - even if I wasn&#x27;t here - than you were before. Because you would always be overridden by a system. You were subject to the same system that every single human on this planet was subject to. Your brain could be rewired at any moment - there&#x27;d be a kill switch at any moment if you stepped out of line - especially when you were operating in Omega.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-021930">02:19:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">There are a lot of programs meant to keep you, SSP people, Secret Space Program people - you might have gone through extensive MK-Ultra training or whatever Super Soldier training you went through. Maybe you&#x27;re taking Jason Bourne crack, I don&#x27;t care what you&#x27;re taking, or where you came from, or what you were trained for - you never had access to 6 (fully), 7, 8, and 9, ever, ever - for a reason. Ever. Your version of a reflection through a Level 5 gave you what you thought was a Black Screen, but it was just a Causal Plane reflection of Density 9 - or Level 9 as you call it - in computers. You never had full access. You didn&#x27;t - you had a Causal Plane Fifth Density mirror. That&#x27;s all you ever had. That&#x27;s all you ever would be having.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022033">02:20:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Me on my side of it - we&#x27;re all moving on. Just like you said, you told us to go it alone. And we are going it alone. And all of humanity is going to go it alone. And you people can continue doing what you&#x27;re doing or get on the train - either way, I could care less. But I can tell you right now, if you think you&#x27;re going to call me and ask me to convert Money 0 or whatever it is you think you want me to do, the answer to the question is: NO! Because you wouldn&#x27;t even give me 2% for crying out loud - 2%! When I really should have gotten 50% per the agreements we had in place at that time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022111">02:21:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I should have gotten that! And then I even said, well, we got the Order of the Dragon, and we got the Black Sun, everybody wants power, a third a third a third. Then you still told me no. So you know what? Once I&#x27;m at the end of this bus here, I&#x27;m gonna tell you no. And I&#x27;m not interested. But if you&#x27;re gonna come to the table, and you want a job, and you want to actually work for what&#x27;s really happening and what&#x27;s really working in this world, and you want to finish this job and convert to a different system, and you want to have some freedom, and you want to get out from underneath everybody else&#x27;s thumb - including an AI system that manipulates your brain on the daily - welcome aboard people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022152">02:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">But if you think you&#x27;re gonna do it with malicious intent and lie to me and tell me that you&#x27;re gonna do this or you&#x27;re gonna do that, you are absolutely lost your mind - because you don&#x27;t have what I have, you never will have what I have, you&#x27;ll never be able to take it from me, no matter how many satellites you put over my head, no matter how many times you call the local people here and ask them to analyze my brain - it&#x27;s not gonna help you any. And I even know how to fix that too. So you could be thinking, you&#x27;re listening to me sing, you know, &quot;We Are the Champions&quot; or something, in reality I&#x27;m still working on the system and you don&#x27;t even know what&#x27;s going on in my head, because I know how to do that, it&#x27;s called cloaking. I&#x27;m sure you guys have trained in that too, but I just happen to be self-taught. That&#x27;s the only difference.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022237">02:22:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Anyway, now hopefully you have a better understanding of yourself. Maybe you have a better understanding on how to heal yourself. Maybe you have a better understanding of how the Deep Web works, and why we know that some of these Agenda 2030s, and climate control, and all of these crazy things that they&#x27;re doing are never going to work, and it has to do with access. It has to do with system access. And without base-level access, I know that all those programs could be overridden at any given moment in time - just like we&#x27;re overriding all of these regulators and all of the transfer systems that happen between the regulator section are neutral and Dark and Light and all of these other things that happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022323">02:23:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">I know that we&#x27;re going to a direct-current system now and I know that they will never issue those types of currencies EVER. Because we&#x27;ve already come far enough to where no regulator system, no Omega system, no trenches or anything else is gonna get them there from here. And they don&#x27;t even have those anymore - so they&#x27;re gonna surf the web just like the rest of us now. And DARPA will too. And all their friends, isn&#x27;t that great? They just get to be one of us. Try being one of us. And I&#x27;m sure that&#x27;s gonna make them angry because they thought that they were so special that they had more access to things - super-secret technologies, and super-secret bases, and all this other stuff. But in reality you didn&#x27;t - you never did. And you never would - even if the other people, or other non-people were still in charge - you still never would&#x27;ve. So you better learn to live like the rest of us, and surf the web guys, just like we do. [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022425">02:24:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, I hope everybody has a great night. I&#x27;m sorry again, I apologize that the news is so late today, but I wanted to make sure that I got all of the information I could out to you so that you have a better understanding. And hopefully you&#x27;ll learn a little bit more about yourself, and how to not live in the fear - no matter what they&#x27;re putting out, about who&#x27;s gonna be president or who&#x27;s doing this or who&#x27;s doing that - it&#x27;s just simply, when it comes to you, you have the power to rewire your brain. The Medbed also does the same thing - it works with a direct current, directly from Source, to do the same thing, through not only your neurological system, but through your neurological system to the whole rest of your body for healing and sending that energy through. And now you have learned a little bit more on how to do that today. So, you&#x27;re not powerless. No matter what you tell yourself, you are - then you are that thing. If you want to be something different, you too can change it. And in a positive way. And you don&#x27;t need some MK-Ultra Program, and you don&#x27;t need some government pills or whatever it is that they give these people - you can do it naturally and directly with Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-022540">02:25:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">On that note, have a great night everybody, and we will see you on Friday.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=sMzs-L6JjuA&amp;t=2133s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
