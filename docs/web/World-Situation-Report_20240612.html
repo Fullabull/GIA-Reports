@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-Jun-12</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-Jun-12 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-Jun-12
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=oVxbdTmK-QQ&amp;t=2143s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=oVxbdTmK-QQ&amp;t=2143s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240612_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim recorded the June 12, 2024 report separately and late, after a day spent shutting down an Abraxas program. BRICS coin is worth little, and its system can&#x27;t handle the users it was promised. Partnering with XRP or Ripple, another NSA American product, would only swap one American partner for the same one. It wouldn&#x27;t crash the dollar either, because the global asset facility now supports the repository and nearly every currency. The &quot;Russian&quot; ships off Florida are American, carrying decades-old Russian weapons from Cuba to stage an attack that would be blamed on Russia.<br>
+<br>
+Pallets of Project Becky Super Notes with duplicate serial numbers have resurfaced in the UAE, Oman, and Jordan. They are payouts promised under the Black Nobility-Order of the Dragon deal. About $15 billion was meant to bribe the Iraqi government into a second Helicopter Down for a Pallavicini regime change, but the cash would not verify outside banks under the Rothschilds&#x27; control. U.S. operatives are also planning a mainstream media story of Trump&#x27;s death by heart attack. It would come with an Elvis-scale funeral between June 17 and 22, around the Solstice, paid for with $5 billion of Pallavicini money. Kim&#x27;s Key Intelligence and Military System picked up the plan on the Jesuit communication line. She texted the Jesuits&#x27; own conversation back to them as it happened, then took down that line, their backdoor monetary system, and the Knights Templar line with its $96 trillion in unallocated digital Super Notes. Asset hunts for the gone Red Book gold continue: North Korea; the Philippines, where tungsten has a gold skin; and Saudi Arabia&#x27;s empty vault. Philip, the new Rothschild head, asked for funding while ordering pandemic and World War III scares, and Kim turned him down.<br>
+<br>
+Hell Week ended with Program X, an Abraxas extermination AI. It was designed to restore a 50-50 balance between Light and Dark, with an extermination phase that would replace humanity with Abraxas clones waiting in Aldebaran. When its own Deep State bloodline tried to dominate, it turned on them too. Its backups ran all day: a Suicide Program rooted in the Rock of Gibraltar, and a membrane that put humans and Earth in a Faraday cage to drain lifeforce and reclaim Earth&#x27;s assets for Anti-Source. Kim closes with: keep holding the Light.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003648">00:36:48 - BRICS coin stalls; Ripple is the same American partner.</a></li>
+<li><a href="#t-003918">00:39:18 - The &quot;Russian&quot; ships off Florida are American.</a></li>
+<li><a href="#t-004054">00:40:54 - Project Becky Super Notes resurface in the UAE, Oman, and Jordan.</a></li>
+<li><a href="#t-004245">00:42:45 - $15 billion for a second Helicopter Down in Iraq.</a></li>
+<li><a href="#t-004438">00:44:38 - A staged Trump funeral to rival Elvis.</a></li>
+<li><a href="#t-004632">00:46:32 - Texting the Jesuits their own secret call.</a></li>
+<li><a href="#t-004914">00:49:14 - The Knights Templar line and its $96 trillion go dark.</a></li>
+<li><a href="#t-005027">00:50:27 - Bush Senior&#x27;s &quot;something for nothing&quot; program.</a></li>
+<li><a href="#t-005306">00:53:06 - Tungsten in gold skin; Saudi Arabia&#x27;s empty vault.</a></li>
+<li><a href="#t-005442">00:54:42 - No dice, Philip.</a></li>
+<li><a href="#t-005618">00:56:18 - Hell Week, ten years running.</a></li>
+<li><a href="#t-005826">00:58:26 - Program X</a></li>
+<li><a href="#t-010133">01:01:33 - The Suicide Program, rooted in Gibraltar.</a></li>
+<li><a href="#t-010335">01:03:35 - The membrane</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-JUN-12</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003545">00:35:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report with Kimberly Goguen from the Office of the Guardian. Ships off the coast of Florida - are they really Russian? Is there really a threat of a Russian nuclear attack? Have the Cubans sold more Russian weapons to the Americans? The Deep State hopes to cash in big on their latest money scam in the United Arab Emirates, Oman, and Jordan. Rumors are swirling once again about a new mainstream media campaign to take place between June 17th and the 22nd.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003622">00:36:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Kim wasn&#x27;t available at the time we recorded the news today, but she was able to record a message separately. So here she is, Kimberly Goguen with the Office of the Guardian.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003633">00:36:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Hi, everyone. Sorry I was so late today and there&#x27;s a good explanation for that so I&#x27;ll talk to you about that in just a minute. I wanted to thank Sunny for introducing me even though I wasn&#x27;t there. So thank you so much, Sunny, and thank all of you for your patience.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003648">00:36:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So let&#x27;s talk about a little bit of the World Situation Report, and we&#x27;re gonna start with some real news first, meaning things that are out there in the media and why they make no sense. So first, BRICS currently has a BRICS coin they&#x27;ve been trying to use as a payment system. Right now, the coin isn&#x27;t worth a whole lot, Number 1, and Number 2, they&#x27;re having a lot of technical issues with launching that coin from their beta testing. Meaning, the number of people that they have promised that they could have Bitcoin - sorry, BRICS coin - their system simply won&#x27;t handle. So they have been working on it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003730">00:37:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, recently there&#x27;s been a lot of talk about BRICS countries, and their partners like Saudi Arabia and a few others that have wanted to join BRICS, about them dropping the dollar. So they&#x27;ve come up with a new idea, a new thought of now potentially partnering with XRP coin or Ripple coin. Now for those of you that don&#x27;t know, Ripple coin is another NSA American product and there&#x27;s no difference between them using XRP or Ripple versus using U.S. dollars. So they&#x27;re just kind of going around in a circle exchanging one thing for another thing, and I don&#x27;t know if that&#x27;s just for appearance purposes - but their partners would be identical to the partners they have now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003817">00:38:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now I do know that there&#x27;s a big push out there for the Black Nobility and for the Rothschild family to crash the U.S. dollar in order to usher in some other type of currency. Would this get them there if BRICS dropped the dollar? No, it wouldn&#x27;t - because there are plenty of assets right now, based on the global asset facility that we took over recently coming in to support the repository and therefore to support pretty much every other currency out there. So the thought process behind Ripple possibly helping to crash the dollar because of all of the commodities that Russia, Saudi Arabia, China, Brazil, and India all trade, probably would fall pretty flat. So no point in going from one American partner to the same American partner. But they&#x27;re talking about it anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003918">00:39:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, next bit of news that has hit the airwaves is, there are Russian ships allegedly off the coast of Florida that supposedly refused to leave. Now, I can tell you that we have confirmed that those ships are not actually Russian - they are American ships. And I feel like I&#x27;m having deja vu here, because the American ship off the coast of Florida thing just happened less than 2 years ago. And it&#x27;s the same situation and the same exact scenario that played out then. Meaning, some American operatives and American military have gotten a hold of some antique Russian weaponry from their former base in Cuba, and they intended to use those weapons on the American ships so that they can then blame the Russians for allegedly bombing a U.S. state.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004015">00:40:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Is that going to actually work? Is it a lot of hype? Is it a lot of fear? Yes, and I&#x27;m not even sure that these weapons could actually function at this point, because they are probably almost as old as me. Which is pretty old - no, I&#x27;m just kidding - but they are at least 4 or 5 decades old. So I&#x27;m not seeing that that would actually work. But is it a good campaign in order to try to start World War III? I guess possibly. And we&#x27;ll talk a little bit more about World War III here in just a minute.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004054">00:40:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. Things going on behind the scenes that are relative to what&#x27;s happening in the world. So we talked before about the deal that was made between the Pallavicini family, Orsini family, and the Black Nobility and the Order of the Dragon, where the Black Nobility would have 65% control of the world and the Order of the Dragon would have 35%. Along with that came large payouts into the trillions of dollars. And that was not only to China; we did talk about China. But there were also big payments promised to countries like Jordan, Saudi Arabia, Israel, Iran, Iraq, and several other countries. So most recently, these pallets of cash - that were part of a project called Project Becky - that were issued starting in the 1970s, and they continued all the way through 2017 - these are giant pallets of Super Notes with duplicate serial numbers on them from previous allocations that have already been utilized within the system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004207">00:42:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they pulled these pallets of cash out again. Currently there is about $15 billion in the UAE. There is more in Oman, and more in Jordan. And this is the latest promise to, for example, the Saudi Arabians, who have been very active lately in spending a lot of cash. So have the rest of the GCC countries, so you have Kuwait in there as well, and Bahrain. And Bahrain recently gave $30 million to some Trump operatives, as you know, and we talked about that in the news before.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004245">00:42:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So these pallets of cash are currently being used to bribe the Iraqi government to perform a second Helicopter Down, just like the one that happened in Iraq recently, where allegedly the president of Iraq died in a helicopter crash, and he is now partying and having a great time in Belize.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004309">00:43:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So will they continue on with this operation - that has been orchestrated by the Pallavicini family - in order to create a regime change in Iraq? Don&#x27;t know. Don&#x27;t know if they&#x27;re going to continue on doing that. This morning, some lady [smiling, chuckling] may have told someone in the Iraqi government that those pallets of cash were not good. They believe their payout for doing this stunt and the regime change was going to be $15 billion. However, it doesn&#x27;t look like that&#x27;s going to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004346">00:43:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">They told them that they could verify the money at any bank in the United Arab Emirates because those were under the Rothschilds&#x27; control. And obviously it worked when they tried to verify that this cash was real with some banks that were on the take. But I said, &quot;Well, have you tried to verify it in Europe? Have you tried to verify it in the U.S.? Have you tried to verify it in England? Anywhere? Anywhere where U.S. dollars are utilized except for the UAE and Saudi Arabia.&quot; Because for those of you that don&#x27;t know, the UAE is considered Saudi Arabia&#x27;s little brother. So, turns out cash was not verifiable. Big shock there. And we don&#x27;t know if they&#x27;re going to continue on with the operation of switching out the Iraqi government or not. We&#x27;ll see; time will tell.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004438">00:44:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now, other governments that are talking about a big switcheroo are operatives here in the United States. There has been a lot of chatter in the last 3 or 4 days about claiming in the mainstream media that President Trump is going to have, or has had, a heart attack. They are building a funeral of epic proportions for this person, which will rival the Elvis funeral. So for those of you that were alive way back when - I was pretty young, but I do remember it because it was on every TV channel and lots of pomp and stance when Elvis passed away back in the late &#x27;70s.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004521">00:45:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">This funeral is going to have a band and there&#x27;s going to be a lot of pomp and stance - far greater than any former president funeral or current president funeral that has ever happened in the United States. And it&#x27;s loud and it&#x27;s obnoxious, just like the Duck Dynasty operatives that run that show.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004541">00:45:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The only catch here is, I hear that this is supposed to take place between June 17th and June 22nd, which coincidentally coincides with the Solstice, Number 1. And Number 2: they&#x27;re floating around a number of $5 billion to orchestrate this affair in the mainstream news. Will they get $5 billion? That&#x27;s the question. And who&#x27;s promising them the $5 billion? Well, it appears they&#x27;re being promised this $5 billion from some funding that allegedly is going to come from the Pallavicini family. And I know this because there was a long conversation - and has been several long conversations over the last few days - on the Jesuit communication line.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004632">00:46:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Yes, the Order of the Jesuits has, or had, its own private communication line, which they feel is super-secret, that nobody will hear what they&#x27;re talking about and nobody will hear their operations that they&#x27;re planning on running. Today, as they were having a conversation earlier today, I decided to tell them that is not the case. And how I did that was I talked to a particular person that I know is deeply involved with the Jesuit Order, and I was texting them on a program - an app called Signal - at the same exact time they were having the conversation. And I was texting them word for word what they&#x27;re talking about. &quot;Oh hey, have you ever heard of a system called X?&quot; And we&#x27;ll get into that in a minute. &quot;Hey, have you ever heard of this?&quot; And &quot;Wow, did you hear something about a Trump campaign and that they&#x27;re gonna say that he&#x27;s passed away, and there&#x27;s gonna be a big funeral, and the cost of this is $5 billion dollars?&quot; Wow, you know, and I&#x27;m texting them all this information.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004737">00:47:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Meanwhile [smiling], they must have gotten wind of this fairly quickly, because they went into a panic and had another impromptu meeting on a &quot;secret line&quot; and said, how do I know all this stuff? Well I know all this stuff because I have a Key Intelligence and Military System that will go into any secret quote-unquote secret communication line and give me all the data that I need to know. So, there you go, Pallavicini and Orsini family, that&#x27;s how I know. That&#x27;s how I knew about the Iraqi helicopter going down, that&#x27;s how we knew about all of this stuff. So it was confirmed actually by you! So thank you very much for having that phone conversation that I could listen into. I greatly appreciate it. [Big smile.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004823">00:48:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. Based on that, having the same conversation over and over and over again, basically - with different names, different country names, different faces, and different moon phases, and different solstices and equinoxes, and so on and so forth - is kind of not entertaining anymore. So as of today, the Jesuit Order no longer has that communication line. The second one that has gone down is, the Jesuits did have a certain amount still of a backdoor monetary system that was found in conjunction with the communication line. So both of those disappeared today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004914">00:49:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The next one that disappeared also was the old - and this is one of the oldest communication lines in the world - was the Knights Templar line. There was also a communication line between Knights Templars around the world that would be super-secret. In addition to that, we actually found a monetary line as well, which had about $96 trillion unpaid funds in it. The funds were unpaid, but they had no allocation numbers. So these were digital Super Notes, if you will, that they&#x27;ve been trying to cash forever, and of course every different group has them running around all over the place for them, telling them that they&#x27;re going to make good on that money. Which, obviously, is never going to happen anyway, so therefore there&#x27;s no need to continue on with this monetary system. It&#x27;s not spendable cash, it&#x27;s just numbers on the screen, and if you want to be like a Knights Templar, you can create yourself an Excel spreadsheet, and put you have $10 billion on it, and it will be worth just as much as the Knights Templar&#x27;s money was. So that system has also disappeared.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005027">00:50:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The problem with fake pallets of cash, fake money on screens, and any kind of server systems like this, is they do convince people around the world to do some pretty serious things. This whole process was orchestrated by Bush Senior, on how to get something for nothing. So he would have operatives running around the world with - way back in the day - if you were old enough to remember those passbook savings books that we used to get at the bank, and you would make a deposit, and they would put a stamp in the book, and then they would sign it next to it, saying that you deposited this money. And this is long before we had checks and digital banking - and we still had checks somewhat, and savings books somewhat, but they started going more digital. And then they would swipe the book and then you would swipe the check and so on and so forth. But this program has been going on that long.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005126">00:51:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And there are still people alive to this day that have never gotten their money from four decades ago, that was in this savings book. So that will tell you about the &quot;something for nothing&quot; program. And they&#x27;re doing this with all kinds of different countries. They&#x27;re doing this with the Russians right now - there&#x27;s a lot of controversy going on with the Russians about fake money and can they cash it? Can they negotiate with us? There&#x27;s also talk of Treasury operatives trying to get us to put back the $23 trillion. And would I be willing to give up 10% of that so that the United States can fund the Russians? Well, that&#x27;s because they owe the Russians quite a bit of money. And it&#x27;s not the government - it&#x27;s just people here in the U.S. that owe them quite a bit of money.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005224">00:52:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And they want us to fund them, so that they can maintain control over their Russian assets. And a lot of this information actually came through the Foreign Minister of Russia, if that tells you anything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005239">00:52:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Lots of other people searching for assets. There have been some phone calls from North Korea recently, because they&#x27;re trying to verify assets which they&#x27;ve tried to verify three other times in North Korea. Those assets have been moved over a decade ago, and they&#x27;re not coming back - we know where they are. They don&#x27;t belong to North Korea either. They don&#x27;t belong to South Korea.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005306">00:53:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">And the second part of physical assets were in the Philippines. There&#x27;s a lot of tungsten in the Philippines that they try to push off as gold - that is not the case. We know that because most of the gold actually is gone. Some of them have skin on the gold [INTERPRETATION: gold skin on the tungsten]. So if you were to run a spectrometer over it, it would look like it&#x27;s actually solid gold, but it&#x27;s really not, it&#x27;s tungsten. Same thing in Saudi Arabia. The Saudi Arabians have a locked-door room underneath their Central Bank, where they claim their store of gold is held. Now that gold hasn&#x27;t been there for a long, long time - even prior to Desert Storm, prior to the days when Donald Rumsfeld was the handler on behalf of Bush. It was very deep in the desert somewhere, and that was gone - oh, probably 2015 - that gold has disappeared. It was never under the Central Bank, but there is a room there where they claim that gold is held, and that&#x27;s a lie. That was moved out of there a long time ago.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005415">00:54:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">The gold that they&#x27;re referring to is gold that is referenced in what we call the Red Book. I have shown you the Red Book on the news several times, and I can show you again - most of the accounts and assets and everything that are in there, have been reallocated and removed. So, big hunts for assets, big hunts for gold, big hunts for things that they will never ever find. They&#x27;re just trying to maintain some semblance of control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005442">00:54:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now on the news two days ago, we talked to you about the fact that there is a new Rothschild family &quot;head&quot;. And this person has reached out to me through two different channels now trying to have a conversation, because they claim they need funding to save the family name. And that they would like to - they didn&#x27;t talk about power and control but they said that they wanted to go back to at least being neutral in the world. In other words they&#x27;re not gonna attack us anymore, and that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005520">00:55:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Now unfortunately, we have that whole Key Intelligence and Military System thing that tells me otherwise. He told me he&#x27;s just interested in not doing what the Rothschilds used to do, he wants to start something new - but the orders that this person is barking out everywhere in the world tells me otherwise. Talking about pandemics, talking about things to put in the media regarding scares, having conversations with people about World War III, about China&#x27;s involvement in World War III, how they&#x27;re going to transfer power over to certain countries along the same lines as the Rothschilds&#x27; plan from before. So no dice here, buddy. No dice here, Philip. But thank you but no thank you, we&#x27;re not interested in talking to any more people that are going to lie, cheat, and steal from us. We&#x27;re good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005618">00:56:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay, next. I know I&#x27;m probably not as entertaining as when we&#x27;re here with Sunny, but I&#x27;m trying the best I can here, guys. Okay, next. Today - and I know I say this every year, but I&#x27;m going to say it again - so, from the 1st of June to the 13th of June are my hell weeks or rush weeks or whatever you call them when you&#x27;re becoming a Navy SEAL, whatever you call them when you&#x27;re going to be applying to be in a fraternity, it&#x27;s the same thing, it&#x27;s Hell Week for me. It&#x27;s two weeks of hell, and usually what could go wrong, it will go wrong during these two weeks - because someone, somewhere saw in Project Looking Glass that on June 13th, I concede to their side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005709">00:57:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Well, no. Still hasn&#x27;t happened - and this has been going on for a decade, I have survived 10 years now of Hell Week and we&#x27;re going to survive another one today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005725">00:57:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Okay. But today was something a little bit different, as part of Hell Week, which was more important at that time than stopping and taking a break to do the news, because this was a pretty rough program that was being run. And it wasn&#x27;t being run by humans, it was actually being run by an automated system that was put in place a long time ago by the Abraxas, for this particular year. Now, the other side believed that this event was going to happen at a time when the world was right about to flip to 100% Source connection. And like I told you on the news, it&#x27;s been teetering a little bit, but we&#x27;re right there. There were some events that happened yesterday that kind of catapulted us further, a little bit faster than I had expected, which is good. We&#x27;re still not at 100%, based on what happened today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005826">00:58:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So the program - I know you&#x27;re going to be shocked when you hear this one - is called X. Well, it appears the Deep State was under the impression that once this X Program - and &quot;X&quot; stands for extermination - launched today, that there would be more hope for them to gain some control over the world back. They were under the impression that System X was supposed to take over - this was another AI system - that was supposed to take over for Omega 1 and 2, Kronos 1 and 2, and Alpha 1 and 2. That&#x27;s what they thought was going to happen today. But that was never the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005910">00:59:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">&quot;X&quot; stands for extermination. So the idea that the Abraxas had was - not to so much take over systems, in part - the idea was to actually bring us back to a 50-50. So, a Neutral Age, a neutral way where the Light Side and the Dark Side had 50-50 power. However, by the actions that the humans on Earth took today - who are still what you would consider Abraxas bloodline that are left, like Global Headquarters, some of the operatives, militaries, those types of things - they were still planning on trying to dominate everything. Therefore, Program X, or AI, X-AI, actually went horribly awry today. And I would say there was some intervention to make that happen [smiling], but that was only part of the story of X.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010012">01:00:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So after X-AI did its thing - meaning exterminate us again - this would have been not quite a harvest, this would have been an extermination. And its goal was to exterminate all life on Earth. That includes these people, if they didn&#x27;t comply with what was supposed to happen. And we were supposed to all get along for 50-50. So when it became apparent that that wasn&#x27;t the case, they saw them as well as a threat to the 50-50 Program - or the AI system did - and tried to annihilate them as well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010047">01:00:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So that didn&#x27;t work out as well as they thought [chuckle], whether they know it or not. Now, this program was designed to get rid of all humans on Earth, and put Abraxas clones that were, let&#x27;s just say, waiting in the wings in Aldebaran on the planet. Now those clones would have looked exactly like all of we do, because the program had been running to clone every new human that actually was born on Earth. So they would replicate us - but in their image - in the image of Anti-Source. Therefore, taking control of the planet to create only for Anti-Source. That was the plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010133">01:01:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. When all the other programs started failing, and all of the annihilation programs weren&#x27;t working, it launched a backup system called the Suicide Program. So, if you had weird feelings, sad thoughts, those types of things over the last 24 hours, it was probably the Suicide Program. The base root for that program was actually located in the Rock of Gibraltar, if you know where Gibraltar is, right next to Spain. And that program kicked off with some really strange frequencies, some sick feelings, and those types of things were being reported everywhere, based on the kickoff of this program. The program ended probably midday my time today, when we finally located the source of it. So that is now no longer there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010226">01:02:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next. There were a few other things that the Deep State tried to do. They of course thought that this was for their benefit, because why? They think everything is for their benefit, you know? This was going to help them access Alpha, they would have control of some money by the end of the day today. They weren&#x27;t entirely sure when this was going to kick off, therefore they set meetings for yesterday and kind of preempted the kickoff. Those meetings they didn&#x27;t end up showing up for anyway, which is true to form. And again, nobody got paid, nobody came to the call, nobody answered the call. But they were definitely expecting to get some control over the monetary system from X. Probably because the Abraxas told them that they would preserve their bloodline on this planet. However, X wasn&#x27;t programmed to do that either. They were told that they would then continue to be fruitful and multiply with the Abraxas clones, and then the Abraxas bloodline would be the only one on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010335">01:03:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Next program that launched as part of the end phase of X, was a program where we all ended up with what&#x27;s called a membrane. So the membrane was designed to reclaim the assets of Earth that we took away just a couple days ago. It was meant to reclaim them in the name of Anti-Source, and therefore we all ended up for a short period of time today in what&#x27;s called a Faraday cage, and so did Earth itself. So if you felt a little anxious, if you felt a little claustrophobic - these are the things that are being reported - if you felt like you had extra gravity, you were being drained of your energy, this was the beginnings of the ownership of you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010429">01:04:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So they were going to drain your lifeforce one way or the other, along with the lifeforce of Earth. This was the end part of the X Program, and backup program after backup program after backup program happened pretty much all day today. So this is the real reason why the news is actually late. And it&#x27;s my fault, I guess - it&#x27;s not my fault, it&#x27;s not my program - but it took us that long to get things restored to at least normal, where we were all gonna be okay through the night. And I think we pretty much got everything that was left of X that launched, like I said, late yesterday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010510">01:05:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So it&#x27;s been a long day for me - been a long night, and no sleep last night - so tonight I plan to get some. But I wanted to make sure that I got the news out for all of you because it&#x27;s important to understand how you&#x27;re feeling and what&#x27;s happening in the world, and a lot of these fear rumors that are going around, and it&#x27;s also important for, I guess you would say, to let you know that the fight against the Deep State&#x27;s not gonna end. As a matter of fact, the person&#x27;s phone I was texting today also mentioned, &quot;Hey, you know, some people are already giving up.&quot; I&#x27;m like, &quot;Well, some people are not me.&quot; And I know those some people are not you either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010556">01:05:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">So keep holding the Light. Keep fighting the good fight. And I will see all of you on Friday. So thanks for watching and sorry for the delay today.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010607">01:06:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010705">01:07:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=oVxbdTmK-QQ&amp;t=2143s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
