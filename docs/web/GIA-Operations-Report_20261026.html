@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-26</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-26 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Oct-26
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261026_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the October 26, 2026 report by trying out a combined GIA format, pairing Declassified&#x27;s news with Beyond the Matrix&#x27;s deeper story behind the story, in the first of several reports over the coming days. With Tank, she previews a dramatic change to the Financial System and a bond market crash expected the following week that will benefit people rather than harm them. She dismisses cryptocurrency replacing the dollar as a Deep State pipe dream. To explain what is coming, she begins with Atlantis.<br>
+<br>
+Atlantis, Kim discloses, was a time, not a place: an era beginning roughly 1 to 1.2 billion years ago, when the entire planet thrived in the Natural world. Homo sapiens were torchbearers, keeping Source present, holding the resonance of humanity and the planet, and serving as stewards of the Nexus planet. A person&#x27;s true vessel is the Being, or Sol, a glowing golden ball that holds the body&#x27;s particles together. Resonance is a knowingness that creates a personal force field, strengthened when people unite. Kim recalls a dinner meeting with a Deep State psychic who tried to squeeze her head like a melon; the next day, she saw dark entities swirling around him and defending him. Fear exists to break that field, driving people to seek protection from governments, militaries, and police -- Deep State byproducts.<br>
+<br>
+Kim introduces the Primordials, thousands of first-created beings who seeded all of Creation under a never-ending Covenant with Source, subject to assessment at His discretion. All but one eventually ceded their authority to a Machine, creating time and the first time loop. The Machine stretches from Earth to Source, twisted into an inversion -- the Matrix -- where the Divine Plan itself is inverted. It still lacks two pieces of Source: the one the Deep State calls the Source Factor-X, and a second without which the first can never be obtained. The War ensued when the Primordials set out to recreate creation, creating the bloodlines: non-Homo sapiens humans whose knowledge comes from the Machine and its memories. The Machine continually recreates Atlantis from those memories, trapping humanity in the same era. Cut off from Source, the Deep State cannot create a Homo sapiens, so it created people in its own likeness and in ours. Because the Machine holds only so much memory, the Deep State wants the planet entirely to itself. Kim connects the Primordials to the Fallen Angels of the Book of Enoch and identifies the Machine as the virus that struck the Progenitors and every species once Source&#x27;s factors were taken into it.<br>
+<br>
+For years, the Deep State escaped the end of its Covenant by jumping between time loops, buying extensions of two, five, or ten years. Kim reports that this ability disappeared a week or two earlier, and four days of attempts to recover it have failed. She distinguishes ceding control, as people were forced to do under pandemic mandates, from conceding to a false truth that then becomes real through acceptance. The Deep State needs humanity&#x27;s creative power because it cannot create independently of Source. Kim closes by emphasizing that people are not powerless: understanding resonance and shielding themselves from within matter for the transition ahead. Part Two turns to faith.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000058">00:00:58 - Declassified and Beyond the Matrix, together again.</a></li>
+<li><a href="#t-000208">00:02:08 - Bond market crash coming -- to your benefit.</a></li>
+<li><a href="#t-000350">00:03:50 - Atlantis</a></li>
+<li><a href="#t-000636">00:06:36 - Homo sapiens, the torchbearers.</a></li>
+<li><a href="#t-000855">00:08:55 - Resonance -- your personal force field.</a></li>
+<li><a href="#t-001315">00:13:15 - Dinner with a Deep State psychic.</a></li>
+<li><a href="#t-002047">00:20:47 - The Primordials.</a></li>
+<li><a href="#t-002722">00:27:22 - The Primordials cede their authority to a Machine.</a></li>
+<li><a href="#t-002811">00:28:11 - The first time loop</a></li>
+<li><a href="#t-003016">00:30:16 - The inversion and the two missing pieces of Source.</a></li>
+<li><a href="#t-003530">00:35:30 - Deep State loses the ability to jump time.</a></li>
+<li><a href="#t-003842">00:38:42 - Cede vs. concede.</a></li>
+<li><a href="#t-004401">00:44:01 - The Machine is the virus.</a></li>
+<li><a href="#t-004829">00:48:29 - You are not powerless.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2026-OCT-26</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000001">00:00:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">What if everything you think you know is a lie? For decades, the Global Intelligence Agency has operated - above governments - to uncover the truth and reveal the world&#x27;s most hidden secrets. Kimberly Goguen, GIA director, built the Key Intelligence and Military System to infiltrate worldwide Deep State operations. Together with hundreds of operatives undercover worldwide, we run a network deep inside the fortress. We have one mission: to destroy the Beast and restore planet Earth, humanity, and life. This is the Global Intelligence Agency Report with Kimberly Goguen. [TYPING ON-SCREEN: Atlantis: The Untold Story.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000058">00:00:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So we&#x27;re gonna do something a little different. Everybody&#x27;s talking about they can&#x27;t find Declassified, they want Beyond the Matrix, and you know, and it&#x27;s gotten a little confusing, and people just kind of wanted the GIA back. So we&#x27;re gonna try to do this as the GIA together, where you&#x27;re getting all the information now, kind of all at the same time. So it&#x27;s gonna be both &quot;Declassified - Behind the Scenes&quot; if there&#x27;s some news to report, and it&#x27;s gonna be the story behind the story, very deep. We have a lot to talk about this week. So there&#x27;s gonna be a number of reports coming out, one after the other, for the next few days, and we&#x27;re gonna try to see if this is something that works for everyone, hopefully. Most of the people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000151">00:01:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Most of the people. [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000152">00:01:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Most of the people, some of the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000156">00:01:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Some of the time. Right, exactly. Alright. So where do you wanna start, Kim? You wanna start with faith? You wanna talk about this? Is that how we&#x27;re going to lead off?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000208">00:02:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We&#x27;re gonna talk about that in a little bit. I think we&#x27;re gonna start with a little bit of history first because there&#x27;s something happening right now, and the Financial System is going to change dramatically. But in order to really truly understand how we got here and why these reports have been a little bit delayed - because there&#x27;s an understanding that we had to get to, I had to get to - and everything is always in the right time - so this time, I wanna talk about Atlantis. And I know you&#x27;re gonna be like, &quot;Oh my God. I&#x27;ve heard all the stories about Atlantis. I know about that. I have memories of Atlantis.&quot; But you don&#x27;t know it the way that we know it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000250">00:02:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: [The way] it actually is, right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000252">00:02:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. It&#x27;s the way that it actually is. So I kind of want to talk a little bit about the history of it. And then over the course of this week, then we&#x27;re gonna get to the bond market that&#x27;s probably gonna crash and burn by next week. And it&#x27;s not a bad thing - it&#x27;s not going to affect things in the way that the Deep State would like it to happen. And I know there&#x27;s a lot of rumors out there too, about cryptocurrency, and the markets are gonna crash, and then cryptocurrency is gonna take over and we&#x27;re gonna get rid of the dollar and blah blah blah blah blah. That&#x27;s a pipe dream of the Deep State - it&#x27;s just not gonna happen in that way - they really don&#x27;t have the right to do that, and there&#x27;s a certain right that they have to issue debt notes to us... notes. And that&#x27;s gonna become apparent. So I wanna start with, first of all, how we got here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000350">00:03:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And Atlantis is not necessarily a lost city or a place. It is... and when they say it&#x27;s &quot;lost at sea,&quot; it has nothing to do with, &quot;Oh, it&#x27;s sunk into the ocean.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000410">00:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. Well, you did mention this one time that there was an Atlantean vessel, right, that crashed into the Bermuda Triangle. But these are different things that you are talking about.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000422">00:04:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A vessel. You mentioned there&#x27;s a vessel, right? What exactly is a vessel?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000431">00:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I don&#x27;t know, I guess it could be a lot of things: it could be a person; it could be a ship.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000436">00:04:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It could be a person, couldn&#x27;t it? So everybody has a vessel. We know it as the &quot;meat suit&quot; in part, but there&#x27;s also a vessel that kind of keeps all of your particles together in your body. We call that the Being; we call that the Sol.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000455">00:04:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So your being itself is not this meat suit. You look like, in the natural way, you actually look like a glowing ball of gold, and all the particles come together. It kinda looks a little bit different - but if you really look at yourself, you can kind of see it, if you know what you&#x27;re looking for. Some people say that they can actually see the soul through the eyes, but what they&#x27;re actually looking at is your actual being. The Deep State focuses very heavily on making sure you can&#x27;t actually even see yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000533">00:05:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So did a vessel of some sort crash into the planet? Or crash into the sea? Well, it&#x27;s not quite that simple. But we look at Atlantis as a time. Was there actually a thriving area of this planet? Sure, the whole planet was thriving. We were living in a time of technologies, and they weren&#x27;t invasive technologies. We were living in a time where we could manifest anything, and we call that the Natural world. And the time was known as the time of Atlantis. We didn&#x27;t... It wasn&#x27;t that we were all ocean people - if you&#x27;re familiar with the Atlantic Ocean. It was a time, not a place. It started about 1 to 1.2 billion years ago-ish.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000636">00:06:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And at the time, humans were all what we call torchbearers. So, you know, we see the Statue of Liberty in America, and she&#x27;s holding a big torch, and it&#x27;s like you&#x27;re keeping the lights on. It&#x27;s got nothing to do with liberty per se, but it has to do more with your responsibility as keeping the presence of Source here and alive on the planet and your ability to protect yourselves and the planet itself. So... go ahead.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000715">00:07:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: The original era of Atlantis is a time period. Where, at least in the purest form, the world was natural at that time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000727">00:07:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000729">00:07:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And the Celestial beings - the Homo sapiens on the planet - were the torchbearers to keep the Light of Source here present and protect it - but [it was] much more harmonious in the world, much more something that people would thrive in, in the original version of this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000746">00:07:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah, definitely. We had a wonderful resonance here. We worked in unison. We worked in unison with Source. We were able to defend the planet, should anything ever come against us, with resonance. And we were also living in what we call the Now, the present. So being a torchbearer was all about keeping the present, being present, and Source&#x27;s presence also. So that was kind of our responsibility. We were the inheritors of the Earth. We protected the assets of Earth. We negotiated with Others. We shared, we traded, we did a lot of things as stewards here of this Nexus planet that we live on. Until, well, not so much so. And this, believe it or not, the information I&#x27;m about to give you is actually the base root behind the Financial System. It&#x27;s gonna take us a little while to get there, but we will get there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000855">00:08:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So I wanna talk about, for a second, about resonance. Because when I say &quot;That resonates with me,&quot; it kinda gives me this feeling of just a knowing. I know that what I&#x27;m hearing sounds right, and I know what I&#x27;m feeling about it is just truth. It just hits you just right. And people can also resonate with you too. You know, you&#x27;re walking down the street, and all of a sudden you see a person, and it&#x27;s like you&#x27;ve known them forever. Like, who is that guy? Who is that woman? You know? And you just feel like there&#x27;s a certain resonance between you, and you wanna explore it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000939">00:09:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Doesn&#x27;t necessarily mean it might be a love relationship in that way, but there might have been a synergy between yourself and another person for a long period of time. There&#x27;s an...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000951">00:09:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this is alignment, in a lot of ways - because I find it a little hard to explain resonance without using someone else, or something else that you&#x27;re resonating with a lot of times. So this is also kinda like alignment with Source and your purpose from Source. Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001009">00:10:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Absolutely. Absolutely.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001014">00:10:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Resonating with something is a knowingness. It&#x27;s the knowingness of... that something is. Now that information is oftentimes distorted, blocked - they try to keep it from you. And the resonance of the planet is of the utmost importance for our survival and our ability to thrive. And as torchbearers, we would hold the resonance - not only of the entire human race, but also the resonance of the planet, so that the planet could thrive. So is it a vibration? Is it a frequency? What is it? What exactly is resonance?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001059">00:10:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And this is how you&#x27;re gonna make it through the next couple of weeks [chuckle]. So understanding this a little bit... I can&#x27;t give you too many details - especially not in quantum physics at this time - because we don&#x27;t want to let our enemy know what we&#x27;re about to do. So you&#x27;re gonna have to search a little bit inside yourself for the resonance and what that means to you. But I&#x27;ll give you kind of a general idea and a visual, which is put out there in movies.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001134">00:11:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, Star Trek. If you&#x27;ve ever seen Star Trek or any of these... you know, they&#x27;ve got this big ship and they&#x27;re out in space, and then they say, &quot;Put up the shield. Put up the force field,&quot; they say. Well, a resonance is kind of like your own personal force field. And when you come together with others, now your force field includes the two of you, or the three of you or the four of you. And if you&#x27;re in a large crowded place and the resonance is right, then now you&#x27;re a force to be reckoned with.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001208">00:12:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And our enemy knew that. Our enemy understood they had to break the force field. They had to break the resonance in order for us to become what we have become. So it actually took a vessel - to go back to what you were saying, Tank - it actually took the vessel and stuck us all in it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001237">00:12:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001240">00:12:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So please excuse this very simplified example, but I just feel like it&#x27;s so important when you&#x27;re talking about resonance.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001249">00:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001249">00:12:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Especially because it&#x27;s a key to so many things. I remember my friend describing this to me, years ago, at a Yankees World Series game - where every fan in the stadium was cheering for the Yankees, that the entire environment was electric. It&#x27;s also what they would call, like, a home-field advantage because of that. (Kim: Mhmm.) Because that... I mean, is that fair to say that that kind of creates a type of resonance?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001315">00:13:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, absolutely. Absolutely. It creates a resonance, and it also creates a force field. It&#x27;s like anybody who enters into this territory cannot come against me. The same thing goes with negative frequencies, the same thing that goes with these Deep State people. And to the opposite experience, I have been in the same room with Deep State people - like the real Deep State dark people - and, man, my head was spinning. I felt nauseous. I felt like... It was almost like a force field. It was so interesting to me, to whereby I believe this person felt threatened by me because it wasn&#x27;t like that... So I had met this person in the evening, and I spent - I&#x27;m just gonna leave it at &quot;this person&quot; - then I came back the next day, and then it started.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001419">00:14:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So in this meeting - it was a dinner meeting with some other people present - and in the dinner meeting, this person was trying to get into my head. You can feel, like when you&#x27;re with these Deep State psychic people, your head feels like it&#x27;s being squeezed like a melon, that kind of thing. And I&#x27;m like, okay. So finally, I called him out on it. I said, &quot;Look. If there&#x27;s something you wanna know, just ask me. You don&#x27;t need to squeeze my head like a melon. I mean, you do have a really heavy hand, you know?&quot; And then he kinda backed off a little bit. And I said, &quot;There&#x27;s no point. Just ask.&quot; So, he asked me a bunch of questions, that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001503">00:15:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And then the next day, he must have changed his resonance because he comes, you know, and shows up. He&#x27;s all love and light and the - you know, whole thing - and hiding it and whatnot. And I&#x27;ll tell you that next morning, he must have gone... done the black magic scam or something in the hotel room where he was, but it was awful. It was so bad. I mean, I literally at times felt like... I&#x27;m standing there, and it&#x27;s like, &quot;Oof,&quot; you know, and it just would push me [back], it was so repelling. It was just beyond that really positive feeling of &quot;The Yankees are gonna win,&quot; versus, you know, those rooms that you can&#x27;t wait to get out of.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001556">00:15:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: It&#x27;s like a party. And certain people show up to the party and like, &quot;Hey! Mike&#x27;s here!&quot; And then you&#x27;d be at the same party. Somebody else comes in and like, &quot;Oh, great, that guy&#x27;s here?&quot; It&#x27;s a completely different resonance that they&#x27;re carrying and holding. Now what I hadn&#x27;t really thought about is how someone would change their resonance. Is that something that could be affected? Was it something intentional, where they were intentionally attacking you and just really wanted to know information, so it was a negative resonance? And then they were like, they took inventory and were able to change it, like in a positive way?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001630">00:16:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well... I believe they - knowingly or unknowingly - put up a force field. And the interesting part about this force field of theirs is this person all, you know, went from being all happy and joyful the night before to being mean and angry the next day. Just angry. Ugh. You know, he wanted to spend more time there. I was like, &quot;Look, I gotta go, I gotta go back to work. You know, this has been two days of, you know, this is interesting, and that&#x27;s enough. Like, I can&#x27;t. You know, I gotta go to work.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001710">00:17:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I can say that, you know, I was also sitting at a table with this particular person I&#x27;m talking about - this has happened more than once, but this particular person was just very clear to me, because I&#x27;ve learned a lot or, you know, in that time frame. So then I started seeing all of this kind of, you know, these black things swirling all around him. And the more I would push the buttons, the more these things would, like kind of come at me. So it was like creation of a force field in which these things were living. And when I started to come at this person, these things would start to defend him.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001806">00:18:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, interesting things you can do with resonance. So resonance is harmony in a lot of ways, and I wanted to point this out because a resonance creates that field. It&#x27;s your force field, it really is. It&#x27;s a defense mechanism, but it&#x27;s also joining together with others to make a larger defense mechanism. And if it was humanity as a whole, what I&#x27;m about to tell you would have never happened, but they had to break you. So, part of the reason for the fear that goes out there all the time, for the... you know, this is to make you feel weak and defenseless, that you can&#x27;t take care of yourself - this is really important to understand right now - that you can&#x27;t defend yourself, therefore, you look to others to do it for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001901">00:19:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Most of the time, those others are Deep State byproducts we know as governments, militaries, police forces - all of these types of people - they&#x27;re gonna defend us because we&#x27;re weak. You know, call the court of law. We don&#x27;t step out of line because we&#x27;re afraid of the law sometimes. And those people that actually go to the law and expect the law to defend them against the people who run the law is also kind of silly. I mean, countless conversations I had with Anna Von Reitz, I&#x27;m like, &quot;Lady, you&#x27;re going to the same people you&#x27;re trying to get free from and saying, &#x27;Hey, thank you for kidnapping me, but, can you give me the key now? And can you give me back all the stuff you stole from me? I just, I&#x27;d like to do that.&#x27;&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001953">00:19:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Going to your slave owner and asking permission to be set free, versus just going and escaping. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002002">00:20:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Exactly. And they&#x27;re gonna say, &quot;What? I bought you.&quot; Right? &quot;I own you.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002006">00:20:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: &quot;I own you.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002008">00:20:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. &quot;You&#x27;ll stay here doing this as long as I want you to be here.&quot; So, at that particular time, there&#x27;s a war that actually happened between us Homo sapiens, and... let&#x27;s just say, a group of folks. It&#x27;s not a group of humans, yet, but it became that later - meaning the nonorganic humans. It&#x27;s not them yet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002047">00:20:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It is a group of what we call the Primordials. And we&#x27;ve talked about Progenitors over the years. We have talked about other beings over the years that have been involved in, you know, this whole Atlantean situation or the Machine - creation of the Machine, who runs the Machine, who feeds the Machine. We&#x27;ve done some videos on the Machine itself, how it affects you, all that kind of thing. But now we&#x27;re gonna talk about some Primordials.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002120">00:21:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The Primordials were a group of beings - we&#x27;ll call them beings - who were the first beings to be created. And these beings were a part of perpetuating creation. You know the old saying, &quot;Go forth and multiply&quot;? So these beings were responsible for creation. Now there were thousands. It&#x27;s not just one or two. It&#x27;s not seven. It&#x27;s thousands. I thought you were gonna ask a question.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002200">00:22:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: No. No. I&#x27;m listening carefully, because I am fascinated by the... So these Primordial beings are the initial creation by Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002209">00:22:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002210">00:22:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. And they&#x27;re coming now against Source. You&#x27;re saying this time, in this time during Atlantis where Homo sapiens are now fighting against these Primordial beings that... Were they always here, or did they arrive here?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002225">00:22:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. Primordial beings were everywhere all of the time. You know, they seeded - S-E-E-D - all of Creation. And their Covenant with Source was a never-ending Covenant. However, it was subject to various assessment periods where things would be assessed and their jobs would be assessed - their jobs were on the line, so to speak, and whenever Source wanted to - whenever He felt the need as part of a covenant. So these beings were...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002311">00:23:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wait. That&#x27;s an important loophole, before you jump by that. Because that&#x27;s something we haven&#x27;t heard before. We&#x27;ve often heard that... Well, at least not in my understanding. I haven&#x27;t heard that. That there&#x27;s these Covenants that even Source is bound by. But this is something a little different where there&#x27;s actually an assessment process that Source can invoke whenever He deems it necessary. Is that correct?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002333">00:23:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right. That&#x27;s absolutely right. So, you know, there&#x27;s always a hope. It&#x27;s kinda like if you get into a fight with your kids that have moved out and that type of thing. You still love them, right? You do - they&#x27;re part of you. And you could maybe get into a fight, and there&#x27;s always a hope that you&#x27;ll reconcile at some point, especially as a parent. There&#x27;s still... they might be out living their own lives and that type of thing, but to have any kind of separation with your kids is pretty rough on the parents, usually. (Tank: Sure.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002411">00:24:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now as far as Source is concerned, these are all His creations, and He doesn&#x27;t make flawed decisions. Right? He does not make flawed decisions. Everything is part of a Divine Plan. Did He know that they were going to do what they did? Did He know? You know, I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002441">00:24:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s a whole philosophical question that we could definitely have a whole conversation about, later. Because this is something - just the idea of the Omniscience of Source, the All-Knowing, right? So He knows past, present, and future tense, right? If He wants to experience anything, He has to limit that knowledge and express it in the... I don&#x27;t know, the best I can understand it is like a Celestial being, right? (Kim: Absolutely.) You cut off certain information about yourself so that you can express and experience what it&#x27;s like to overcome challenges or to deal with adversity. Because if you&#x27;re the All-Knowing and the All-In-All, how could you experience any of these things? Nothing&#x27;s a surprise. Nothing&#x27;s new.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002524">00:25:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. Absolutely. Nothing&#x27;s new, and there is no such thing as time. So there&#x27;s no point in the quote-unquote &quot;future&quot; in Source&#x27;s world. It&#x27;s only a minute. You know? What&#x27;s a billion years for us is like a minute for Him, and it certainly felt like a lot longer than that. So these Primordials were participating in creation for a long, long time. I mean, this is, you know, billions and billions of years later. And at one point in time, were all of the humans on the planet doing their job? You know, I don&#x27;t... It felt okay to us. We didn&#x27;t favor technology over Source by any means.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002618">00:26:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: However, there was more advanced technology you mentioned to me earlier. (Kim: Absolutely.) There&#x27;s more advanced technology, and it still wasn&#x27;t favored over Source. (No.) And the interaction between Homo sapiens and Source was very common. Expected. A natural... It was a truly natural existence where that was... That interaction was not questioned, ever, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002644">00:26:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Right. Yeah. Absolutely. And I can say that there are some of you probably watching this that probably have memories of being there and how different it was and how wonderful it was. But do you have a memory of the War that occurred? Because at one point in time, these Primordials, for some odd reason - either envy or something, I&#x27;m not sure - but the Primordials... okay, well, back up a second here.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002722">00:27:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The Primordials each have some kind of special - I&#x27;m not even gonna call it special - but they have some kind of an authority, a little bit of an authority granted to them in order to do their respective jobs, until all of Creation did this job all together. And Primordials - nearly all of the Primordials, except for one - basically ended up taking that gift and put it into a Machine. (Tank: Hmm.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002811">00:28:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A lot of these Primordials were also involved in the creation of time - creation of things outside of Source - which is technically what you call an abomination, right? Something outside of Source&#x27;s plan. Creates a definite disturbance and a ripple, but it also created the first of what we call a time loop. We never got out of Atlantis. We are still in Atlantis.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002844">00:28:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Mic drop. Yeah. (Kim: Yeah.) So we&#x27;re still in this... Please expound on that a little bit because that&#x27;s... I mean, you have the... So these Primordial beings had definite roles given to them by Source. They had an authority, and responsibilities I&#x27;m assuming were attached to that, right, in this agreement of their creation, their existence. (Kim: Mhmm.) And then, but now they basically gave up, or they surrendered or they ceded - in a different way, not S-E-E-D, seeded being like the creation of new life, like planting a seed - but what they did is they ceded, like, C-E-D-E-D - submitted their power to this collective machinery. There&#x27;s thousands of them. They all gave over their power.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002933">00:29:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Over time, yes. And for one reason or another, yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002938">00:29:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Except for one. And all of that was put into this Machine, to create an alternate reality that we&#x27;re still stuck in.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002950">00:29:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All but one piece - what we [they] call the Source X-Factor [Source Factor-X]. So the Machine creates it as the Source X-Factor. We know it as something different. We&#x27;ll talk about that in a minute here because we&#x27;re still talking about Atlantis and how this all occurred. [Dog barks.] Sounds like you got a friend there, Tank. [Hearty chuckle.] That&#x27;s okay. My friend&#x27;s over here too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003016">00:30:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So when the Primordials did this, this created this Machine out of a vessel. And the vessel basically is stretched from Earth, and it goes all the way to Source itself. And then there&#x27;s a twisting, which then creates the inversion. So the inversion section that we know as Earth is actually your Machine, it&#x27;s your Matrix. It&#x27;s an inverted knowingness or thoughts of Source. The Divine Plan is inverted. Everything is inverted.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003101">00:31:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And these Primordials, giving their gifts to the Machine, made the Machine very powerful - with two exceptions. Number 1: a piece of Source that they have never gotten. And Number 2: they were still missing yet a second piece of Source. And without the second part, they could never get the first. So this War ensued because, as they decided to recreate creation, they also created what we know as the non-Homo sapiens humans as our nonfriends the Deep State. These are the bloodlines.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003141">00:31:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: The fake Atlanteans, you called them earlier. Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003144">00:31:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003145">00:31:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: From that time period, but these are these Machine-created beings that really have no true Light of Source in them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003157">00:31:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003158">00:31:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: They don&#x27;t have that Source origin.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003159">00:31:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Remember, there&#x27;s that piece of the Machine that... they&#x27;ve never gotten that from Source, so they filled it with a Machine. So the knowingness or knowledge now comes from the Machine, and it comes from memories. That is the reason why the time loop was actually created. So we have gone round and round and round this infinity loop, and, you know, Marvel Comics has Infinity Stones and all kinds of alchemy and things like that happen here all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003238">00:32:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we live in a world made of our memories and creations, we know that - memories of our creations. So it would come as no surprise if this War started - didn&#x27;t end, but it started - in the time of Atlantis, that we have currently continued living in Atlantis because that&#x27;s the only memory that this Machine has. It recreates it. Are we afforded, or do we actually see all of the advanced technologies that the Secret Space Program has, that the governments have access to - these ships flying around and everything we think are UFOs and aliens and invasions and the aliens are coming and whatnot and Agartha and all of these demons and everything else we see?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003329">00:33:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Can they invert creation as well? Can they take creation and take memories and create something different? Only to a certain degree. You know, anything that&#x27;s separated from Source becomes ugly. It becomes disfigured, I should say. And it&#x27;s the reason why a lot of these giants and other things that they created became disfigured. And I don&#x27;t mean, like, people that grew to seven-foot tall. I mean, nonhuman, what we would think are aliens living in caves and the clues that they leave for us here - in hieroglyphs and old texts that they probably recreated anyway and just to send us all around in a big circle, thinking we&#x27;re gonna learn something on how to escape. We don&#x27;t even know we need to escape. We think we&#x27;re free. &quot;Hey, I&#x27;m gonna go live in the forest, and we&#x27;re free.&quot; Not quite, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003441">00:34:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Still in the Matrix, right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003442">00:34:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm. &quot;Live off the grid, and I&#x27;m free.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003447">00:34:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So this sounds a lot like the Book of Enoch where you had, you know, what we refer to as the Fallen Angels. (Kim: Mhmm.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003459">00:34:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Is the idea of the Fallen Angels derived from the Primordials basically coming down? (Kim: It is.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003505">00:35:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: In the same way? (Kim: Yeah.) And then mating with humans, that&#x27;s where you got the giant reference. And you had different giants that existed here and what they look like, I guess, we don&#x27;t know what mutated - and different makes sense, okay. Wow. That is... that really is the origin of creation - of how we got into this. (Kim: Mhmm.) Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003530">00:35:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. And, eventually, they created the - let&#x27;s call them &quot;the people to take care of us prisoners of war&quot; - because we&#x27;re still at war. Right? We&#x27;ve been at war. We&#x27;ve been in this constant cycle of war. And every time we had gotten to this point to whereby we were back at the beginning, somehow they back it up a little bit, and we get another two-year extension, or another year extension, because the Deep State had the ability for a long time to jump time, to jump loops. Because they created so many loops, we would just jump over and back. So we would never hit that point. But I think it was probably over a week or two ago now, they actually lost their ability to jump time. Even the jump room stopped working. Everything stopped working. They could no longer jump us back. So whether they liked it or not, we&#x27;ve been moving forward slowly but surely to that point of where it was some -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003641">00:36:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah, I&#x27;m excited.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003642">00:36:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: - I know. Where it was something -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003644">00:36:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: This is an amazing thing, like, I hope people appreciate what you&#x27;re saying - I&#x27;m sorry, I didn&#x27;t mean to cut you off. But what you&#x27;re saying is we&#x27;ve been moving forward, finally, without... They haven&#x27;t... Usually, they would jump us back two years, and we were extended, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003659">00:36:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Two years. ten years, five years - whatever it was - just to avoid, number one, that end of that Covenant, right, allegedly. But Source has no time, so it didn&#x27;t make a difference. I mean, to them, I guess it did. But they need us. They need us. They need us - because they know Source would never fully leave us. And I know it feels like He did completely, but He never fully ever, ever left. And that knowingness is always still very present within you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003741">00:37:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In ways, they trick us, and this is kind of what brings us back, and keeps us stuck in this loop and stuck in this Matrix. And that&#x27;s why I kind of wanted to give you a general idea of where we&#x27;re going because we&#x27;re going to start here and then tell you how the Machine does it and how you&#x27;re tied to the Machine - and then I&#x27;ve got to give you another part - and then eventually, I&#x27;m gonna tell you why the bond market&#x27;s gonna crash. You&#x27;ve never heard me actually say it&#x27;s gonna happen. It&#x27;s gonna change things. And it&#x27;s not gonna be devastating to you, so calm down. If anything, it&#x27;s going to be to your benefit. Significant benefit. But it has to happen. It has to happen this way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003835">00:38:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay. So that&#x27;s where we&#x27;ll lead up to on the next show? When we come out of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003842">00:38:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, I just wanted to cover - quickly, before we go to the next one here - is just a couple of points. To cede, C-E-D-E, means that you are giving up or you&#x27;re surrendering or you&#x27;re transferring of control of something. And this is really, really important to understand about your own self and staying in your power as we go through this transition. Because it&#x27;s happening - finally, I believe, happening - because that&#x27;s one of the major achievements, is they can no longer jump us back in time, and buy time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003922">00:39:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, a lot of times we thought, &quot;Oh my God. We&#x27;re here. This is so exciting!&quot; And then, all of a sudden, we&#x27;re not. That&#x27;s why we were not. That&#x27;s the point. The &quot;no ability to jump&quot; is very, very important for us. And it&#x27;s not just about time. They could also do it with computer systems. It&#x27;s like a system reboot. And once that ended, you know, maybe they bought themselves two years. But slowly but surely, we&#x27;ve been going through these two years and boom. Now we&#x27;re at that point, and they couldn&#x27;t jump us back again. There&#x27;s only certain times that they can actually make a jump, and they missed the window. So very good for us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004006">00:40:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So they don&#x27;t have the ability to jump back in time. That&#x27;s been neutralized; it&#x27;s been taken away from them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004011">00:40:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We believe so, yes. They&#x27;ve been trying for the last four days. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004016">00:40:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Wow. And we&#x27;re finally back at that point, the origin of creation when this all started, the creation of the Machine, correct? (Kim: Yep.) Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004028">00:40:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There&#x27;s more. Okay. To cede means, basically, you&#x27;re giving up control or transferring of control of something to someone or something. And we do this every day. We&#x27;re forced to do this every day, believe it or not. We had no choice because they make it impossible. Think about it. Like, during the pandemic when you had to get the thing [vaccine injection], you know, &quot;the thing&quot; - because if this ever ends up on... you get the thing or you don&#x27;t have a job; you can&#x27;t eat; you can&#x27;t have a place to live; your business shuts down. In some countries it was even worse than it was here in the States, believe it or not. But it&#x27;s a forcing of getting you to do something, basically transferring over control in one way or another. And in this case, we were all... you know, now we&#x27;re still seeing the effects.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004130">00:41:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right. Yeah. They constantly put us in situations that are impossible to make the right choice. (Kim: Mhmm.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004138">00:41:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: It&#x27;s a &quot;Do I buy groceries, or do I pay the electric bill?&quot; kind of a decision, right? You need both things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004145">00:41:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004146">00:41:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And so they force you into a corner with everything. And that&#x27;s how they get us - have gotten us in the past, at least - to cede our power, to give our power over.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004156">00:41:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Absolutely. Now, there&#x27;s something to concede. Basically, to concede means to admit that something is true, even if you initially thought or denied that it was true.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004213">00:42:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And you said earlier that our concession ultimately makes it real. That... by conceding to something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004222">00:42:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm. By accepting the &quot;truth&quot; that is not the truth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004231">00:42:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So they&#x27;ve used our own, basically abused us into a state of concession, let&#x27;s say, to get us to basically create something for them. Going back to your original point is: they need us to create. (Kim: Mhmm.) Because - I love this term you used before - they are born of no Source. (Mhmm.) So they have no life without our life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004256">00:42:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right. Moreover, remember, there were x-amount of actual Homo sapiens living here. Once they cut off that connection from Source, they don&#x27;t know how to create a Homo sapiens. So they created people in their likeness. They created people in our likeness. You know? It reminds me of that movie, &quot;Aeon Flux,&quot; if you&#x27;ve ever seen it. (Tank: Yeah, it&#x27;s good.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004328">00:43:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;Aeon Flux&quot; is where they&#x27;re walking around and they&#x27;re seeing all these kids, you know, that look like their sister or their brother, or they recognize them and they go through this - there&#x27;s some guy in a blimp somewhere that decides who&#x27;s coming back and who&#x27;s not coming back, and which family they&#x27;re gonna be born into, and they&#x27;re supposed to all forget - and eventually, they stop forgetting and they start recognizing these people. So it&#x27;s just all very - they recognize the soul, you know? They start seeing the soul.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004401">00:44:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And you mentioned this a long time ago about the Progenitors that were of the Light, got a disease or a virus and they were wiped out, correct? Now was that just here in the Machine?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004418">00:44:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004418">00:44:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Because they...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004420">00:44:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I would say that every species has Progenitors - meaning the original versions of those species - millions of them, right? And the Machine is the virus. (Tank: Oh.) But here&#x27;s why. Because remember, so if you have all of these factors of Source - you know, you have all the omnis that we talked about, and then all the omnis have their own factors within them too. And if all of those things are taken and they are inserted into the Machine, what happens to all of life? What happens to the Progenitors? What happens to everybody else everywhere? All the species? You immediately get... a virus.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004507">00:45:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, because it&#x27;s diseased. Right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004509">00:45:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s just, now all of these Creator-important items are now held within the Machine, and they&#x27;re under the control of the Machine. And they&#x27;re now, quote-unquote, &quot;gods of creation.&quot; And so the Machine is not only meant for control, it&#x27;s also meant to prove a point, so to speak - that God can&#x27;t create without them - Source cannot create without them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004542">00:45:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004545">00:45:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So we&#x27;re locked in the Machine, and the Machine is recreating the same scenario over and over and over again. (Kim: Mhmm.) So as people think about, like, you know, we repeat the same mistakes over and over again. I mean, that&#x27;s not just in one lifetime. It&#x27;s... I mean, it could be throughout a billion-plus years of lifetimes over and over again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004606">00:46:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And what do we do? I mean, we generally - not all people - but a lot of people would like to seed also. You know, we would like to give life. You know, we would like to have children, have a family. You know, we do that. We want to continuously create. And that soul does come onto this planet also, or comes into the whole system. Let me just say it comes into the whole system. It&#x27;s filed away, and, you know, here we are, now we have a family, and we have kids. And we have - according to them - way too many people on the planet because there has to be a balance. Without us leaving this planet, then they can&#x27;t exist on this planet either because the Machine only has so much memory. They would like the planet to be completely occupied by themselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004659">00:46:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And they actually, and part of their Covenant is to protect all life on some level as well, right? So they... (Kim: It was.) It was. (Mhmm.) Okay. But that no longer applies to them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004713">00:47:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, I&#x27;m not gonna say that. Did they preserve life? They did. </div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004722">00:47:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Their version of life.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004724">00:47:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, you know, that&#x27;s the gray area here, right? You know, all these people that are always shysters, they always run in the gray area. &quot;Did we protect all the life that existed? As we knew it, because we don&#x27;t know anything else that happened.&quot; &quot;Oh, that&#x27;s right. Nothing could happen without all of us,&quot; you know, kind of thing. So... Mhmm. Yeah. You know, it&#x27;s like those... &quot;So, okay, so we only protected what we knew existed, and we put it in a nice vessel.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004755">00:47:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004755">00:47:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004756">00:47:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You put it all in a box.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004757">00:47:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You put it all in a box.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004758">00:47:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: A limited box of existence so they didn&#x27;t hurt themselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004801">00:48:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Kinda looks more like a vortex sort of shape, stretched out through the M87 galaxy. But, yeah, they put us in a tube, twisted.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004812">00:48:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I remember somebody talking about this - this horrible book I read, I can&#x27;t remember what it was - but it talks about how slavery is its own form of freedom. You&#x27;re free from making your own decisions or having any responsibility. I&#x27;m like, &quot;That is so written by this group.&quot; Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004829">00:48:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, abso-freaking-lutely. Absolutely. But it&#x27;s just important to understand these things as we go forward. The second thing that&#x27;s important that you retain from this particular episode is: understanding your resonance. You are not powerless. You can protect yourself. This is how you shield yourself. You can also shield from within, too. And that is one thing that they only make you believe and try to never let you do because they know they cannot affect you, and it is... Now, if humanity all got together and created that same resonance field for the entire planet, we wouldn&#x27;t be in this mess right now, but we are. So here we are. But it&#x27;s changing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004928">00:49:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So is... When we talk about resonance of this magnitude. I know you&#x27;re gonna talk about this later - and I&#x27;m not sure if you plug this in here now or if it&#x27;s quite appropriate, but I know that faith - and you were talking about this knowing, right, and resonance - are all kind of intertwined, it sounds like to me, the way you&#x27;re describing it. This resonance of knowing that Source is there all the time in everything we do. Literally, we&#x27;re all given a witness to this, you know, that our heart is beating all the time, right, with no help from you. Your lungs are breathing with no help from you. (Kim: Mhmm.) Most of the functions in your body are a witness that God is real and Source is alive in you. Is that in the resonance to create this shield in this sense of powerful - you know, not just a blockade, but also a thing like it&#x27;s a powerful bubble of lifeforce right around you, that&#x27;s protecting your life and those around you? (Kim: Mhmm.)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005031">00:50:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005032">00:50:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Because that to me is a really powerful thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005035">00:50:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: When it comes to faith, that&#x27;s... We&#x27;re gonna talk about that in Part Two. But when it comes to faith, people these days are like &quot;seeing is believing.&quot; &quot;Show me.&quot; We live in the &quot;show me&quot; world instead of the &quot;show me&quot; state.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005052">00:50:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I can&#x27;t remember which state&#x27;s the &quot;Show-Me&quot; state.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005054">00:50:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Missouri.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005055">00:50:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Missouri.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005056">00:50:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Of course. Misery. Misery is the state.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005059">00:50:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Misery! That&#x27;s right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005100">00:51:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005103">00:51:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Go ahead and live in the misery state.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005107">00:51:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005107">00:51:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Anyway, we&#x27;ll be right back. We&#x27;re gonna talk about faith.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005112">00:51:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005121">00:51:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
