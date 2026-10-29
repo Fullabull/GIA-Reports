@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-28</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-28 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Operations Report
+        <br>2026-Oct-28
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/@UnitedNetworkNews2024/videos"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261028_GIA-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the October 28, 2026 report with Tank, continuing from Part One on October 26, by examining faith and its connection to the Financial System. She catalogs misguided faith: in money backed by a government&#x27;s good faith, in gold-backed cash without knowing what the gold actually is, in presidents (Orange People included), in militaries whose upper ranks exist to protect Deep State assets, in doctors and health care systems, in religious leaders who are part of the Machine, and in science -- all telling people what they cannot do. That faith connects people to the Machine and keeps them in the Matrix. Fear replaces faith, and Tank names the CDC, the United Nations, and the FDA, whose pandemic directives doctors followed without question.<br>
+<br>
+Faith in the Natural way can never be taken, only given away. Because the Primordials seeded the Machine, it carries their seed in place of the Seed of Source: the seed of doubt. Faith in Source is a knowing present in everyone, surfacing as intuition and sudden solutions; when Kim&#x27;s water failed on her birthday, Source told her the fix was an O-ring. Tank cites a 2019 AstraZeneca trial product that left people feeling disconnected from God, and the FunVax, which turned the brain&#x27;s response to scripture from connection with God into disgust; Kim reports similar disconnection, infertility, and anxiety from the HPV vaccine.<br>
+<br>
+Knowing is the Wisdom. Source tells Kim when to stay and when to go, but she still has to act, and doubt pulls people back into dependency on the Matrix -- Source could have freed everyone long ago had all listened. Tank adds that a collective resonance of Homo sapiens with Source would be too powerful to contain, and that the connection to Source is the real gold backing the system. That connection is not the silver cord, which ties people to the Machine; it is unseen and within, like Wi-Fi -- the knowingness that is the Source Factor-X, which the Deep State can never predict. Kim intends to withhold information that could help the Deep State, which is about to be denied what it wants for the first time in forever.<br>
+<br>
+Kim closes with the payoff: the gold that backed the system was always yours -- the true Seed of Source. Unable to access it, the Deep State waits for people to access it and hand over information, which then takes the form of memory, and throws everything at intercepting an important thought or intuition. Part Three covers the Financial System and freeing yourself from the system.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000058">00:00:58 - Part Two</a></li>
+<li><a href="#t-000153">00:01:53 - Faith in money, governments, and militaries.</a></li>
+<li><a href="#t-000340">00:03:40 - Doctors, priests, and science</a></li>
+<li><a href="#t-000431">00:04:31 - Misguided faith connects you to the Machine.</a></li>
+<li><a href="#t-000500">00:05:00 - Fear replaces faith.</a></li>
+<li><a href="#t-000846">00:08:46 - The seed of doubt.</a></li>
+<li><a href="#t-000937">00:09:37 - Faith in Source is a knowing.</a></li>
+<li><a href="#t-001031">00:10:31 - FunVax</a></li>
+<li><a href="#t-001325">00:13:25 - Knowing is the Wisdom.</a></li>
+<li><a href="#t-001726">00:17:26 - The silver cord connects you to the Machine.</a></li>
+<li><a href="#t-002309">00:23:09 - The gold that backed your system was yours.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2026-OCT-26</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000000">00:00:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Prologue.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">What if everything you think you know is a lie? For decades, the Global Intelligence Agency has operated - above governments - to uncover the truth and reveal the world&#x27;s most hidden secrets. Kimberly Goguen, GIA director, built the Key Intelligence and Military System to infiltrate worldwide Deep State operations. Together with hundreds of operatives undercover worldwide, we run a network deep inside the fortress. We have one mission: to destroy the Beast and restore planet Earth, humanity, and life. This is the Global Intelligence Agency Report with Kimberly Goguen.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[TYPING ON-SCREEN: Misguided Faith: Connects you to the Matrix.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000058">00:00:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And we are back with Part Two of the GIA Report, or Episode Two. And this one here, in the last episode, we left it off at faith. And the reason why we&#x27;re talking about it - this is not gonna become the religious hour or anything like that, so just understand there&#x27;s some correlation between what they tell you, though, and how it affects you - and our Financial System, believe it or not. So we&#x27;re gonna do this whole... It&#x27;s been a long time, Tank, since you and I did the breakdown of the Financial System. It&#x27;s been six years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000134">00:01:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: It has been a while, yes. Yeah. But this is different. I mean, this is different than I&#x27;ve ever heard it before. You know, I&#x27;ve heard of &quot;full faith in lending&quot; and &quot;faith in credit&quot; and things like that. But this, I think, is kind of a breakthrough understanding of how important faith really is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000153">00:01:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. And you&#x27;re right. There&#x27;s a lot of things that they convince us that we should have - knowingly or unknowingly - faith in, at this point. So there&#x27;s faith in money, you know, backed by the good faith of insert-your-government&#x27;s-name-here. And then we call this fiat cash, and we don&#x27;t want the fiat cash. We want gold-backed cash, and you don&#x27;t even know what the gold actually is. You know, most people think it&#x27;s a bunch of bars. &quot;We want gold-backed cash back.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000224">00:02:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You do and you don&#x27;t. I shouldn&#x27;t say you don&#x27;t - you do and you do - but you have to understand what the gold actually is, and what you&#x27;re missing. They also convince you that you&#x27;re weak, so now you&#x27;re having faith in governments. &quot;The president&#x27;s going to save the world of insert-country-here,&quot; including Orange People. Just saying.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000250">00:02:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And &quot;The military is going to save you.&quot; They&#x27;re going to come keep you safe and protect you and all of that. And don&#x27;t get me wrong, there&#x27;s a lot of good men and women that go into the military with the intention, or go into service as a police officer or otherwise where they have the intention of actually protecting people. They would like to do that. The corruption runs deep, though. The further you move up in the ranks, then the further you understand that &quot;That&#x27;s not what we do here.&quot; Their job - one thousand percent - is to protect the assets of what you call the Deep State. That&#x27;s their job. Now we&#x27;ll talk about what&#x27;s an asset and what&#x27;s not an asset in the next part.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000340">00:03:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We also are supposed to have faith in doctors, health care systems, Hippocratic oaths, and all kinds of other things. Also, let us not forget those people with the weird pointy hats, and the holidays, and how we have to go confess our sins to these people - because, you know, &quot;We can&#x27;t reach God ourselves, so we need somebody to do it for us&quot; - who is also part of the Machine. So these are all people that are telling you you cannot do something. Science tells you you cannot do something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000410">00:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: The limits and bounds of everything that we know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000413">00:04:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The glass ceiling.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000415">00:04:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. The governing bodies, in many different ways, whether it be religion or just the currency you spend. It actually says &quot;In God we trust.&quot; It says it right on there. Although more than likely, the &quot;God&quot; in this case would be the Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000431">00:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And this is what I call - yeah - that&#x27;s what I called &quot;misguided faith.&quot; We believe our salvation and our savior, and the answer to all our prayers is going to come from one of these items. I mean, there are many others you can probably think of within your day. And that faith misguided actually is what connects you to the Machine. It&#x27;s what keeps you in the Matrix. Think about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000500">00:05:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The other thing is that fear often replaces faith. Because if you have faith that somebody&#x27;s gonna come give you a ride or something - if you&#x27;re standing out in the snow and your car broke down - you trust that person implicitly. But what if you had to call them a couple times and they didn&#x27;t show up - even just once, really, and left you in a really bad situation? You start to lose faith in that person, don&#x27;t you? You don&#x27;t even ask them questions about why you [they] didn&#x27;t show up. You just stop taking their phone calls - a lot of people will do that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000537">00:05:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And the same goes for others around us. They lose faith if all of a sudden things aren&#x27;t the way they expect them to be. Not only in other people, but we see less people questioning what they consider to be authority. In other words, they&#x27;ll question the World Health Organization. They&#x27;ll write on an anonymous blog somewhere, or a community chat, or a Telegram about this person and that person. But if you stood right in front of that person, what would you say? I guarantee you 99% of you would say nothing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000616">00:06:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And also, the governments are considered kinda your final resource. I mean, so much faith that people put in governments that we&#x27;ll use them as our absolute to win an argument. Like, &quot;Well, the government has dictated this.&quot; &quot;The FDA - it has FDA approval.&quot; (Kim: Mhmm.) Right? These are all examples of how we&#x27;ve put our faith in organizations which are largely developed to control us, if not kill us altogether or even control the length of our lifespan. The CDC, the United Nations, the FDA, all these different organizations are all put in place that we put our faith in. And we watched it during the big said event that happened a few years back, where they literally just dictated policy and how to handle things to doctors all over the world, with no explanation. The people had so much faith, even the doctors had so much faith in them, that they just did it - even without question.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000714">00:07:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm. Or fear. Or money.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000718">00:07:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Or fear of consequences. &quot;If people die, so what?&quot; You know, &quot;As long as I&#x27;m not gonna get in trouble for it.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000724">00:07:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;I&#x27;m gonna lose my job.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000726">00:07:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: You know? Yeah. &quot;You&#x27;re not gonna lose your job - you&#x27;re doing what you&#x27;re told.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000729">00:07:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So faith, misguided. And fear is created from faith misguided - because you&#x27;re not trusting in yourself. And then, do you trust yourself enough to act on it? And then, if Source tells you to do it - and we&#x27;re gonna talk about what that is - but when Source tells you to do it, and then you don&#x27;t, or you stop yourself... Or, you try, you know, they make you out to look like a crazy person sometimes. They make you out like, &quot;Hey, you know, that person is way off the deep end, so don&#x27;t listen to that person.&quot; And then they send out frequencies and a resonance so that people don&#x27;t. Even your friends and family and everybody around you. So this is how it&#x27;s done, this is the manipulation of keeping you alone. And people buy into it all the time. Even people that are in the know do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000828">00:08:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000829">00:08:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You don&#x27;t trust yourself.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000833">00:08:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Constantly creating impossible options.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000835">00:08:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000836">00:08:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: And to the point where if you had to take a stand and actually demonstrate what faith looks like - that faith in Source, like, within you - that&#x27;s a whole different animal.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000846">00:08:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Would you? (Tank: Yeah.) Now, on the other hand, what is faith in the Natural way? It&#x27;s the one thing they actually could never take from you - you have to give it away. They can try to force you. They put all those whole things - remember, so if these Primordials seeded the Machine, then the Machine has their seed. So the Machine, in the absence of the actual true Seed of Source - now seed, S-E-E-D, to be very clear - so now, in the absence of the Seed of Source, we have the seed of the Machine, which you could call it the seed of doubt.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000937">00:09:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, faith in Source is a knowing. It&#x27;s present in everybody. That&#x27;s the one thing they could never stop - but try to control desperately, in every way possible. They would love for you to give up that little voice in your head that tells you, &quot;Oh, you can do this, and I&#x27;ll be right here with you.&quot; &quot;You can do it.&quot; Or, &quot;Here&#x27;s how you solve that problem that you couldn&#x27;t solve before.&quot; And maybe your plumbing&#x27;s leaking and you can&#x27;t afford to hire a plumber and you&#x27;ve tried to fix it and you&#x27;re so frustrated, and all of a sudden, two o&#x27;clock in the morning, you wake up and you&#x27;re like, &quot;Hey, I have this way to fix it.&quot; &quot;All I need to do is turn this and turn that.&quot; And boom, you get up and you go do it, and there - the water is fixed - and you&#x27;re like, &quot;Oh, thank God.&quot; But those little solutions and intuition are knowing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001031">00:10:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So just to witness to that - because I think this is a really powerful witness - is in 2019, AstraZeneca created a product that they were... they had the permission to do early tests on, in very large populations. And the number one thing that came back from that product is, people said they felt like they were disconnected from God. And you can tie that back to something called the Fundamentalist Vaccine, or the FunVax - (Kim: Oh! Fun vax!) - which the vaccine allegedly... Yeah. That&#x27;s what it was actually called. Sorry, that&#x27;s what it was called. It was actually created to prevent suicidal bombers or fundamentalist Islamic terrorists, is the way they describe it. And so what it did was they read a scripture to them before they were given this product. And then, what happened is the part of their brain lit up that they said made them feel connected to God. Then they gave them the product. And afterwards, they read the same exact scripture to them. And instead of registering this excited temporal lobe where you&#x27;re connecting to God, it registered in the part of the brain that registered disgust.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001152">00:11:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So imagine if someone could take what you love, whatever it is, whatever you&#x27;re passionate about, but your connection to God and turn it into hate. Now those things are validated. They really happened. Those are well-documented events that have taken place. So it just speaks to exactly what you&#x27;re talking about. What they&#x27;ve tried to do is find a way to do that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001214">00:12:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I was laughing because, you know, that was what a lot of people that took other types of vaccines as we know, back in the day, felt also. So I&#x27;m like, you know, I wonder if this is the precursor to that. But...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001225">00:12:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Well, I think they&#x27;re connected for sure. That&#x27;s my theory on that, my opinion.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001230">00:12:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I think they probably all have them. The other thing that I&#x27;m actually hearing - similar infertility results and similar disconnections and severe anxiety and other things from people that have also taken the HPV vaccine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001247">00:12:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Very true. It also increases your chance of getting cancer by 85 percent. People don&#x27;t realize that with the HPV vaccine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001257">00:12:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Wow. Oh, no.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001258">00:12:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: So. That&#x27;s definitely a... and they&#x27;re trying to push it on kids - young girls, like as early as nine years old. And any parent in the know - you should definitely know that it has the exact opposite effects - long-term effects will be deadly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001317">00:13:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mmm, wow. Well, hopefully, your kids didn&#x27;t have it. Mine did not. No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001325">00:13:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But back to the knowing here for a second, here - we&#x27;ve got a report to finish. Okay, so knowing is the Wisdom. It&#x27;s that little thing that, in my life, I can say that got me out of trouble. Meaning, I might have been in a heated situation - which I&#x27;ve been in a lot of times - and Source would say, &quot;No, it&#x27;s okay, go.&quot; Or &quot;No, don&#x27;t go.&quot; Okay. I really didn&#x27;t wanna sit next to that guy I was talking about where the, you know, like, this whole resonance issue that I talked about. Ugh. And He goes, &quot;No - something you need to see. Stay.&quot; Same thing happened in Durango. &quot;No - there&#x27;s something you need to understand. Stay.&quot; &quot;Okay. I&#x27;m in the armpit of the planet here, right? You know that? You can see that from there? Okay. Alright. Well, we&#x27;re gonna, we&#x27;ll stay for a little while longer anyway.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001421">00:14:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I always have considered - myself, personally - Source as the savior, you know, directly of my person, and salvation. But I still have to act on it - like, I still have to get up and do the thing. You know, if He tells me, &quot;Look, there&#x27;s people coming with a gun, and they want you dead, and they&#x27;re gonna come shoot you. You need to move exactly when I tell you to move.&quot; And then I just sit there like a lump on a log, then that&#x27;s my bad. This is the part where you are the savior. So in other words, you have to listen to yourself; you have to have faith in yourself; you have to have faith in Source. Because you can&#x27;t see it - you don&#x27;t know what&#x27;s next. You go down the road and you&#x27;re like, &quot;Well, what&#x27;s next?&quot; And sometimes He doesn&#x27;t answer you, you know? It&#x27;s because... It&#x27;s the same thing with these reports sometimes. Sometimes they&#x27;re delayed a little bit - because I&#x27;m not supposed to say anything to you. It&#x27;s not you personally.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001522">00:15:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Maybe I give too much information to the Deep State. It&#x27;s like, now I&#x27;m gonna start withholding some of that stuff - because it&#x27;s gonna hurt us in the long run, and I do not want to hurt you. I know you&#x27;re upset and you need to hear from Kim right now because you feel the world is crazy, and I get that. And no one knows the crazy more than me - because we&#x27;re about to go onto a ride where the Deep State is not gonna get what they want for the first time in forever. So trust me, a little bit of faith and a little bit of hope... I mean, I&#x27;m not gone anywhere. Tank&#x27;s not gone anywhere - he&#x27;s been around a long time. But just understand the knowing is the most important thing that you&#x27;ve got, and that is the goal. That is the goal. And without [with] you doubting whether it&#x27;s your intuition - &quot;Did I really hear that?&quot; &quot;Oh, that&#x27;s crazy, I&#x27;m not doing that.&quot; You know, all that kind of thing - then it brings you right back into the dependency on the Matrix, because Source actually could have got us all out a long time ago if we all listened.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001632">00:16:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: That&#x27;s a powerful statement. So, we keep going back to this. The collective resonance is way too powerful to be contained. (Kim: Mhmm.) If there was a true collective resonance here amongst all the Homo sapiens on the planet...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001651">00:16:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: With Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001652">00:16:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: With Source, right. Which seems nearly impossible to achieve, you know, even I find it to be seemingly impossible. But at least the most powerful thing - the true Light of Source, the real gold backing the system - is the connection we have to Source. (Kim: Yep.) Right? Am I right? And also, you mentioned the silver cord that connects us to Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001724">00:17:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Same thing, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001726">00:17:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, it doesn&#x27;t connect us to Source. It connects us to a Machine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001730">00:17:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Oh, the silver cord? Okay. (Kim: Yeah.) Alright. I had that way wrong! So delete - cancel that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001736">00:17:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, it actually connects us to the Machine, believe it or not. Now, the one that connects us to Source is unseen. So it&#x27;s not like you&#x27;re dangling like a puppet. It comes from within. It&#x27;s like Wi-Fi. Source is on Wi-Fi. It&#x27;s one thing that they can never break - that one piece of you that&#x27;s your knowingness. That&#x27;s the Source Factor-X - because they never know what&#x27;s going to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001809">00:18:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, for us, we&#x27;re very predictable people: we don&#x27;t do things - because we&#x27;re afraid of them; we stop ourselves from listening, and we doubt ourselves all the time. And &quot;Hey, we&#x27;re just gonna promote that &#x27;I&#x27;ll believe it when I see it.&#x27;&quot; Now before, we used to see Source everywhere because miracles would happen every day. Miracles still happen every day, but you&#x27;re still like, &quot;I&#x27;ll believe it when I see it.&quot; You know? &quot;Oh, this is never gonna happen.&quot; Oh, you know, all of this stuff, I hear it all the time every day. But you know what? I&#x27;m sorry. I understand you&#x27;re angry. I am tired of waiting for things myself. I really am. And I&#x27;m tired of going, &quot;Oh, look. What&#x27;s that little lump in the rug?&quot; You know, you pull up the rug and then there it is: &quot;Oh, my God! There&#x27;s 9,000 more Deep State people? You&#x27;re kidding me!&quot; You know? So, no one&#x27;s more sick of it than me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001906">00:19:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But, anyway, I still have faith in Source and I&#x27;m gonna continue to do this - with or without you people. But if we all got together, this would be a heck of a lot easier. But, you know...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001917">00:19:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Is it more of a &quot;you&#x27;ll see it WHEN you believe it&quot;?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001920">00:19:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001921">00:19:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Like, if you actually believe it, you would just start to see Source everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001924">00:19:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001926">00:19:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: I remember in &quot;Karate Kid&quot; - which actually should&#x27;ve been called the &quot;Kung Fu Kid&quot; as a new one - Jackie Chan has this great line. He&#x27;s like, &quot;I see kung fu in everything.&quot; Right? And I love that principle, right? Because it&#x27;s a cool movie to watch with the kids. But the same principle applies to Source, right? (Kim: Yeah.) When you start to look for Source in everything, and realize miracles are happening every day, all the time - and start to be grateful and appreciate and look for those - we would likely see them more and more because it&#x27;s gonna change our resonance, it would seem to me - or align our resonance with Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002003">00:20:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Absolutely. No, truly, I mean, it&#x27;s your... It is your protection. It&#x27;s your defense. It&#x27;s your offense. I mean, it&#x27;s your... It&#x27;s every... And that knowingness has saved my life I don&#x27;t know how many times. I mean, it&#x27;s not just my life that it saved. It saved me... I&#x27;ve been sitting there trying to fix something - and it was my water a couple of weeks ago - because all great things happened on my birthday, as you know. So, yeah, so that happened. So I&#x27;m under, you know, trying to fix the water system, and then the heat goes out. And that all happened on my birthday. So that&#x27;s what, that&#x27;s what I usually... they... you know, they... I&#x27;m pretty sure the Deep State&#x27;s like, &quot;I cursed the day you were born,&quot; or something, I have no idea. And I&#x27;m sure it&#x27;s probably worse than that. But nonetheless, I just expect this. So I, you know, I&#x27;m down there fixing it and all this kind of stuff, and I&#x27;m like, oh, I just need... And then I kind of sat, I calmed down. I&#x27;m like, &quot;Okay, I&#x27;m not gonna get frustrated here. I&#x27;m gonna talk to Source.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002104">00:21:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;Okay, I need the water to come back on. Can&#x27;t turn it back on like this, so what are we gonna do?&quot; And He&#x27;s like, &quot;The O-ring.&quot; Okay. I need to go get an O-ring. Alright. So I can do that. And so, anyway, problem solved. Boom. All set - everything&#x27;s running perfectly okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002124">00:21:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But nonetheless, you know, Source is always there. I mean, even if it&#x27;s something that stupid, right? It&#x27;s not stupid - but it&#x27;s, you know, it&#x27;s part of life, right? Solutions to everyday problems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002136">00:21:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Yeah. Constantly available. Unlimited - with unlimited potential, unlimited power, unlimited knowledge, vision, and wisdom - is at your disposal at all times.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002150">00:21:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, it gives me tons of solutions, I mean, all the time. &quot;Mix this with this herb, then mix that with this, do this.&quot; And I wish I could do that all day long with Source - all day long, every day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002204">00:22:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Maybe one day I will, but nonetheless, we&#x27;ve got to have a discussion about this whole putting your faith in things that are not Source. And it&#x27;s not... it&#x27;s okay to have faith in your family, your husband, your spouse, your wife, your kids, friends - of course. Faith that they&#x27;re gonna show up and get your car. But when Source says, &quot;Tell Mary, don&#x27;t do this, or do this - and everything will be okay.&quot; You&#x27;ve gotta at least give it a go, and not doubt - and not doubt yourself either.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002253">00:22:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: These reports are always interesting, Tank. It&#x27;s like, I haven&#x27;t coughed in, I don&#x27;t know, an eon. Twice in this report. You know, it&#x27;s like a tickle in my throat. Need to go grab some water terribly, but nonetheless... yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002309">00:23:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So. The gold that backed your system was yours. It&#x27;s the true Seed of Source which you carry always with you. All you need to do is access it. They cannot access it, therefore, they wait for you to access it and then give them information, which then turns into the form of a memory. Then if they need to intercept that thought and that bit of intuition, they&#x27;re gonna throw everything at you - especially if it&#x27;s really important that you don&#x27;t do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002344">00:23:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There are certain things that free you from a system, and we&#x27;re gonna talk more about that. We&#x27;re gonna talk about the Financial System in the next - Part Three here. And then we&#x27;re also gonna talk about freeing yourself from the system. Or maybe... maybe freeing is happening, who knows?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002409">00:24:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Tank: Hahaha! Alright. I look forward to it. We&#x27;ll see you next time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002412">00:24:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002421">00:24:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/@UnitedNetworkNews2024/videos" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
