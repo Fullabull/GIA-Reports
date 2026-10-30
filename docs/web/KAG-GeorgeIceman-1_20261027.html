@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2026-Oct-27</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2026-Oct-27 GIA Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>Kag George Iceman 1
+        <br>2026-Oct-27
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://www.youtube.com/watch?v=1_hE8tzLc6o"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://www.youtube.com/watch?v=1_hE8tzLc6o"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20261027_KAG-GeorgeIceman-1.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim joins George Iceman, host of the Reveal Report and a longtime researcher of the occult, for the October 27, 2026 broadcast. George raises two viral scares: an Axios report of unauthorized AI agents inside customer accounts at major U.S. banks, and a video predicting a Friday bank collapse and a forced switch to digital currency. Kim explains that AI agents connect through MCP under permissions the bank controls; an agent cannot roam bank servers or crash a bank. The scare is a Deep State narrative, the same &quot;die every two weeks, get rich every two weeks&quot; cycle that tracks the moon.<br>
+<br>
+The collapse was set for Friday, October 30, just ahead of All Hallows&#x27; Eve, when occultists believe they hold the most power over humanity, whom the inverted Financial System counts as the dead. On October 26 the factions went to DEFCON Zero and tried to transfer the Financial System to a backup system in Texas once run by the Federation military. Kim says this was probably their fourth attempt in a year to regain control of the Financial System. Nobody tested it first; it has not functioned in three or four years. Kim was held on standby until nine o&#x27;clock. Had the transfer worked, they would have demanded she concede. She alone never has, and the piece of Source she guards is what they want and cannot take.<br>
+<br>
+Kim discloses that prisoner bonds are the base root asset of the Financial System. Decades of privatization turned citizens into numbered assets whose guaranteed purchases, the Worldwide Consumer Network, are factored at banks. Earth itself is a prison planet: bonds issued against every person in perpetuity keep humanity in debtors&#x27; prison, taxes are the coupons, and every bond is registered with ANNA in Belgium, partner of the X/N System, the worldwide tax authority. Bonds for existence run up to $5.9 million a day per citizen. Money and crypto are debt notes, crypto the &quot;currency for the dead,&quot; and the new crypto platform has never run two minutes. The Clintons&#x27; Evergreen Foundation failed to gain control of the Financial System in the 1980s and &#x27;90s. The Federation, the Sanhedrin, and a separate soulless rebel faction called the Foundation, which Kim will cover in the next GIA Report, all fight over these bonds, but none can reissue them; without them the Elite lose the right to leverage people or land, including Greenland.<br>
+<br>
+Kim closes with reassurance: Source always steps in. Use discernment, hang in there, and talk to God.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-000537">00:05:37 - Banks detect rogue AI agents.</a></li>
+<li><a href="#t-000718">00:07:18 - How AI agents really work.</a></li>
+<li><a href="#t-001505">00:15:05 - Viral video</a></li>
+<li><a href="#t-001634">00:16:34 - Why this Friday</a></li>
+<li><a href="#t-001918">00:19:18 - Last night</a></li>
+<li><a href="#t-002119">00:21:19 - Prisoner bonds</a></li>
+<li><a href="#t-003135">00:31:35 - The Worldwide Consumer Network.</a></li>
+<li><a href="#t-003204">00:32:04 - Private prisons</a></li>
+<li><a href="#t-003757">00:37:57 - The economics of a prison planet.</a></li>
+<li><a href="#t-004014">00:40:14 - ANNA and the X/N System.</a></li>
+<li><a href="#t-004258">00:42:58 - Crypto</a></li>
+<li><a href="#t-004517">00:45:17 - No bonds, no rights -- even to Greenland.</a></li>
+<li><a href="#t-004814">00:48:14 - Taxes are the coupons</a></li>
+<li><a href="#t-004931">00:49:31 - The Clintons&#x27; Evergreen Foundation.</a></li>
+<li><a href="#t-005106">00:51:06 - Three factions, and the Foundation.</a></li>
+<li><a href="#t-005230">00:52:30 - Nobody took it to the garage.</a></li>
+<li><a href="#t-005559">00:55:59 - Why they needed Kim to concede.</a></li>
+<li><a href="#t-010052">01:00:52 - Closing message.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <br>
+<div class="timestamp" id="t-000006">00:00:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Hey, everybody. Welcome to the broadcast. It is a special report on a Tuesday. Kim Goygan - or Kim Goguen - is here. I always mess up her name. I&#x27;m sorry, girl, you&#x27;ll fix it on the way back. We are about to begin - fasten your seat belts. Get your coffee; get your drinks; get your popcorn - get whatever snacks you want. We&#x27;re gonna talk. Is there a possible blackout? A financial apocalypse coming to America and the world? Are banks being robbed by AI? We&#x27;re gonna touch on a lot of this stuff. Stay tuned, and welcome to the Reveal Report. Coming up, next.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000042">00:00:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Music.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000202">00:02:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Hey, everybody, welcome to it. I&#x27;m your host, George. Thank you for being here tonight. If you&#x27;re new, thank you for joining us. We got quite the broadcast. Let&#x27;s get some stuff out of the way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000210">00:02:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: First of all, if you&#x27;ve never seen me or been on my channel, I&#x27;ll tell you a little bit about myself. I spent 13 years studying the occult, the supernatural, the paranormal, and demonology. I had an issue with the supernatural in Los Angeles, California, when I studied film and television many, many years ago. So I went on to a place in Lexington, Kentucky, and then later on to Connecticut to learn with a pretty popular paranormal team. Actually, it was Lorraine Warren. I learned a lot from her - incredible experience with Lorraine. That&#x27;s me and her doing a lecture. Yes. Lorraine, of course, is a prominent demonologist and paranormal researcher. I learned a lot from her, and then learned a lot from the darker side. Never in a million years when I started learning about ghosts did I think there was a connection to entertainment, politics, government, religion, science - so much, guys. It&#x27;s all connected to the occult, which means hidden knowledge.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000316">00:03:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: This is why we&#x27;re doing this show. There&#x27;s always a connection. Who are these people in charge? Is it a conspiracy? Do we think there are people behind a closed door - like in the &quot;Wizard of Oz&quot; - pulling the strings? Well, we&#x27;ll talk about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000328">00:03:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Please welcome my guest who was a very successful investor/banker type, did very well for herself, and somehow found out about her roots and her bloodline. And she was chosen to do some interesting things. Dig in deep. We&#x27;re not gonna do a whole thing on her, but we&#x27;re very proud that she&#x27;s here on the show. She does not choose to do a lot of interviews, so she&#x27;s particular, and I&#x27;m grateful. Let&#x27;s welcome Kim Goguen. Kim, how are you?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000400">00:04:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m good. How are you?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000401">00:04:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I&#x27;m enjoying a coffee...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000403">00:04:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Should I call you Jorge?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000404">00:04:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Call me Jorge.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000406">00:04:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Didn&#x27;t you call me Gogwen? Gogoan? Jorge!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000410">00:04:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: How do we pronounce - (Kim: Jorge!)</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000412">00:04:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: How do we pronounce it correctly?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000415">00:04:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s Go-gun [Goguen].</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000416">00:04:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Goguen. Oh, I love it. It&#x27;s even easier. I don&#x27;t have to try to put a spin or a length like it was European or Russian or something like that. So that&#x27;s good. Goguen, okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000426">00:04:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Actually, it&#x27;s French Canadian, believe it or not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000428">00:04:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Really? Interesting. Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000431">00:04:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: My dad was French Canadian. And the other side of the family is from Eastern Europe. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000438">00:04:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Okay. Kim, there is a lot going on in the world. I reached out to you because people are freaking out. There&#x27;s panic. Social media, so-called truthers are putting up, they&#x27;re putting up these videos, and they&#x27;re saying, &quot;Hey, this is what&#x27;s about to happen.&quot; So I said, you know what? I haven&#x27;t done one of these in a very long time. I usually just keep it about the supernatural. And I said, I gotta touch on the news aspect of it - it&#x27;s important. You see, human beings - our souls are batteries, or energy, and certain groups and bloodlines feed off this energy - to make them more powerful and to manifest their desire. Fact: it&#x27;s called loosh.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000518">00:05:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So I thought I&#x27;d bring Kim on and we touch on this. I&#x27;m going to play a quick video, and then I wanna get your take. This is one of the first...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000525">00:05:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;ve got a lot of news for you, George.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000528">00:05:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I&#x27;m excited. Here&#x27;s our first video, ladies and gentlemen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000531">00:05:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I saved it just for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000533">00:05:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: It&#x27;s an exclusive! I love it! Here we go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000537">00:05:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">News Reporter: We have significant news right now, as major U.S. banks have detected unauthorized AI access in customer accounts according to new reporting from Axios. Axios is now reporting that banks are detecting unauthorized third-party AI agents operating inside customer accounts. Some of the agents have attempted to take actions that appear to be independent of user instructions. Now this is difficult for banks and the banks include Morgan Stanley, Bank of America, JPMorgan, Wells Fargo, and others. They&#x27;re right now working around the clock to alleviate the risks. Some are unaware of unauthorized access, people familiar with the issue said. So these situations, according to Axios, are generally when an AI assistant accesses a human account with the user&#x27;s permission and login credentials. But even if permitted, it actually goes against the guidelines of most banks requiring that humans log in to their own accounts. But there are also some - according to Axios - some examples of AI trying to take actions that are independent of user instructions. So this is a big problem. We&#x27;ll see what the banks do. Spread the word. Follow along for more.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000640">00:06:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: There you go. What... (Kim: Alright.) Talk to us about it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000643">00:06:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: George, we are gonna talk. On YouT... We&#x27;re gonna talk on this, you know, nice tube here thing we got going on here tonight. We need to talk.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000652">00:06:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Let&#x27;s talk.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000653">00:06:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: The split screen drops George, but not Kim.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You and I are gonna talk - get back here! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000656">00:06:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Okay! [Both laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000657">00:06:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m caffeinated now - I&#x27;ve had, like, I don&#x27;t know - this giant cup of coffee right here. Yeah, so, have you ever used AI, George? (George: Yes.) Claude? ChatGPT? Okay. Have you ever used it in what&#x27;s called an agent form? Do you know what an agent is?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000717">00:07:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I do not, no.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000718">00:07:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So we know that we can log in to, like, ChatGPT or to Claude - I&#x27;m just using these two as an example - there&#x27;s literally hundreds out there. Lots of independent ones now too, that type of thing. So when you employ what&#x27;s called an MCP - which is basically your connection to an outside third party - the AI will chitchat with you based on its information that it draws in from the web, which is how it was designed by its owners. Like, it will pull up... You can say, &quot;Hey, where can I go on vacation?&quot; And it will give you the information. But if you wanted to perform functions for your business or your bank accounts or your information, you can do that, and it&#x27;s called using it as an agent. And it&#x27;s through what&#x27;s called an MCP connection.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000817">00:08:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So in layman&#x27;s terms, what this means is you&#x27;re taking the AI, and you are saying, I need you to do some jobs for me. So, therefore, I&#x27;m going to permit you access or limited access - and you can limit it, okay - to for example, my bank account because that&#x27;s what we&#x27;re talking about here. (George: Mhmm.) And then the bank has the right to set the permissions on their end, too. So in other words, your connection - that&#x27;s called an MCP - your connection is based on not only what the website is you&#x27;re wanting it to crawl, or the information coming from a third party - you know, a.k.a. the bank in this case - permits it to do. So it will not allow it to, for example, access all the customer records in the bank. It will not allow it to make a wire transfer. It&#x27;ll stop it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000918">00:09:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So even though you say, &quot;Claude, give me an analysis of everything I&#x27;ve spent on entertainment this month,&quot; it&#x27;ll go through your bank account, and it will give you all these possibilities and list it all for you. You can have it do reports from, say, your corporation&#x27;s website if you want: &quot;Give me the analytics on how much we sold in cars this month,&quot; or whatever it is you&#x27;re selling. So it&#x27;s very limited based on what the bank would allow and what you instruct it and allow it to do for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-000951">00:09:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Is it possible for customers to give Claude or ChatGPT access to a bank account and then have it just run willy-nilly in the bank servers? Absolutely not. Not even a thing - not a thing. That&#x27;s Number 1, okay? Number 2: &quot;It&#x27;s messing with banks; it&#x27;s going to crash banks.&quot; I have to tell you, I do not use Claude or ChatGPT for any kind of banking or anything like that. And I don&#x27;t use it to connect it to pretty much anything that I find that could be vulnerable. But I&#x27;ve used it for creating some graphics or things like that. But it&#x27;s... I don&#x27;t even let it upload the graphics. I also check the graphics for bots because that&#x27;s what an AI is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001051">00:10:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So the base root of these AIs basically is they distribute bots. That&#x27;s what they do. And they read information from all over the web. They have allowed them to crawl the web. So when you ask it a question, it&#x27;s simply going to pull information from websites it is authorized to pull from. You know, &quot;Can cats fly?&quot; It&#x27;ll pull up fairy tales for you of where cats have flown, possible video games where cats can fly, and it will tell you that the... you know, this version of this cat cannot fly, although they can jump this high. You know? Like, it&#x27;ll give you basic information that you could have gotten 10 years ago, off of the internet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001137">00:11:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I can tell you under no certain circumstances is it in any way, shape, or form ever going to take over the world. It is... I have to be honest with you. (George: Yes, please, tell everybody.) In my experience, it is the stupidest... I mean, literally, if you give it very specific instructions, it&#x27;ll perform a very specific task. That&#x27;s it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001202">00:12:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Agreed. Agreed. I&#x27;ve used it. Agreed. 100%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001206">00:12:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I don&#x27;t think we&#x27;re in fear of it becoming like this thing where it takes over your entire home&#x27;s lights and locks you in and causes a nuclear war. I don&#x27;t think so. In any way...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001222">00:12:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: On that, he said somehow that these banks were reporting - they were reporting - it was an independent investigation. He said they were reporting that there was a break-in, or something was going on with people&#x27;s accounts. Why would they blame the AI? What is the plan? There&#x27;s obviously a subtext that they&#x27;re not sharing with us. What do you think that plan is? Or the reason...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001248">00:12:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s called a narrative. That&#x27;s really what it is, it&#x27;s a narrative. So they devise these little plans - this is the Deep State, right? They devise these little plans in their brain, and they&#x27;re not very good at it. Honestly, they&#x27;re not. It&#x27;s so predictable and so easy. You know, we&#x27;ve all been &quot;going to die&quot; for, like, every two weeks now for... 15 years, I think, at least that I know of. Maybe 20 at this point, I don&#x27;t know. Something. But it&#x27;s been... As long as we&#x27;ve had internet, we&#x27;re all gonna die every two weeks, and we&#x27;re also all gonna be rich every two weeks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001326">00:13:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Every two weeks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001327">00:13:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Every two weeks. Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001328">00:13:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Money&#x27;s coming. I&#x27;ve heard that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001329">00:13:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In two weeks. Which just happens to also coincide with the moon cycle - but what do I know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001333">00:13:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: No, no, come on now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001335">00:13:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001336">00:13:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: We&#x27;ll get into that, believe me. Guys, really, briefly. So, you know, this is a two-part interview. Part One with Kim right now, we&#x27;re just gonna go over the basic rumors that are in speculation and filtering through the rumor mill on social media. The second half will be on Patreon - that&#x27;ll be a little bit different as we get into the occult aspect of this - the season autumn, and what&#x27;s transpiring - and give some of you an opportunity to ask Kim some questions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001404">00:14:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: First, we&#x27;re gonna blow some intel like crazy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001406">00:14:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: We&#x27;re gonna blow some intel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001407">00:14:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Just because I feel like it tonight. We are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001409">00:14:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah. Hold it. Hold it. Hold it. We&#x27;ve got one more video, and then you&#x27;re gonna lay the bombs down. So - so to speak - I mean, we&#x27;re not talking about actual bombs here, but you&#x27;re gonna share some...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001420">00:14:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Don&#x27;t say those words - we&#x27;ll get kicked off before I can even do it!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001423">00:14:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah. Guys, this is the second video that&#x27;s been going viral. A lot of people may have seen this on social media. Some people may have taken the information, made it their own, and passed it on as their own information, and it&#x27;s gone viral. I, of course, shared this with Kim because I wanted her to comment on this if you all have seen it and are getting nervous.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001444">00:14:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: This is what Kim was doing last night, and that&#x27;s why this show is on Tuesday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001447">00:14:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: 100% fact.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001449">00:14:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Again. She was in a meeting - high level - she will share that with us. But this is the video that&#x27;s gone viral. Are there attacks on our grid, blackouts coming, and they are gonna go digital with our currency and steal our money and force us to use their money when they want? Check it out.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001505">00:15:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Disclosure Agent: This will happen on a Friday. Remember I told you this. On a Friday, you&#x27;ll hear about a collapse happening. Saturday morning, you&#x27;ll go to the bank. Banks will be closed. ATMs will not work. You will not have access to cash. And you&#x27;ll hear there&#x27;s a financial collapse. Within three days, the stores will be emptied. That&#x27;s a proven fact. If you remember back to COVID - and they didn&#x27;t cut the money off - [but even still], people were fistfighting in the aisles of the stores within days over toilet paper. Imagine what they&#x27;re gonna do when there&#x27;s no access to cash and food. Three days, stores will be wiped out. Then you&#x27;re gonna start to see looting, rioting, stuff of that nature. Okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001543">00:15:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Disclosure Agent: During that period, from the time they cut the cash off to the time they come out and say, hey, guys. We&#x27;re gonna save everybody from these evil bankers that stole your money. We&#x27;re gonna give you a percentage of your money back, not the full FDIC stuff - that&#x27;s bull - so they&#x27;re going to come and say we&#x27;ve got a digital currency. This is how we&#x27;re gonna stop these bankers from doing this again because we&#x27;ll control it. Yeah, everybody&#x27;s got 30 days to turn their money in or it&#x27;s gonna be worthless. We&#x27;re switching over. During that period of cutting cash off and the time money is worthless, when the digital takes over, you will be able to buy things at pennies on the dollar. Anything you want, if you&#x27;ve got cash on hand. Because cash ain&#x27;t worthless yet, and the digital&#x27;s not taking place yet. And people gotta eat...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001628">00:16:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So that&#x27;s the gist of it. Alright, Kim. Take it away. When is the blackout coming?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001634">00:16:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. That Friday was supposed to be... this Friday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001640">00:16:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: This Friday coming up?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001641">00:16:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It was supposed to be this Friday. (George: Interesting!) Now do you know why this Friday coming up?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001646">00:16:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Well, it has to do with...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001648">00:16:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You - of all people - know why it would be this Friday?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001651">00:16:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001651">00:16:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Tell me.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001652">00:16:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So now, going into the Halloween, and the spiritual time when the Veil is the thinnest for them to manifest a desire, probably gonna be a lot of... I don&#x27;t wanna say it right now online - I&#x27;ll save that for the second half - it&#x27;s not a good time. A lot of witches and warlocks are working overtime here. They&#x27;re gonna pick that day. That makes absolute sense.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001711">00:17:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All Hallows&#x27; Eve.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001713">00:17:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: All Hallows&#x27; Eve - which, by the way, for those who don&#x27;t know, it goes actually back to the Catholics or the Christian... the Catholics trying to implement this with the Romans with a particular holiday to celebrate the dead, but that&#x27;s for the second half. Anyways, Kim, so it&#x27;s not happening. We&#x27;re not getting a blackout this Friday?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001731">00:17:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, I will give you a little clue, George, because - I won&#x27;t let it all out, we&#x27;ll do the other part - but, uhh, we are the dead. That&#x27;s the way that the - that&#x27;s the way that the Financial System sees us - is we are the dead. And because everything is inverted, we are the dead and they are the living. And in reality, it&#x27;s the other way around. They are actually not born of God. (George: No. Of course.) No, they&#x27;re not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001808">00:18:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They don&#x27;t have a soul anymore. They have given all of that up. And on the other hand, we were actually born of Source. But in their systems that we&#x27;ve been living in - it&#x27;s the opposite. We are the dead. They are the living. Get it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001828">00:18:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Inverted like Aleister Crowley: &quot;As above, so below.&quot; They invert and change everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001834">00:18:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right. Now the rest of the people, that are Homo sapiens, that decide they&#x27;re gonna practice occultism and witches, warlocks, that kind of thing - which decide this is a good idea - which people do, right? You&#x27;re a normal person, George, you did it, right? For a while.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001849">00:18:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001849">00:18:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You&#x27;re actually celebrating them. So you&#x27;re giving your power to, essentially, the dead, you know? So, why pick this day? Okay, well, they have the most power - they think, on a day like this - over us. But that actually... You know, everything has a way of working itself out because that actually ended.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001918">00:19:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So last night, the reason why we didn&#x27;t do this report is because there was a plan to move to what&#x27;s called the backup system. And I don&#x27;t know if you know this or not, but in the state of Texas, in the United States, there was a system that used to function as a backup to the entire world&#x27;s Financial System. And it was managed by, let&#x27;s call it &quot;the Federation military,&quot; which is above, for example, the U.S. military.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-001952">00:19:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But in everybody&#x27;s mind, it says Department of Defense. And people get confused between the... I call it the United States Department of Defense, but it&#x27;s really just a division of the worldwide Department of Defense. So military bases were manned last night. They had planned to wait until the market closed. They were trying to make the transition to the backup system - because in the past, they were the ones that ran it. So they thought, in order to capture control of the Financial System worldwide, they would go to - I had never even heard of this before - DEFCON Zero. (George: Really?) There apparently is a DEFCON Zero, which we went to last night.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002038">00:20:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow!!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002039">00:20:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: DEFCON 1 basically means the buttons have been pushed, nuclear weapons are flying in the air, and we&#x27;re all gonna die. So they went to DEFCON Zero last night in order to try to flip this machine. Now this is probably the fourth time in the last year that they&#x27;ve tried to do this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002058">00:20:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I&#x27;m sorry - you said four times?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002100">00:21:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Fourth time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002100">00:21:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002102">00:21:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That they&#x27;ve tried to do this - because they&#x27;ve lost control. But this time, it is dire. (George: Wow.) Because there&#x27;s something else that has been occurring over the last week or two.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002117">00:21:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Okay. Kim...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002119">00:21:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So this is... You know, you gotta let this one out on YouTube - I&#x27;m just saying - because, you know, it... Okay, so in this particular case, you may or may not be aware, and you probably have heard about birth certificate bonds. (George: Yes.) The information is all over the internet. You probably have people on your show that talk about them. But did you know that the base root of the Financial System is actually prisoner bonds?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002152">00:21:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Prisoner bonds. People that went to jail?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002156">00:21:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, let me explain to you how people that went to jail - compared to the entire planet, even people that have never been to jail - and why this is changing. So, several years ago, it started in the mid-70s - and really continued on until present day - where there has been a big privatization going on. It started even before the Bretton Woods convention - we went off the gold standard, all that kind of thing. This has been going on for quite a while. Whereby, before this, the governments pretty much owned the assets of the nation. And this is every government worldwide. And then eventually the World Government.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002251">00:22:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, pretty much it was a governance system, assets belong to the country - including you. So what is an asset to a corporation? Or to a large governance system? It doesn&#x27;t matter - I&#x27;m using the term &quot;corporation&quot; because it&#x27;s something you can relate to. If you&#x27;ve ever owned a company of any nature, your assets are your labor. You must have labor - that&#x27;s an asset to the corporation. It doesn&#x27;t mean its particular person. Like, George, if you worked for the Banana Republic&#x27;s corporation, you in particular are not an asset - your job is an asset.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002333">00:23:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002334">00:23:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay? So you, because you&#x27;re willing to do the work, are an asset, essentially, for your time there. Infrastructure and systems are also an asset. Meaning, infrastructure in the case of a country is your roads, your bridges, your security systems. It also is systems like supply chains, meaning trucking, trains, all that kind of stuff. Because they move cargo and your gross domestic product and your import and exports are dependent on this transportation, just as they&#x27;re dependent on you, who works there, to do this. Okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002422">00:24:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, there are also assets, things that are considered assets which are like in-ground assets and minerals and that type of thing, but it&#x27;s really any product produced within the nation. Therefore, corporate bonds are a thing. You see them on the stock market. You see them everywhere, right. We trade, buy and sell corporate bonds, we raise capital through IPOs and the stock market. But on a larger scale, every bit of that ends up going from the bank to the Federal Reserve. But that&#x27;s not where it ends.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002502">00:25:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So everything in the entire world has a number. Everything. You have a driver&#x27;s license number; you have a license number to operate a business; you have a license to operate a car; you have a license to pretty much - to practice medicine - you have a license for everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002522">00:25:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: You&#x27;re right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002523">00:25:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: These are all numbers. You have a government identification. Beyond, even before REAL ID, you had... in America, they call them Social Security numbers. You also have a tax identification number, pretty much in every country, for every tax authority worldwide. So you, as an asset, are a producing asset as long as you are working.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002548">00:25:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But you&#x27;re also a producing asset after you&#x27;ve retired. Even though you may be collecting government pensions, retirement pay, these types of things, you&#x27;re still an asset. Why? Because now you&#x27;re a different kind of asset. Because you are a consumer of contracts which require you to buy things like pharmaceuticals. As we age and we retire, a majority of people, not all, are on pharmaceutical drugs, as an example. Therefore, Pfizer, as an example, can take its entire consumer base who are dependent on taking these drugs.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002629">00:26:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002630">00:26:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, vaccines. You know, think about, you know, people are on insulin, people are on all kinds of medications, and those medications - and us collectively, as the citizens of not only a country, but also of the entire planet - now make up the buyers. Now you can take that enormous worldwide contract and take it to a bank and factor against it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002701">00:27:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I get what you&#x27;re saying. Okay. Interesting! Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002707">00:27:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. I know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002712">00:27:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: And let me just... If I get it wrong, I apologize, everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002716">00:27:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Toothbrushes, cellphones, everything.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002718">00:27:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Everything. Everything is an asset. So for instance, Pfizer could go to the bank and say, &quot;Hey, we have 20 million people that spend x-amount of dollars every month. This is its value. This is what it&#x27;s worth.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002732">00:27:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And it&#x27;s into perpetuity. (George: Wow.) So if you&#x27;re on, for example, cholesterol medication, they estimate your lifespan from that point on - based on demographics in your area, that male, female, etcetera, etcetera - and they assume you&#x27;re gonna live another 30 years, let&#x27;s just say, on average. And so that contract, the day you start taking that cholesterol medication, goes on for 30 years.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002801">00:28:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow. Now can they go and borrow from the bank on that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002808">00:28:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Every, every drug they sell gets put into a worldwide contract to sell. Yep. And in the case of prisons, it works the same way. On a smaller scale, this is what&#x27;s called privatization. Okay? So things that governments used to provide for us now are being provided by the private sector.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002837">00:28:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oil and gas. Many countries used to have nationalized oil and gas prior to the 1970s. For a long time now, that oil and gas has all been privatized, bit by bit. It actually even started before that, with Rockefeller, in the monopoly called Standard Oil. Then [that] was broken up into several different companies. We call these companies these days the Seven Sisters, right? They&#x27;re the largest oil producing - Shell, BP, Chevron. Even though they all go back to the same families - doesn&#x27;t make a difference, right? It&#x27;s no longer technically a monopoly - all owned by the same corporation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-002914">00:29:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So these folks produce, and buy - remember, they&#x27;re buyers - almost 100% of the world&#x27;s oil and gas produced. Now, you do have a few exceptions, like China Petroleum and others, that are buyers. Being a buyer is important. So these buyers and providers of oil and gas estimate how many people have a car in your country, how many people put oil and gas in said car, they then factor it against their... Now that&#x27;s one contract: citizens of America. Citizens of Canada. These are two contracts, and they must provide all of this. Therefore, they&#x27;re gonna factor against their buyers - guaranteed buyers - which is then backed up by your government because, technically, you are an asset of the United States government. You&#x27;re an asset of the Canadian government. You&#x27;re the asset of South Africa. And so it&#x27;s backed by the &quot;good faith&quot; of the government. And now it&#x27;s leverageable by credit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003029">00:30:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Remember, we live in a credits and debits system, credits and debits. And the people that do that are people like BlackRock and Vanguard. They do it on behalf of their customers and private families. So this is the privatization, worldwide, that has occurred over the last several decades of the oil and gas industry.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003051">00:30:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: They have a fiduciary responsibility. That&#x27;s what they have.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003059">00:30:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: If we do not buy, then that contract goes null and void.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003107">00:31:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: They need you to buy.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003108">00:31:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They need you to buy. That&#x27;s right.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003111">00:31:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Monopoly in action.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003113">00:31:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. They need you to buy. Now, unfortunately, we need to buy. They put you... They lock you into a position where you literally can&#x27;t function unless you buy it. It doesn&#x27;t matter what it is. It could be the pharmaceuticals and everything else in between, toothbrushes, cellphones, computers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003132">00:31:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Water. Water is gonna be the big one.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003135">00:31:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. It&#x27;s called the Worldwide Consumer Network. That&#x27;s who we are. Now every single purchase that you make has a number. Right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003148">00:31:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003149">00:31:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oil and gas, there&#x27;s a number. There&#x27;s a... it&#x27;s called an allocation number. I know. Sorry about the learning curve. But I&#x27;m... am I explaining this well enough so you understand it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003201">00:32:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: You&#x27;re doing great. Keep going. Yeah. Yeah. You&#x27;re going through it perfectly. Yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003204">00:32:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Now, let&#x27;s go back to prisons for a second, and how privatized prisons are concerned. So the Bush family actually owned a significant number of prisons in the United States. Recently, there are many judges that actually own prisons in the United States now too, especially - and I know this firsthand - in the state of Florida. There are about 6 or 7 judges that own the majority of prisons in the state of Florida, as an example.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003231">00:32:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay? Wow, that&#x27;s interesting - you rack them up and you throw them in there, and then you own the joint. So by privatization, this is how it benefits any private person that chooses, or is able to buy a prison. Okay? (George: Gotcha.) So, per indictment - and this has been going on for decades - per indictment, there is a bond that is issued, and that bond number is in accordance with the time you&#x27;re sentenced for each indictment, because [this is] how long you&#x27;re going to be there. And, in addition to that - sorry about the microphone - and in addition to that, it also is set at a certain amount based on the class of indictment.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003317">00:33:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So for example, when you&#x27;re issuing bonds like corporate bonds, you know, you have a Grade A, Grade B, Grade C, Grade D. And it kinda goes down the line. So in the world of prison bonds, it&#x27;s Class A, Class B, Class C, Class D, Class E - or 1, 2, 3, 4, 5 depending on where you are in the world. But everybody has a system for this because it&#x27;s the biggest moneymaker in the business - and worldwide, it&#x27;s even bigger.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003349">00:33:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So... Okay. So you go to prison. You&#x27;re indicted on three or four charges. It&#x27;s approximately a million to two million dollars per charge and then based on the term of the sentence. So it could be higher if you&#x27;re in there for five years or ten years. So the corporation now issues corporate bonds against you. Why? Well, I have to feed George, and I have to clothe George, and I have to have electricity for George - I have to keep humane conditions in my prison, per human rights law number blah blah blah blah blah. So they become private contractors for the government. And I use the term &quot;government&quot; loosely. They are now a private contractor because they are now bearing the person - the expense - for hosting prisoners that have been indicted under allegedly that company&#x27;s law, which is also a corporation.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003446">00:34:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So the corporate bonds, backed by the faith of the U.S. government - because the U.S. government agrees to pay those bonds out - that&#x27;s your buyer, right, for your goods, okay? The services - they&#x27;re buying your services, I should say. So now those bonds are completely &quot;insurance wrapped&quot; is what it&#x27;s actually called. I mean, if it&#x27;s backed by a government, hands down, there&#x27;s no bank in the world that&#x27;s not gonna take that contract. Like, if you sold pencils to the United States, George, and you have a contract from the U.S. to buy pencils from you for 10 years, you could take that to any bank in the entire world and leverage against it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003527">00:35:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Come on!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003528">00:35:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: To buy materials and to... (George: Really?) Oh, absolutely - it&#x27;s called factoring. Now, if you had an agreement with me for 10 years to buy x-amount of pencils per year, it doesn&#x27;t mean quite as much. I&#x27;m a small company. Now the bank wants to see my financials. Do I have the capacity to pay? They might ask me for a letter of credit to go along with your contract because I&#x27;m not the government, you know? In the bank&#x27;s eyes, the governments have perpetual endless money. Same thing with contracts from the United Nations, the World Bank, all the big guys - World Health Organization - if it&#x27;s backed by the good faith of these folks...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003611">00:36:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: You can borrow against it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003613">00:36:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You can borrow against it. So...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003615">00:36:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: And it&#x27;s all credit.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003617">00:36:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. Yep. So then the Fed then takes it, or the bank takes it to the Federal Reserve, and then the Federal Reserve spits out money to take care of you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003633">00:36:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now there&#x27;s a whole bunch of back office trading that goes along. Because they can literally do whatever they need to do to ensure you&#x27;re okay. Now, most of the time the cost of holding you prisoner - as you get beans and rice and some weirdo orange clothes and you might get some, you know, you got some electricity, maybe a toilet. Maybe they clean the toilet, I don&#x27;t know. You know, there&#x27;s some expenses there involved [in] having you there. But, you know, it&#x27;s pretty minimal. But did you know that it&#x27;s probably $18,000 to $30,000 a day that it costs to have you there?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003711">00:37:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: How much? Sorry.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003712">00:37:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: About $18,000 to $30,000 per prisoner is what the privatized prisons get paid. $35,000, $37,000 depending on where it is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003723">00:37:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: That&#x27;s... Doesn&#x27;t seem normal or real. That number is insane, what you just said. Insane.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003729">00:37:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Uh-huh. Multiply that times thousands of prisoners in a prison. That&#x27;s big money there. That&#x27;s what the U.S. government pays for, or the Canadian government, or the Russian government or... Oh, yeah. Big money to pay for you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003747">00:37:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow, that&#x27;s - I didn&#x27;t think it was that much...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003748">00:37:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now I&#x27;m gonna blow you - now I&#x27;m gonna blow your mind.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003750">00:37:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Here we go!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003751">00:37:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Talking about the script - this is all relevant to just those videos you played.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003757">00:37:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Now a long, long time ago, you have heard rumors that we are in lockdown. We&#x27;re in quarantine. You see it all over the internet that nobody leaves or comes off, on or off this planet - we&#x27;re stuck here - it&#x27;s a prison planet. But do you really understand the economic value of being in a prison planet?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003820">00:38:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I don&#x27;t.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003820">00:38:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There&#x27;s a lot more to the story of how that all happened, but we don&#x27;t have time for this show to go through it all. So it&#x27;s on... you know, a lot of it&#x27;s coming through on my channel now, but anyway...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003832">00:38:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So the prison planet occurred. We have been under quarantine - meaning us as normal, God-born, organic people. We&#x27;re born here, and stuck here now. And we&#x27;ve been going through this incarnation loop for a long, long time; a lot of people have talked about it. So we just keep getting recycled here - you can&#x27;t leave here. Once you&#x27;re here, you can&#x27;t leave here. What do they say? That you go to hell and you die 1000 times? Here we are, that&#x27;s what we&#x27;re doing. That&#x27;s what we&#x27;re doing. We actually are in it. (George: We&#x27;re in it.) Really, yeah, we&#x27;re in it. You don&#x27;t have to worry about going there, you know, because we&#x27;re here. We&#x27;re here. We made it. Yeah. We made it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003921">00:39:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: This is it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003922">00:39:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And they made sure of it. That basically, what Hell actually is, is the absence of God, absence of Source. That&#x27;s what it is. I mean, us disconnected from Source, or God - (George: It&#x27;s what they want.) - however you wanna say it. It&#x27;s that... that&#x27;s our worst nightmare. (George: 100%.) And you don&#x27;t even remember it - one day you will. But we&#x27;re in this prison. Here we are. We&#x27;re stuck. Okay?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003946">00:39:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So where the Deep State - actually, it&#x27;s more of the systems behind the Deep State - because there were higher authorities here involved, as you know, George, because you talk about all of these demons they summon and the powers and the permissions involved. And they ask the gods for permissions on their side. God knows who that is - maybe he&#x27;ll tell us in the next half, but, you know - they summon these things all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004014">00:40:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So it&#x27;s no surprise that here we are at the end of October. It&#x27;s a Full Moon on Monday, and crap hits the fan. Why? So all of these bonds that we just talked about, all your corporate bonds, your stocks, everything - you think you own a private corporation? You think you own a public corporation? You do not. You do not. It all goes and gets numbered. There is not a stock on the market. There is not a bond in issuance - Treasury or otherwise - that is not registered to the Association of Numerical Numbering Agency in Belgium. Not one. Look it up. Look it up. Association of Numerical Numbering Agency in Belgium. (George: Wow.) Yep.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">[NOTE: Association of National Numbering Agencies.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004102">00:41:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So everything goes here. And then what you don&#x27;t see on the internet is there is a sister organization called the X/N System or the ultimate worldwide tax authority - they&#x27;re married.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004116">00:41:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I&#x27;ve never heard of that, Kim.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004118">00:41:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. There is one tax authority for the entire planet, and it&#x27;s in Belgium, and it&#x27;s tied to the Association of Numerical Numbering Agency. Now why? You are a prisoner. Therefore, prison bonds have been issued against you into perpetuity. Doesn&#x27;t matter how many lifetimes you live and you die, you live and you die, you live and you die, you live and you die - you are in debtors&#x27; prison. So, if you know anything about debtors&#x27; prison, they&#x27;ve been going on for hundreds of years now, and you&#x27;ll have to probably look back in old history as to how they started - and I think it was about 1300, the year thirteen-something is when officially there&#x27;s records of them - but they&#x27;ve been going on for actually much longer.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004208">00:42:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we are in debtors&#x27; prison. Therefore, immediately upon our birth, we owe. We owe for lots of things. We owe for... You know, we were born. We can&#x27;t take care of ourselves initially. We also have education available to us. We have infrastructure. The road that you drove home from the hospital - at one day old or two days old - in, is paved for you. (George: Gotta pay. Gotta pay.) Gotta pay. You gotta pay. You owe. You owe. You owe. You owe. You owe. The health care system - you&#x27;re not paying any taxes! So as a prisoner, you build up this debt. And remember, those little pieces of paper in your pocket you call money are also debt instruments.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004258">00:42:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Crypto is also a debt instrument. It says &quot;note&quot; right on it. And what do you think - the digital version isn&#x27;t any different? Those are all notes. Everything is a note. You owe. You owe. You owe. Crypt. Crypto. Is the dead &quot;crypt-o&quot; crypto?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004320">00:43:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Crypto.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004321">00:43:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The crypt?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004322">00:43:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Crypt.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004323">00:43:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Mhmm. Oh, gosh.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004325">00:43:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Welcome to the currency for dead people!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004327">00:43:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Oh, goodness. There it is. (Kim: I know.) You just... It&#x27;s so good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004331">00:43:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: On the, on the day of the dead!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004333">00:43:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: It&#x27;s so good! It&#x27;s so good, Kim! Like, you nail it so good, and it&#x27;s meaning... And it&#x27;s so weird because this is what I do. I didn&#x27;t even blink an eye at it - it just passed in one ear and went out the other, because I put nothing into &quot;crypt.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004348">00:43:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So last night, they realized they have been trying for two weeks now to bring this new crypto platform - in conjunction with these data AI centers all around the world they&#x27;re building everywhere that are corrupting water, killing people, the electromagnetics from there are terrible, all that kind of thing. So they&#x27;ve been trying to do this now - on its own - unsuccessfully, and the longest it has actually stayed running was approximately one minute and 42 seconds. I think today&#x27;s run went to one minute and 48 seconds. (George: Wow.) And that&#x27;s without even being hooked up to other areas of the world where they don&#x27;t even have electricity. So how!? I mean, 80% of the world does not have the infrastructure to &quot;crypt&quot; anything!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004446">00:44:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Correct.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004447">00:44:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know? I mean, come on now, really. Alright. So this is just, this is just the parts of the world - this is mainly, like, North America, small parts of Latin America, small, small parts of Africa, and small parts of Asia and Eastern Europe that actually have possibly some of the infrastructure to actually maybe go digital. You know, these are countries that are already using debit cards and credit cards and these types of things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004517">00:45:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But here&#x27;s the rub. What would happen? So if, okay, so these prisoner bonds are basically the base root asset for the entire Financial System as we know it. (George: Wow.) They&#x27;re bonds, not only against you as an asset, they&#x27;re bonds against infrastructure; they&#x27;re bonds against in-ground assets - all of which have been privatized to the Elite - over the course of several decades. So understand that without these bonds, the rights of the Elite go away.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004559">00:45:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Really?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004559">00:45:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The rights over you - the rights to only give you debits and credits, the rights to keep you in debtors&#x27; prison, meaning you&#x27;ll own nothing and you&#x27;ll love it, like the World Economic Forum said - so think about all of the things and the crazy fears that you&#x27;ve heard about. It&#x27;s all based on this right, and this right alone, of the Elite - and previous contracts they had with the much higher-ups which are no longer in power - to issue these prisoner bonds. Without these prisoner bonds, there is no right to leverage you as an asset. You are not considered a party of which they can factor against anymore. You cannot... Are you okay, George?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004648">00:46:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah. I just got a message. So as we&#x27;re talking, my phone is completely... is going off the hook.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004655">00:46:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Are they mad about this conversation?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004658">00:46:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: No, everyone is in shock. So please continue.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004701">00:47:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, okay. So that being said, they don&#x27;t have the right to leverage assets of the United States or any other country. Every single country in the world, every land mass in the world - including Greenland.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004718">00:47:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wait a minute.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004720">00:47:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yes. The U.S. government has a security contract with Greenland now, and Denmark - they made the deal. And they&#x27;re now gonna start [mining for] minerals - that&#x27;s what the big Orange Guy says, right? They&#x27;re gonna start mining for minerals and oil and gas in Greenland? Oh! But then you can&#x27;t - because it&#x27;s not yours anymore. If the ANNA system actually went down a few days ago - now what are you gonna do? If you cannot leverage those prisoner bonds, and they are not in your portfolio anymore, what are you gonna do? If you don&#x27;t have the ability... So bonds, if you&#x27;ve ever seen anything about bonds, George, you know that bonds have what they call coupons, right? They pay interest to the bondholder. That&#x27;s why people buy and sell them because they collect the interest, and that&#x27;s why it&#x27;s an asset, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004814">00:48:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So the coupons are actually what you call taxes. You are responsible for paying back your existence. At one point in time, the bonds for your existence - just to keep you alive in debtors&#x27; prison here - if they&#x27;re charging $18,000 to $37,000 a day for you as an indicted person, imagine what it costs to keep you alive, worldwide, every day. Every person in the world, that is a citizen of a country - what do you think that the average government charges to keep you alive?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004857">00:48:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I&#x27;m assuming astronomical. I&#x27;m assuming astronomical.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004901">00:49:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Whatever number they wanna put on those bonds.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004903">00:49:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: It&#x27;s whatever money... Yeah. They choose the number, okay. Gotcha.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004907">00:49:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. It&#x27;s approximately a $148,000 in some places and up to... I think the highest one I&#x27;ve seen is somewhere around $5.9 million a day per citizen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004924">00:49:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: What? That&#x27;s 5,000,000 plus per person - per citizen?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004929">00:49:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004930">00:49:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004931">00:49:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: In fact, there is a foundation in London called the Evergreen Foundation, and it was actually run by Bill and Hillary Clinton. And they were trying to make enough money on a trade platform, trading on these bonds, to ensure that they could cover the entire world&#x27;s GDP annually into perpetuity. Now they never actually got there, but it was somewhere to the tune at that time - the world was a much better place, that was before lockdowns and pandemics and all that kind of stuff - but it was somewhere around $140 trillion a year, was the goal. But it&#x27;s more than that to keep the Elite running and more than that to keep you running and industry running as well. So to control the entire world&#x27;s Financial System - this was their aim - they failed. Limited assets, limited security contracts, and things like that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005033">00:50:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So, Kim, you&#x27;re saying that they&#x27;ve attempted this and they failed yesterday?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005038">00:50:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yesterday is different than the Clintons. That was going on in the eighties and nineties. (George: Wow, okay.) They&#x27;ve been trying this for a long time...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005047">00:50:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: They&#x27;ve been... This has been happening for a very long time. Other people know how to do this. They&#x27;re doing it. This is just a better version on steroids, is what you&#x27;re saying.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005058">00:50:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: This is a better version on... well, another version of the same story.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005103">00:51:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Another version of the same story; the same pyramid scheme.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005106">00:51:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Right. And remember, you&#x27;ve got your security folks, your Federation folks, you&#x27;ve got your Sanhedrin folks - which is your fake Jewish people - and then you&#x27;ve got this other group called the Foundation. So there&#x27;s three main groups at play here. And I&#x27;ve not really talked about the Foundation, but I will in the next GIA Report. But, anyway, so three main groups. The Foundations were actually regular humans that were trying to rebel against the other ones. Everybody&#x27;s fighting for power and control of the planet, and they wanna be separate from their oppressors. But, unfortunately, that&#x27;s not even possible because their entire life, or lack thereof - they&#x27;re the walking dead anyway - they&#x27;re basically no soul. So they&#x27;re actually, legitimately, the walking dead. (George: Wow.) So... Yeah. So that being said, without their oppressors, they&#x27;re nothing. They&#x27;re gonna die. Without the Machine, they die.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005209">00:52:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But nonetheless, in their world, they&#x27;re fighting against each other for power and control of the planet. They wanna do a good job. I don&#x27;t know, maybe they&#x27;re trying to please some demon somewhere, who knows what they do. (George: Of course they are. Yeah.) But nonetheless, these prison bonds are what everybody&#x27;s after, and half of them don&#x27;t even know it. (George: Wow.) Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005230">00:52:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Do they actually have the right, and the ability, to reissue these bonds and re-up the prison planet system? Not at this stage in the game. Absolutely not. So their little tiny thing they did last night with the DEFCON Zero, running around like chickens with their head cut off - trying to transfer everything, the Financial System over to a backup system - that was offline! Don&#x27;t you... George, if you&#x27;re gonna do something, like, let&#x27;s just say you&#x27;re gonna drive across Canada; you&#x27;re gonna go see some friends on the other side of Canada. I don&#x27;t know which side. I guess you&#x27;re on this side. Right? (George: Yep.) You&#x27;re gonna drive across country, and you&#x27;re gonna go to the other side of Canada, and you&#x27;re gonna drive your car. Don&#x27;t you take your car in for service first and...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005312">00:53:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Oil, gas, of course. Air in the tires, the engine. Yeah, 100%. Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005317">00:53:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, you get it all checked out, make sure it&#x27;s roadworthy - at least to the best of your ability. (George: 100%.) You might get one of those road assistance plans, you know, just in case you get stuck somewhere, that kind of thing. (George: Yeah, AAA.) Yep. Well, these lovely gentlemen, last night - (George: Lovely.) - yeah, decided that they were gonna go flip the system, and this was the idea. But no one took it to the garage first. No one went and checked it out. No one went and even tapped it to see if it was gonna function. (George: Wow.) They thought it will just turn on automatically, because &quot;That&#x27;s what happens.&quot; You know, see, George, they forget - even in the occult thing - there&#x27;s people like you behind the scenes that used to do those things, right? (George: Yeah.) You made the things happen. There&#x27;s a lot of people that they hired to do the thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005406">00:54:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005407">00:54:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, so their hands stay clean, right? Allegedly. Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005412">00:54:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: You know, just briefly mentioning that - I&#x27;m sure people are aware of this, especially those that are maybe watching that are aware of the occult - these things, to do these things, these rituals, they don&#x27;t happen overnight. This is a long period of time and preparation. There is a lot that goes into any type of proper ritual of manifestation. Especially something on this level. This is super massive and huge. And, to think that they&#x27;re just gonna turn it on like a car - it just doesn&#x27;t work that way! But, okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005447">00:54:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They just assume everything is theirs and they just have the right to it. But that system actually hasn&#x27;t really functioned in, like, literally 3 or 4 years. So, you could&#x27;ve just asked the question. You called - they call usually and ask random questions or send somebody to ask me random questions all the time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005509">00:55:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: And it&#x27;s funny - I was just about to ask. Did they at least, maybe even &quot;Let&#x27;s talk to Kim, who understands this system.&quot; Maybe put in a call to you. &quot;Hey, Kim. What&#x27;s going on? Is this working? Is it not working?&quot; Or...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005521">00:55:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: What do you think was going on last night? &quot;Just stay here.&quot; &quot;Okay, standing by.&quot; &quot;It&#x27;s 7:30.&quot; (George: So you were there, you were standing by.) &quot;Just keep sitting.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005531">00:55:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Gotcha. You were standing by.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005532">00:55:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: &quot;Just keep sitting.&quot; &quot;Okay.&quot; And meanwhile, I&#x27;m in the system, and I&#x27;m listening to all this crap in the other room that they think they&#x27;re hiding, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005540">00:55:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I&#x27;m like, okay. So this isn&#x27;t working out. I could&#x27;ve told you that. Okay. So... Yet I&#x27;m sitting here. (George: Wow.) You know, till about nine o&#x27;clock last night, and then they finally just said - (George: We&#x27;re done.) - we&#x27;re done. I&#x27;m like, yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005556">00:55:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: It didn&#x27;t work. (Kim: Hmm?) It did not work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005559">00:55:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Of course it didn&#x27;t. Well, I wasn&#x27;t involved in making it work. I think I was the backup plan. What I actually think was going to happen - if they had transferred it over to this system - normally, their normal protocol would be to then tell me I need to concede.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005616">00:56:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Okay.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005616">00:56:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Because you see, I&#x27;m the only one that was a part of - whence I came - that never conceded to these people, ever. Never gave their Machine the power, never turned over anything, and never gave up on Source, God - whatever you wanna call the Creator. Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005635">00:56:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005636">00:56:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Never. Never. All these other people - they all gave up. Thousands of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005641">00:56:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Thousands?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005642">00:56:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005643">00:56:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Wow.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005644">00:56:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I&#x27;m just left standing. So... yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005649">00:56:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So, let me ask you something...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005650">00:56:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There&#x27;s actually, there&#x27;s more to this story.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005652">00:56:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah. Yeah. But before you get into the other half of that story, I just have to ask - really quickly - did they not maybe consider working with you - (Kim: No!) - to do something better for the world, for the Financial System, for the people...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005707">00:57:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. No. No. No. No.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005710">00:57:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: They would never communicate and say, &quot;Hey, Kim. Maybe you help us. We&#x27;re gonna change the Financial System - but everyone&#x27;s gonna win. Everybody wins.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005718">00:57:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. No. No. No. No. No. No. No. No, see, they made a couple of little mistakes. They considered me one of their assets, right? I&#x27;m also in debtors&#x27; prison, I live here with you people, and I&#x27;m just a person just like you. So I need to work for free. I need to give them money at will. You know? It&#x27;s like, &quot;Kim just gives the budget money.&quot; Kim just does the things - and that&#x27;s all I&#x27;m really good for. But what they wanted was my piece of the system that they could never get. That piece of Source that I guarded all this time - that&#x27;s what they want. And they know - they know they can&#x27;t take it. They&#x27;ve been trying to take it from me for decades now, and they have not succeeded. They cannot take it. (George: Wow.) And that would... That is the piece that their system will never have. That&#x27;s the piece they do not have, and they cannot control it, and they know it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005812">00:58:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But they think if they turned over this whole system, and we&#x27;re gonna have blackouts - and here comes the threat, because this is how this works. These people run the same dang handler... baloney - without swearing - baloney, that they do every single time. They think they got this. If I don&#x27;t do this, then all these horrible things are gonna happen to all the humans.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005844">00:58:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: And that&#x27;s where you say, Source, Creator, God, the Lord...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005849">00:58:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Always steps in, and is always good, and is never gonna let it happen no matter what anyway. And I hate to break it to these people, but we&#x27;re partners. We&#x27;re buddies.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005900">00:59:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Just like your buddy, your partner, right George? You know, that&#x27;s your deal every day, all day, and I&#x27;m sure a lot of you watching this too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005908">00:59:08</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: God is my best friend. I speak to Him several times, I mean, maybe too many times a day, but He&#x27;s my best friend. And, He has a love and a compassion and protection for so many.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005920">00:59:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Mhmm.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005920">00:59:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: I love what you&#x27;re saying. I know you have a second half. Unfortunately, this is all the time we have for the live portion of the show on YouTube. It&#x27;s been an hour.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005929">00:59:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Come on, George. Let it out on YouTube. Let it all go.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005935">00:59:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Alright. Let&#x27;s just do it. You wanna do it? We&#x27;ll do this. We&#x27;ll finish off this side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005939">00:59:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We don&#x27;t have to. We don&#x27;t have to.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005941">00:59:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: You wanna... You wanna save it for the other end? I think we should save it for the other end. Let&#x27;s save it for the other end.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005945">00:59:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Alright. Alright. Alright.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005945">00:59:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Guys, it&#x27;s been an hour. There&#x27;s a second half of the story. We have to save that for Patreon. Coming up next, the After Show. The link is in the description. You&#x27;re gonna find out about the second half of the show, and we&#x27;re gonna touch on some of the occult things - like Atum. Autumn.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010003">01:00:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. That was a personal request of mine.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010005">01:00:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: We&#x27;re gonna...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010006">01:00:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I wanted to know.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010007">01:00:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah. We&#x27;re gonna talk about an Egyptian...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010009">01:00:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Atum in the fall.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010011">01:00:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: God. Hmm, what is that? We&#x27;re gonna get into that occultic side. We&#x27;re gonna give some of you - not everyone - an opportunity to ask a few questions to Kim. Coming up next on Patreon, the link is in the description. Join. Now it&#x27;s free to join, and every month, I post a free piece of content for those - you don&#x27;t have to pay to see all the videos. However, this particular video, obviously, you&#x27;re gonna have to pay. It&#x27;s as cheap as 5 bucks, if you love what we do. And there&#x27;s different tiers, where you get extra content and extra things.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010039">01:00:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: So we appreciate all the love and support for open-minded people. Kim, thank you so much for this half of the show. Before we go on to the second half, coming up next on Patreon, anything you wanna share and say to everybody watching?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010052">01:00:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, I just wanted to thank everybody for staying up late or getting up early, depending on where you are in the world to join us tonight. I apologize to all of you for not being here last night, especially you, George, so I&#x27;m sorry about that. (George: Appreciate it.) Just another day in paradise over here. Another day in prison, another day in workers&#x27; paradise, but there won&#x27;t be too many days left.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010114">01:01:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, (George: Love it.) hang in there, everyone. It&#x27;s not as bad as it seems. Use your discernment, and, honestly, talk to God. Source.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010124">01:01:24</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Love it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010125">01:01:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I mean, honestly, you&#x27;ll know the answers to the questions.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010129">01:01:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010130">01:01:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But hang in there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010132">01:01:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">George: Excellent. Guys, thank you all for watching. We hope you join us for the After Show on Patreon. Coming up next. The link is in the description. Good night. See you on the After Show. Goodbye, everybody.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010141">01:01:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010207">01:02:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://www.youtube.com/watch?v=1_hE8tzLc6o" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
