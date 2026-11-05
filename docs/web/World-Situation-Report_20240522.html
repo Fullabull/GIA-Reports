@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-May-22</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-May-22 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-May-22
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=U2uHG0gFzIA&amp;t=2367s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=U2uHG0gFzIA&amp;t=2367s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240522_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the May 22, 2024 report with the Deep State waiting. They hope tomorrow&#x27;s Full Moon will help their Marduk program before Friday&#x27;s deadline, when operatives expect $56 billion, after which they plan to crash the United States, burn it to the ground, and revive it under their control. Their rumors of cashable 1924 German bonds and $300 trillion on ledger are lies. A call between Tom Melville and Trump&#x27;s lawyers keeps being pushed off; there is chatter that the operatives will ditch Trump once they get the money. Kim has asked Tom to tell them she has acquired DARPA&#x27;s Global Voting System base platform and will be voting for Jill Stein -- her side can now put anyone on the ballot, in almost any country.<br>
+<br>
+While clearing Marduk&#x27;s time capsules, set to trigger for millennia, Kim uncovered new information about Earth&#x27;s role in Creation. Earth is the Keystone for all Creation and a Celestial itself, and its All-That-Is Keystone had Dark, Neutral, and Light sides, so what Earth&#x27;s inhabitants create affects the entire Multiverse. That is why so many beings are arriving: to hold the Light. Earth was first inhabited by Junior Celestials. The Merovingians (Dark) and the Melchizedeks (Light) often number about 15,000 each, and both sides compete for the Neutral Celestials; intermarriage produces Neutrals such as Prince William. The rest of humanity are organic life forms with less creative power who can be swayed either way, which is why the other side is so fixated on bloodlines. Matter first formed only once there was Light and Dark, but Source has now made a way to create matter from the Light side alone.<br>
+<br>
+Marduk is a title, the Lord of the Seas: an enforcer of balance among Light, Dark, and Neutral Creation. The being who held it moved from avatar to avatar around Earth for some 75 million years. He used the Dial of Destiny to claim humans chose Darkness, genetically manipulated humans, plants, animals, and Earth toward it, and ran his own Growth Rate of Development (GOD) program, which required 92% of humanity to be awake before people could receive energy directly from Source -- then switched it off when humanity reached 76%, around 1982. Society suppressed Light-side Celestials from childhood while the Dark side identified and nurtured its own, denying humanity the genuine choice Marduk claimed it had. Only Celestials could have stopped him, and no one did until now; about 2,500 on the Light side are waking up.<br>
+<br>
+Within the last 12 hours, Earth stopped being a Keystone of Light, Dark, and Neutral Creation and now creates an All-That-Is of the Golden Age, Crystalline Time, and Source. The Dark side will no longer be able to manifest anything Dark, and the programs that helped it are going away; whether Dark Celestials simply lose their power or physically leave is unknown. Kim&#x27;s team has just acquired a genomic history of Celestials and hopes to post numbers.<br>
+<br>
+Transfers remain hung up near the end by customer portals, the extra GOD program, and Marduk&#x27;s leftovers. Once humans receive Source energy with no haircut, their power to manifest will grow, and the other side&#x27;s Industrial Psychics can no longer counter them. Kim asks those who do cleanup and grid work to revisit past sites, and everyone to manifest positively and ground to what is now a positive Keystone.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-004003">00:40:03 - The Full Moon and the Friday deadline.</a></li>
+<li><a href="#t-004112">00:41:12 - Tom, the Trump lawyers, and the Global Voting System.</a></li>
+<li><a href="#t-004358">00:43:58 - $56 billion to crash the United States.</a></li>
+<li><a href="#t-004449">00:44:49 - 1924 German bonds and $300 trillion</a></li>
+<li><a href="#t-004556">00:45:56 - Plan B</a></li>
+<li><a href="#t-004634">00:46:34 - Marduk&#x27;s time capsules.</a></li>
+<li><a href="#t-004807">00:48:07 - Earth</a></li>
+<li><a href="#t-005046">00:50:46 - Merovingians, Melchizedeks, and Neutrals.</a></li>
+<li><a href="#t-005418">00:54:18 - How matter began.</a></li>
+<li><a href="#t-005606">00:56:06 - Marduk</a></li>
+<li><a href="#t-005858">00:58:58 - Genetically predisposed to Darkness.</a></li>
+<li><a href="#t-005953">00:59:53 - Marduk&#x27;s GOD program</a></li>
+<li><a href="#t-010652">01:06:52 - Earth&#x27;s Keystone changes.</a></li>
+<li><a href="#t-010958">01:09:58 - A genomic history of Celestials.</a></li>
+<li><a href="#t-011448">01:14:48 - Transfers and the extra GOD program.</a></li>
+<li><a href="#t-011623">01:16:23 - The Industrial Psychics.</a></li>
+<li><a href="#t-012451">01:24:51 - Go back over your cleanups.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-MAY-22 World Situation Report</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003927">00:39:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report, with Kimberly Goguen, from the Office of the Guardian. The Deep State is still waiting for a miracle by Friday. Keystone Earth is changing rapidly now - find out more, and what this means for you in today&#x27;s World Situation Report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003948">00:39:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Now, here&#x27;s Kimberly Goguen with the Office of the Guardian. Hello, Kim!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Happy Wednesday! This week is halfway over.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, can you believe it? You&#x27;re probably pretty busy, you&#x27;re like &quot;Yeah! I can believe it!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004003">00:40:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, I was looking at doing a few things, and sorting out some stuff, and I&#x27;m like &quot;Oh my God, it&#x27;s almost June!&quot; Wow, this year is half over already - it&#x27;s flying by for me anyway. All right. So not a whole lot going on with the Deep State right now. They are still waiting for... the Full Moon is tomorrow. So, they&#x27;re hoping that&#x27;s going to help them with their Marduk program, that they&#x27;re waiting for.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I thought something was Friday, Kim... Oh! That was a deadline?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004039">00:40:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. So, everybody else has become a giant group of waiters. So everybody&#x27;s waiting until Friday, to see if there&#x27;s any end result. There&#x27;s some squabbling going on back and forth, when something starts to kind of look like it&#x27;s going to happen, and then it doesn&#x27;t. So there&#x27;s a little bit of fighting about that. But other than that right now, everybody&#x27;s pretty quiet. They&#x27;re hoping for a big shebang tomorrow or Friday, which will also probably not happen - not probably - it will not happen, for their side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004112">00:41:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But on our side, there&#x27;s really not a whole lot to report. There is supposed to be a chat with some - between Tom Melville and some of the Trump lawyers later on this afternoon. They keep pushing it off, and I think it&#x27;s because they are expecting to have some kind of leverage or something on their side - you know, as far as their Deep State plans go. There is some chatter and talk about - once they get a hold of X - this money and all of this stuff - they&#x27;re going to ditch the Trump thing and move forward (the operatives are going to) and move forward to something else.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004158">00:41:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But they always make big plans, and then when nothing happens on their side of it - they don&#x27;t acquire any kind of an esoteric system or anything like that - then the can just gets kicked down the road. So, I&#x27;m not expecting a whole lot out of that. Other than I did tell them that I was going to go ahead and... that I had recently acquired - this is prior to the call with Tom - so I told Tom to let them know that I had recently acquired DARPA&#x27;s Global Voting System base platform. And that I&#x27;m going to be voting for Jill Stein. We&#x27;re going to vote for the Green Party. Or, you know, I thought about putting somebody else in there; maybe we can appoint you, Sunny. Or just anybody, you know, onto the ballot, because we can put anybody on there we want - that&#x27;s what they used to do. Now we have the ability to do that, and maybe we&#x27;ll make the Birthday Party come to life. Or, something, anything - Earth Party, I don&#x27;t know. And we can now do this pretty much with any country.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004300">00:43:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, what they say in the mainstream media, as to who&#x27;s voting, and who&#x27;s not voting, and what the end result is, is of course still their wheelhouse. But from our end of it, we will make it very apparent that everybody all of the sudden - a few hundred million people have decided to vote in that direction. Because, the way I look at it is - you know, nobody&#x27;s perfect, no human is perfect - but this one has a pulse, so that&#x27;s a bonus right there. Not wearing a mask. Just a regular human. So that&#x27;s probably - if we ever do make it that far - if we do have an election or a selection at that point, then we&#x27;ll see what happens.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What do you think that&#x27;s based on, Kim? Because there is a lot of chatter out there about, &quot;Will we or won&#x27;t we have an election in the U.S. this November?&quot; What is that based on? Based on what you&#x27;re seeing right now?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004358">00:43:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: What I am seeing is that whole deal that they made with the operatives (political and otherwise), where they were to receive on Friday, 56 billion dollars - between all of them, of course, not everybody gets that amount, it&#x27;s divided amongst them all - then they plan on crashing the United States. Burning it to the ground. And then they&#x27;ll get more money, and then they&#x27;ll revive the United States, you know, &quot;We&#x27;ll come back better!&quot; Right? And then they will take over, and then they&#x27;ll get funding for the actual country. So, whether or not that could be achieved between now and the end of the year, if that&#x27;s what they&#x27;re planning on - I&#x27;m not sure, you know, time is running short, as far as selections go - and I don&#x27;t see them having any funding this weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004449">00:44:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They are starting rumors on their side of it - something about German bonds from 1924, that it&#x27;s been a hundred years, so now they&#x27;re cashable - that&#x27;s all a lie. They are saying there&#x27;s 300 trillion dollars on ledger - that is also a lie. If it did, our dollar would be 0.00000000001 of what it is now, so that obviously is not the case. So, it&#x27;s just fantasy talk, mainly. There&#x27;s chatter about a backup plan, I&#x27;ve heard a little bit about, amongst some people within the BRICS community, and some people within the Black Nobility. They&#x27;ve tried threatening me, they&#x27;ve tried cornering me, they&#x27;ve tried giving me handlers - and now they just want to send someone in to be my best friend. No, I don&#x27;t need another best friend. I&#x27;m all stocked up; I&#x27;m good over here. But this is the talk.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004556">00:45:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: If this doesn&#x27;t work out - which it&#x27;s clearly not working out - so they&#x27;re trying to come up with a Plan B of sorts, and this is the latest and greatest. They&#x27;d like to give me a best friend, or a husband. You know, they like to select those things too, and think that I&#x27;m just going to miraculously accept the fact and thank my lucky stars that some operative shows up on my front door with roses or something. I&#x27;m not sure what they&#x27;re thinking. But I&#x27;ve already done that, you know, we&#x27;ve been there and done that. We&#x27;ve got a lot of practice in for that kind of thing. So, I don&#x27;t need to repeat this process. I did learn a lot the first time, but I won&#x27;t be doing that again.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004634">00:46:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But we do have some forward movement on our side, which is positive for us. We have spent a little bit of time cleaning up anything that we could see that could be coming from the Marduk... let&#x27;s just say, you know, the being is no longer with us, it&#x27;s just time capsules set to go off on a certain day. Kind of like when it asks you annoyingly so when you&#x27;re in the middle of something - your computer needs to be updated, or your phone needs to be updated. And then you push &quot;I&#x27;ll do it next Tuesday,&quot; or &quot;I&#x27;ll do it next Wednesday.&quot; Well, he probably set up stuff like that for the next several millennia. So, we&#x27;ve been looking at getting rid of those things - past, present, and future - just to make sure nothing actually shows up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004726">00:47:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But some interesting information, or further information, has come about in the course of doing this. Which really doesn&#x27;t have anything to do with Marduk, per se, but it&#x27;s started to make a lot of things make more sense, as to the capacity of human beings on this planet. As to the capacity of Earth, per se. And, let&#x27;s just say, how the Multiverse was created, and how we as humans affect what happens everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004807">00:48:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. So, we know that Earth itself is a Keystone. It is a Keystone for all of Creation, and, at one point in time, Earth... well, Earth is also a Celestial unto itself. So there is a Celestial representation of Earth, because it is a part of the Natural Source of all Creation. Now, Source&#x27;s All-That-Is Creation - I&#x27;m sorry, Earth&#x27;s All-That-Is Creation Keystone - as it is, has both a Dark side, a Neutral side, and a Light side to it. And therefore, the humans, or even Earth&#x27;s inhabitants per se - and this is why everybody&#x27;s coming here all of a sudden - because the inhabitants of Earth can actually affect what is created by Earth&#x27;s Keystone, as a Keystone planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004919">00:49:19</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, now it&#x27;s making more sense to me. I thought, well gee, all these people are coming to help us finish this off, and isn&#x27;t this great? But, they are actually coming to finish it off for good, and to hold the Light, so that the All-That-Is that is created by the Keystone is more Light than it is Neutral or Dark. (Sunny: Oh, okay.) How is that for interesting?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, so they weren&#x27;t just being nice! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004948">00:49:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know! That would be really nice, wouldn&#x27;t it? Well, things are a-changing anyway. But it makes more sense to me now as to why Earthborn humans are so powerful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005004">00:50:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, once Earth was created, Earth was only inhabited by Celestials. Now, these are not the original Celestials of Source. We could call them &quot;Baby Celestials.&quot; Or, how do I say it? &quot;Celestial Juniors?&quot; Or &quot;Celestial Lights?&quot; Therefore, humanity&#x27;s base root was as a Celestial - or Junior Celestials. Using the Keystone of Earth to create throughout the Multiverse. Very interesting!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005046">00:50:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, we&#x27;ve had the discussion before about Merovingians versus Melchizedeks. And we said that there is oftentimes 15,000 of each on the planet. And then we end up killing each other for whatever reason - we go against each other. Well, since obviously Earth is not inhabited only by Celestials anymore, both sides represent a Dark side of Celestials, and a Light side of Celestials. Interesting. Yeah. Now, we also have what we call Neutrals, or supporters that could go either way. So we have Neutral Celestials as well, on this planet. And the goal of both sides, is to gain the Neutrals on one side or the other.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005146">00:51:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay, so this is starting to make sense. So for example, when you find them like marrying each other, is that like an example of let&#x27;s bring a Melchizedek over to the Merovingian side? Like Princess Di? And I&#x27;m sure there&#x27;s other ones.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. And then they spawn what you would call a Neutral.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I see! So William was a Neutral - is a Neutral. Prince William.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005217">00:52:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, he would be considered a Neutral - that&#x27;s why we said he could go either way. So kind of making more and more sense now, because if he supports the Dark agenda, or his father&#x27;s agenda - which he would be forced to do, should he take a public position - then they&#x27;ve gained one on their side. So, if we each had say 15,000 in the beginning - we each had 15,000 of each - then if someone swayed the 15,000 Neutrals onto their side, then they would be more powerful in creating All-That-Is of Light or All-That-Is of Dark. See? And I found that very, very interesting.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005304">00:53:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now let&#x27;s talk about the rest of humanity. So the rest of humanity has both in them, but they&#x27;re not considered Celestial humans. They are basically just considered organic life forms. And, that means that the organic life forms can go either way. They can be swayed and pulled either way, but they don&#x27;t have as much creative power as a Celestial does. They have a lot of power to co-create, that&#x27;s for sure. And in their original form, on this planet, you would consider them Celestial-like beings.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Okay. So they were like Light beings, then? Or not Light beings?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005349">00:53:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They could be either, they could be any of the three. And that is why the other side is so fixated on bloodlines.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh, but I meant their actual shape - when I said Light, I don&#x27;t mean like, Light versus Dark - I&#x27;m referring to like, translucent.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Are the Celestials translucent? Is that what you&#x27;re asking? Or the humans would be translucent?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah... I think that&#x27;s what I&#x27;m asking! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005418">00:54:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. In the very beginning of Creation, almost all of Creation was semi-translucent - because it wasn&#x27;t actually taking shape and form as matter. So, even the inhabitants of Earth at that time, would have looked the same. So, if that&#x27;s what you&#x27;re referring to, back in history - before the Dark side was created, or Anti-Source was created - we had a lot of Celestials around. So, they didn&#x27;t have shape - they had somewhat of a shape, because that can be manipulated through frequency, right? But, the actual creation of matter, only started forming when we had Light and Dark.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005502">00:55:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But now, we have a different way - or Source has made another way - to create matter out of only the Light side. Utilizing distance, and some other things. So, that being said, that&#x27;s where we are now. So we don&#x27;t necessarily need the Dark to create anymore. Now, what they were expecting on their side - their 15,000 or whatever they have left of those beings on their side, plus their human followers, so to speak - they were hoping that Marduk&#x27;s plan would have saved them on their side. Because there&#x27;s really no hope of them recreating the Order in the way that it was, and having as much power and control over humans, and Earth, as they did. As they once did.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005606">00:56:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, let&#x27;s talk a little bit about the being known as Marduk. And I tell you, this guy left a legacy to end all legacies. [Laughing.] He just never ends right? But Marduk, remember, is a title. It is the Lord of the Seas. Or the Duke of the Seas. So there was - in order to maintain balance between Light, Dark, and Neutral Creation on Earth, or the creation of All-That-Is everywhere - there was an overseer, so to speak, that could act on behalf of Source, Anti-Source, or Neutral Source, in order to make sure that the beings that were on Earth - so these were like hall monitors for Celestials, for lack of a better term; that we weren&#x27;t getting too far out of balance. And that also depended on what Age we were in, whether we were in a Neutral Age, a Dark Age, those types of things. And that position we know as Marduk, and the Other Realm folks, would have taken that stance, to be that &quot;Enforcer of Source&quot; so to speak. Enforcer of balance. Therefore, Marduk, at one point in time, had an enormous amount of power over all of the elements and All-That-Is. So Essence, Energy, Consciousness, Matter, Frequency, Wisdom, Knowledge, Love, Life, Death - you name it - he had a balancer system for it, at one point in time.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005754">00:57:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And, this being, so to speak, would utilize (as did a lot of others) the Dial of Destiny, in order to say &quot;Well, the humans chose it. Look, the Celestials chose it! They wanted this all Dark, so I&#x27;m just helping them out here. I&#x27;m just changing and altering the All-That-Is to make it more Dark, because everybody chose Dark!&quot; But that&#x27;s not really true when it comes to humans on Earth, is it? That&#x27;s not really fair to say - we have not had a choice. We have not had the ability to choose how to live our lives in a sentient way. In order to exist as humans, we have to eat food, we commit murder - we kill plants, we kill animals, we do all kinds of things - not in a malicious way but in order to survive. And the planet&#x27;s kind of become a survival of the fittest.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005858">00:58:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the genetic manipulation of humans on the planet - plants, animals, and the planet itself - was also orchestrated by Marduk. That&#x27;s why some people say that Marduk was the creator of humanity. Which is not true, but you could say that he worked very hard to genetically manipulate humanity, so that they are more predisposed to Darkness than we are to Light. And by Darkness, that comes in many forms: guilt, shame, obviously the deadly sins are those things that pretty much everybody has done. We all have killed a plant or two in our life. And so he actually had a program for that, to manipulate people on Earth.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005953">00:59:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the next program, which I&#x27;ve talked about in the past, but I&#x27;ll revisit because it&#x27;s kind of relevant to this - and one of the things we ran up against as far as transferring energy to people (known as money) - is the Growth Rate of Development program. Or the G-O-D program. I know, right? So, Marduk had a separate Growth Rate of Development program, other than the ones that had already been switched off in Alpha and Omega. So, he had a separate one unto himself, because he wanted to determine when humanity had grown up enough to become Creators, as part of the Keystone of All-That-Is. That&#x27;s why, when you&#x27;re here on Earth, we have so much power to create. And he said that human beings weren&#x27;t ready for it! So, what he did - you&#x27;ve got to love this guy - sorry, I could say many swear words about what I have encountered over the last decade or so, of dealing with this being.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010106">01:01:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, his Growth Rate of Development program was very different than the one initially, that was put forth by Omega and Alpha, by Covenant and Agreement. His set the point to when humans became awake and aware enough - over 92% - that all of humans could then receive direct energy from Source the Creator. And that the chains that were in place - and there were a lot of them, I use the word chains - on the All-That-Is Stone, to sway it one way or another, and then sway humans one way or another, as co-creators, and some as Celestials, in order to co-create a harmonic universe: Light, Dark, and Neutral. But, his governor of an estimate of needing to grow awake and aware and be cognizant of your effect on the entire universe was 92%. However, he turned it off when it hit 76% and some change - therefore we had no hope of getting out of this mess!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010220">01:02:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: When did it hit 76%? That even seems high.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh God! In like, &#x27;82!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh really? Huh.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Believe it or not, we did.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Did Marduk - was he not accountable to anyone else? Sometimes when I hear about all of this stuff he did, I&#x27;m like, was nobody - like any Council or anything - checking out what Earth was doing? What Marduk is doing? How did he get away with this crap?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010248">01:02:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, when you exist for a very long time - and this being did - it went from avatar to avatar, meatsuit to meatsuit - predominantly in and around Earth, for around 75 million years - you know, you get a little bored. (Sunny [laughing]: Okay. Yeah, I guess.) So he was allowed a certain amount of &quot;enforcement&quot; for alleged balance. But also, distorting that, to kind of put you in a box, to where &quot;You chose it.&quot; &quot;Gee, you chose to do this, so I hope you like your medicine now!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010335">01:03:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah. I just wish there was, again - a group of beings, a council, or whatever - that he would have to check in with at some point, despite how bored he was. Poor Marduk, I feel so bad for him. And be like, &quot;Okay Marduk, that&#x27;s not really right. You&#x27;re not really giving humans a choice here.&quot; There was no ... you know what I&#x27;m saying? There was no one going, &quot;No, I don&#x27;t think that really works, Marduk. Maybe go back and look at that again.&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010405">01:04:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But you know - truth be told, okay - the power to make those changes, would be in the Celestials. And no one, until now, has gone against him. Has gone against all those programs. You are completely unaware of everything that&#x27;s happening, as a Celestial, on this planet. On the other side, they&#x27;re aware of some of the programs, they&#x27;re aware of some of the way things worked. I mean, even their bloodlines and all of that - they&#x27;re given more &quot;knowledge&quot; than we are on our side of it, therefore, tipping the scales. There are, like I said, there are about 2,500 of us that are - somewhere in this world - that are waking up to the fact of who they are and what they can do and how they can make those changes. But, this is now the reason why those changes actually happened. It&#x27;s a difficult process for people to understand, and then not to get an ego about it, either. You know, you&#x27;re just here to do a job, this is it. This is what it is, people. Effectuate change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010525">01:05:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But during the process of all of these things changing... So now we&#x27;ve got the lay of the land: who&#x27;s who, how it worked here on Earth, why Earth is so important to the Multiverse. And now we&#x27;ll go into - and that&#x27;s what they&#x27;re looking for - they&#x27;re looking for Marduk&#x27;s &quot;balance system&quot; to kick in and bring them back up. Because they&#x27;ve lost just about everything. So, even though, traditionally speaking, neither side liked Marduk - both sides actually hated Marduk - but in this particular instance, these people are losing so badly right now, on the other side, that they&#x27;ll do anything! And now they believe that Marduk is going to save them. That he put enough of a &quot;surprise&quot; as they called it, or a &quot;gift,&quot; if you will, in place - to at least restore balance between Light and Dark. But, alas, no.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010629">01:06:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, changes that have happened in the past few days, in the course of... let&#x27;s just say, making sure there was no Marduk program anymore. Because some of it became an AI program unto itself. Really, it was. And it kept operating in the manner in which it was programmed to do, with or without Marduk there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010652">01:06:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, Earth is no longer an All-That-Is Keystone of Light, Dark, and Neutral Creation. Earth is now a creator of All-That-Is, of let&#x27;s just say, the Golden Age, Crystalline Time, and Source. And that would be where the &quot;T*E/V=M&quot; is. So what that does is - even if there are any Dark Celestials left on this planet - there is no longer a manifestation of something else. So the bloodlines on their side, all those people on their side - they can try to create, and this just happened within the last 12 hours, so their way of Creation, creating chaos, murdering people for power and control, trying to create Dark systems, and those types of things - their manifesting abilities for the Dark will no longer exist.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010815">01:08:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And on top of it all, there was a number of computer programs that would have helped them out, either placed there by Marduk, or placed there to simply keep balance under Divine Intervention - because the All-That-Is Keystone of the entire Multiverse, needed to be changed out, so to speak - so as that goes away, the programs will go away, as well. And then the Light side will be the only Celestials, or Creators, on this planet. The same thing goes for humans.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010849">01:08:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, when you say the Dark Celestials are going away, does that just mean they lose their power? Or they physically are going away?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010859">01:08:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We&#x27;re not sure - this has never happened before. It could be one way or the other, we don&#x27;t know! Honestly, we don&#x27;t know. One thing is for sure is they will not be able to manifest anything Dark. So that means Darker AI systems, access points, portals. Some of them were more aware of their black magic so-to-speak gifts than even the Light side was aware of theirs. Like you said, we still have a number of folks on our side of it that have not fully woken up and fully understand what they are doing here. But there are a number who are. And 2,500 is not bad.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010945">01:09:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, through the Alpha system, can you get numbers, as to like how we are on the Light side versus the Neutrals, where the Neutrals went, and then how many were on the Dark side? Is there a way to see that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010958">01:09:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There is now. But I just - this is like maybe about 45 minutes ago, a half an hour ago - so, there is a genomic history for Celestials - which we just recently acquired, like literally within the last 30 minutes. So, now I can probably go in, and take a look at that, and I can post those numbers, so people can kind of get a general idea on how we&#x27;re doing here. On their side of it, remember too, a lot of it is bloodline, and a lot of them are regular humans. You know, the Neutrals, what happens there, I guess is yet to be seen. This is all brand new information that we&#x27;re giving you, so hopefully we&#x27;ll know more, in the upcoming day or two, but if I do have some actual numbers, I&#x27;ll post them for you. So you can get a general idea on where we&#x27;re at.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011053">01:10:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But for Earth, this is a very positive thing. As you know, Earth was created before the stars and other planetary systems, and by Celestials here on the Keystone. So hopefully this will help with the Others here who are trying to create a different reality. And with the lack of any kind of a Marduk &quot;Spear program&quot; as they call it, they call it the &quot;Spear of Heaven&quot; is what they call it on their side. Or Hell. Or whatever. On my side, I just say, well, what a being. What a title. What a position. What a cunning, charming - because, having known him myself, just one of those people, you know? Very manipulative - he&#x27;s not a person - but just very, very, highly manipulative, and used to getting his way by convincing all kinds of beings throughout the Multiverse to do his bidding. Great power. Great control, and let&#x27;s just say a very high misuse of power in a lot of cases.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011215">01:12:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So what they are expecting to happen in the next couple of days, is not going to happen. The Full Moon will come and go tomorrow. So will the three days after, when it allegedly has power, and, that will be it. And then they&#x27;ll come up with something new. On this day, or that day, or within a few days of the Solstice, is probably the next big whoop-dee-doo for these people. And then, everybody else and their brood - their humans that are in their downline - will become professional waiters. And we will be moving forward on our side. That&#x27;s the expectation I have. The expectation I have is that no one on their side is going to change course. Governments will not change course. They will follow those people to the End of Days with their next day ending in &#x27;Y&#x27;, or supposed program, that&#x27;s going to show up and save their side, and promises of money that never come, until they just all starve and die. Which, we are totally okay with that. You know, if there are some, if they want to come and work with us, or for us, that&#x27;s great. If not, then that&#x27;s okay, too.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011327">01:13:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But as you can see, there is a lot of work that goes into... You know, people are like &quot;Oh, just transfer money - it&#x27;s so easy!&quot; God, I wish it was. There&#x27;s always, there&#x27;s a lot of stuff that was in the way. I do feel like we are getting clearer and clearer on our side for creating those things. Even as organic humans, we have a lot more ability to manifest these things too. So hopefully, if all goes well - I still feel like we are closer than ever, because the only things we have gotten hung up on are things that were... not of human origin. So recently, we had a little bit of a - like I said, some time capsules from Marduk, that he put in place - so we cleaned those up, and we&#x27;ll be back at it again this afternoon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011433">01:14:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What about the... I think it was, what is today? Today is Wednesday. I think it was on Monday, we were talking about the time it was taking to test, run these tests. Have you found that that has even sped - I think we were at about 10 minutes - what we talked about on Monday?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011448">01:14:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep, we are still at the same. It&#x27;s still taking about the same amount of quote unquote time, to go from one section of a system, to another section of a system. And it&#x27;s still like right there at the very end. We ran into a few things with customer portals, this Growth Rate of Development extra-extra system - that wasn&#x27;t there before - that&#x27;s there. So there&#x27;s just a few things that were not permitting... and honestly, I actually stopped once I started to hear about this All-That-Is Keystone and the power of humans. The reason why that dollar of straight pure Source energy to humans is such a big deal is because that means that the organic humans will now have more power to manifest - when they are receiving direct energy from Source, that doesn&#x27;t have a haircut, that doesn&#x27;t have any energy being blocked. And for the Celestials on the Celestial side, they&#x27;re doing, and I say &quot;they&quot; because I don&#x27;t know who all these people are on this planet. I know them when I meet them, you know like, I can see them. But their ability now to manifest, when they have full power? Oh, boy!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011623">01:16:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Watch out! (Kim: Watch out!) [Hearty laughter.] Sunny: Coming through!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right! Coming through! Because - and then the other side isn&#x27;t contradicting their efforts either. So you could be one of these people. One of these people could be watching this right now. And then you say, well I would like to have this happen in my life, or this to happen in my world, and then they&#x27;re on the other side, once they&#x27;ve identified who you are - you know, the book - they have access to the book of who the Celestials were, and all that kind of stuff. They then counteract what you&#x27;re doing. So they have their, and I call them the Industrial Psychics, too. They work night and day on any Celestial people that they have identified. They work night and day to make sure that they know what you&#x27;re going to do. And then they try to go ahead and counteract it by creating something Dark to get in your way. So this fight has been going on now - but now it makes more sense to me. I&#x27;m like, why would Source tell us to do all this stuff, and then, you know, I&#x27;m not there yet? [Unintelligible due to network interference] ...being get that much power in the universe, as whoever held the title of the Marduk! And like and I went up there - we had words! [Both laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: You and God had words?! Go, Kiimmm! Go, Kiimmm!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011756">01:17:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But I guess I understand how he manipulated the situation now, more so. Because a lot of the Lightworkers - sometimes people wake up at a very young age - five or six years old, and they already know what they&#x27;re doing. Sometimes they wake up at that age, and then they go to school, and they&#x27;re told everything to the contrary, and anybody that thinks that you are that - &quot;You don&#x27;t have these skills! You can&#x27;t see that! You can&#x27;t do this! You&#x27;re crazy!&quot; And then they lock the child up in a mental institution, and there&#x27;s the end of that. And then they completely walk away from what they already know. So that happens a lot too, they kind of stifle them, bring them down, that kind of thing.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011840">01:18:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So there&#x27;s so much manipulation in society that will prevent you on this side of it, where the Dark side fosters it. They know how to read whether or not you are a Celestial - they know on their side. And they nurture those people. And then they also have had the advantage of identifying who the Neutrals are, and/or breeding them! And bringing them to their side. And when a Celestial goes, another one comes - that&#x27;s how it was supposed to be, on both sides. So, I can see how one side was fostered for sure. And the other side was left kind of - not in the dark but - we became aware of some things, but we didn&#x27;t really understand how to use it all.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011931">01:19:31</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It&#x27;s not like we got a handbook, &quot;Welcome to the birthing unit of the whatever-hospital you were born in. And here&#x27;s your handbook - and by the way, you&#x27;re a Celestial - be one with it.&quot; If anything, if anybody ever did say that to you, they would say, &quot;Oh, they are crazy.&quot; Your parents would say, &quot;Oh, you&#x27;re crazy,&quot; or whatever and try to lock you up. But it&#x27;s done that way on purpose. And when you really think about the societal structure, and what they have done to block our side of things - meaning the Light side of things - you can kind of see how he gained that much power. Because he&#x27;s just like, &quot;Well, everybody chosen it. I don&#x27;t see any of those Celestials down there on the Light side doing anything today, do I? No I do not.&quot; You know? Or, &quot;Hey, we&#x27;re going to put the Dark people on them, so they can read their mind on what they&#x27;re manifesting and cleaning - so then they can go turn around and recreate it, and put it back!&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012030">01:20:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah, so frustrating. So what you&#x27;re saying now is, the Dark can&#x27;t do that anymore?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The base root of the power that goes to planet Earth - as Celestials on either side, or even as humans, in the middle - is the Keystone. The All-That-Is, we are living literally on the Keystone of the Universe. And our energy - what limited amounts they let us have - allows us to manifest things not only here on Earth, or even remove things that are harming us without them coming back. So we have the ability to do that. But it was a tit-for-tat - we&#x27;re fighting - against an equal and opposite force. And then the Neutrals, who everybody tries to sway, one way or the other. Which then would give of course - if the Dark knew who they were - we don&#x27;t know who they are, we don&#x27;t have access to that information. They make sure we don&#x27;t have access to that information. So they&#x27;ve got more going against us than we are pushing forward. And if what the numbers have said - when we looked the last time we were looking for Melchizedeks - or the Celestials - then we only know about 2,500 that are working on our side. Lord knows how many they had counteracting us on the other side.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012201">01:22:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So I&#x27;m aware that there are those on the other side. I&#x27;m aware. I&#x27;m aware that they, not all of them think they&#x27;re doing a bad thing - they are just doing their manifestation for God, they think. It just happens to be the Dark side. You would think that blood ceremonies and stuff would kind of tip them off a little bit, you know? But no, they didn&#x27;t! [Chuckle.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Didn&#x27;t say all the Celestials were that bright, guys!! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, we didn&#x27;t say we all came in here with a full deck, did we? [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Nope, we did not.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012238">01:22:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And that&#x27;s on purpose as well. And then, of course, the meatsuit doesn&#x27;t help any - that&#x27;s been genetically modified over and over and over again to make it difficult for us to get our full Essence Energy Consciousness, and so on and so forth, working in unison. Things between the Planes of Existence in your person; influxes of Dark energy that would come in during ceremony days or full moons or new moons, in the past. So they did a lot of work to us to make sure that we had to do something for the Dark. And that&#x27;s the manipulation that I&#x27;m talking about that came from that being. Everything possible to make sure, &quot;Oh well, they&#x27;re choosing to do nothing.&quot; That&#x27;s like saying, &quot;I&#x27;m going to chain you to a chair, Sunny.&quot; And then say, &quot;Look at your house! Wow, Sunny! You&#x27;ve got a dirty house! You certainly do. Well it was your choice not to clean it! You could have dragged that chair along, got resourceful, and stuck the mop head on the corner of the chair, and then swished it around. I mean, you could have done something, right?&quot; But they make it that difficult, that&#x27;s the point.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012358">01:23:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So that is a positive movement forward for us - that Earth&#x27;s Keystone has changed - so the fabric of reality that comes from here should change. I will know, hopefully, in the next 24 to 48 hours, what to expect on the Dark side. Remember, when something loses its power, it takes 72 hours. So, we will see. We will see what transpires there. But, now on their side, they are just waiting. So just to recap, they are just waiting. They are waiting for something to happen. Professional waiters over there. On our side of it, we are continuing to move forward, and make moves continuously, to make sure that what we need to have happen with C.A.R.E., and with all of you, and the Light side, and the cleaning up of the planet continues to happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012451">01:24:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So if you are watching this and you are a person that does a lot of cleanup, or grid work, or manifestation, and those types of things - I suggest you go back to some of those places you&#x27;ve been before, if you keep notes, and make sure that whatever it is, is still gone. And that you don&#x27;t need to do a cleanup once-over, one more time. Because these guys tend to - you sweep under the rug, and they tend to sweep it right back under the rug. So you know, just - and I know it&#x27;s frustrating - it&#x27;s frustrating for me too, but I would say just give it another once-over, for the work that you&#x27;re doing, if that&#x27;s what you do. And keep things positive.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012534">01:25:34</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Keep working on manifesting things positively for the Light, for this planet, for the All-That-Is. Everything you do here has an effect on everything that happens everywhere else. And very soon that&#x27;ll be completely and totally uninhibited. That means that all of the governors and the chains are going to be broken off. So now you&#x27;re going to have even more power, so use it wisely. Choose wisely. I mean, you won&#x27;t be able to really make too many mistakes with the Light. But, you know, if you decide that one day you want to wake up, and you want to create a whole species of whatever - insert-actor-name-you-think-is-attractive here, you know? No. Refrain! Refrain!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny [laughing]: Oh my gosh! Who knows what people would do, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012630">01:26:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim [laughing]: I know! I was thinking that too! Do we really want to take this off? I&#x27;m not sure! Well, we&#x27;ve got to go forward. You know it&#x27;s like one of those things - if He brings you to it, and now you know about it, well... I guess it&#x27;s time!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But it has to follow Natural Law, right? They won&#x27;t be able to manifest things that don&#x27;t fall in line with Natural Law.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012653">01:26:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. Yeah. If you are trying to create a whole planet of the most attractive men or women - whatever you like...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That doesn&#x27;t sound too bad!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: ... and then you want to go move there!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I just want to go visit for a little bit! Change my meatsuit when I go!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know! I know! A few cabana boys wouldn&#x27;t hurt anybody, right Sunny?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;s what I&#x27;m talking about!! [Hearty laughter.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012714">01:27:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A nice pool, you know? Some tropical music in the background, whatever you like! (Sunny: Yeaaah.) I could definitely use a vacation, but, I can&#x27;t see a planet with all that. I probably would just be the only one there. I might create some dogs, you know - dogs are great!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: We had a story about that earlier. Dogs are great! They do a lot for our emotional well-being!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012741">01:27:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They do! I love my kids! Absolutely I do. So like I said, maybe on a beach with my dog would be more fun. I&#x27;m not sure. Maybe just one person to go with me, I don&#x27;t know. [Laughing.] But you know, I don&#x27;t really need all that, I&#x27;m not looking for a harem anytime soon, that&#x27;s for sure!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012803">01:28:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So good moves on our part. So, not bad news for Wednesday. By Friday, by the time we start talking, we&#x27;ll probably have more information as to the status of the Deep State, the status of the Dark. Some more fluid numbers for you, to see where we&#x27;re at. And I look forward to seeing some results of all of you out there and your creations! Now that you know why it&#x27;s important to ground - you&#x27;re grounding to the All-That-Is Keystone - now it will be a positive Keystone. So be sure to get out there and do some more grounding, and connecting with Earth. And you can co-create together.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012840">01:28:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Beautiful. Okay. Thank you, Kim!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Thanks, Sunny!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012845">01:28:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012944">01:29:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=U2uHG0gFzIA&amp;t=2367s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
