@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-May-20</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-May-20 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-May-20
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=-iVrAWWPpWI&amp;t=2130s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=-iVrAWWPpWI&amp;t=2130s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240520_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the May 20, 2024 report by setting the record straight on Iran. The helicopter crash reported to have killed Iranian President Ebrahim Raisi and his staff was staged; they are alive and were located that morning in Belize. The setup begins the transfer of Iran from China&#x27;s Order of the Dragon to the Pallavicini family. Khamenei, head of the Order of the Green Dragon, is a masked replacement for the long-dead original, and the president was in on the plan. A bankrupt China agreed to give up Iran for $5.5 trillion, with the next payment due Friday; Khamenei would be next to &quot;die.&quot;<br>
+<br>
+The Pallavicini family, now led by a man of about 40, had the Order of the Black Dragon find Mei Wah&#x27;s old master keys to Omega, and obtained Marduk&#x27;s master keys from the Order of the Dragon, which knew they did not work. The deal splits planet Earth 65% to the Pallavicini family and 35% to the Order of the Dragon. They have promised $75.42 trillion to countries including Russia and South Africa, probably China and the UK as well, but nothing to the United States. Instead, $56 billion went to Langley 5, U.S. operatives, and SSP people, including the Q-Crew and Trump operatives, to let the U.S. burn and then manage North America. The Q-Crew&#x27;s &quot;Iran is out, Egypt is in&quot; post a day ahead of the crash tells Kim they took the money.<br>
+<br>
+The blueprint is Marduk&#x27;s decades-old Seven Currencies of the World Plan: seven centers each for the BIS, WTO, IMF, and UN under one umbrella, with military and intelligence control as well as finance. China would take Asia from India east; Russia, Europe; South Africa, Africa; Brazil, South America; the U.S., North America; and the UK, the Commonwealth, with William installed after Charles. The Middle East has passed from the GCC to Iraq to Iran, possibly under a new Shah; the former Shah was a Pallavicini. Seven base currencies, backed by the IMF SDR or gold, would follow a global crash. It cannot work: Marduk never released a plan without its final key, and his Alpha access ran through the Parents and the twins called Cassandra, who are gone.<br>
+<br>
+Launched three days before the Full Moon, the attempts are exposing the last hidden control systems for Kim to clear. She shut down a reality-altering program used against targeted people, identified the attackers through the Key Intelligence and Military System, and watched them hit Command and Control, the global transfer platform, and the Grass bandwidth network; she expects them spent by Friday&#x27;s payment date. Meanwhile, weekend C.A.R.E. meetings readied her side to move quickly: Tier One bank operating systems have merged with the Global Repository&#x27;s, Tiers Two through Four are underway, and transfers now take about 10 minutes.<br>
+<br>
+Kim exposes two Looking Glass lies: the June 13th concession date was actually 2012, and the claim that she would never drop a dollar. She names the Orsinis as the family slated to control the U.S. and the Anti-Silent Circle as still on the warpath. She closes by urging people to walk away from those who keep lying to them; your word is the one thing they cannot take.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003732">00:37:32 - The staged Iranian helicopter crash.</a></li>
+<li><a href="#t-003954">00:39:54 - Iran&#x27;s president is alive -- in Belize.</a></li>
+<li><a href="#t-004020">00:40:20 - Khamenei, the Order of the Green Dragon, and a mask.</a></li>
+<li><a href="#t-004233">00:42:33 - A bankrupt China sells Iran for $5.5 trillion.</a></li>
+<li><a href="#t-004433">00:44:33 - The Pallavicini family and Mei Wah&#x27;s keys to Omega.</a></li>
+<li><a href="#t-004532">00:45:32 - $75.42 trillion promised -- and $56 billion to let the U.S. burn.</a></li>
+<li><a href="#t-004627">00:46:27 - Q-Crew</a></li>
+<li><a href="#t-004749">00:47:49 - 65/35</a></li>
+<li><a href="#t-004910">00:49:10 - Marduk&#x27;s plan</a></li>
+<li><a href="#t-005240">00:52:40 - The Middle East, and a new Shah?</a></li>
+<li><a href="#t-005552">00:55:52 - Why Marduk&#x27;s master keys won&#x27;t work.</a></li>
+<li><a href="#t-010132">01:01:32 - Tier One bank systems merged with the Global Repository.</a></li>
+<li><a href="#t-010428">01:04:28 - A reality-altering program shut down.</a></li>
+<li><a href="#t-010637">01:06:37 - Hacking Command and Control, and Grass.</a></li>
+<li><a href="#t-011036">01:10:36 - June 13th and the Looking Glass lies.</a></li>
+<li><a href="#t-011305">01:13:05 - The Orsinis and the Anti-Silent Circle.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-MAY-20 World Situation Report</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003532">00:35:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now, the World Situation Report, with Kimberly Goguen, from the Office of the Guardian. The Pallavicini family has made some grand plans for world domination, which began at the end of last week. The split is 65% ownership of planet Earth, with 35% going to the Order of the Dragon. The death of the Iranian president was all a setup, to transfer control of Iran from the Chinese to the Pallavicini family. All this and more as we check in with Kim for today&#x27;s World Situation Report.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003607">00:36:07</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Now here&#x27;s Kimberly Goguen, with the Office of the Guardian. Hey, Kim!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Good... Monday morning! I had to remember what day it is. How are you, Miss Sunny?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I&#x27;m good, I had a good weekend - got out with the family. Went and checked out some animals in nature. I don&#x27;t know just kind of had a relaxing time. I always feel bad saying that, because I know you didn&#x27;t have that kind of a weekend. But I&#x27;m sure we&#x27;re going to get updated on...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003632">00:36:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There will come a day when I have that kind of a weekend. Now, I had some meetings over the weekend, they started on Friday, as you know, and I&#x27;m not really ready to talk about them yet. Let&#x27;s just say they were about C.A.R.E. and moving forward and that kind of thing. So all positive things. Like I said, for us - don&#x27;t get me wrong, we do need to know what&#x27;s going on in the world right now, so that we can make changes in our lives if necessary and also to dispel any kind of fear and rumors and those kinds of things - but, my focus and my attention has been on moving things forward, and being 100% prepared to move them forward in very short order.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003717">00:37:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But that doesn&#x27;t mean we don&#x27;t have crazy people doing crazy things; there&#x27;s all kinds of rumors going around, so let&#x27;s just set those rumors straight, and tell you what&#x27;s going on.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003732">00:37:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All right. Let&#x27;s start with something that is on everyone&#x27;s lips right now. It is circulating throughout the patriot communities, Q communities, about what&#x27;s going on in Iran right now. As you know, I&#x27;m sure you&#x27;ve heard - unless you&#x27;ve been hiding in nature all weekend - that there was an alleged helicopter crash which killed the Iranian president and some members of his staff. What is to come in the near future - this is according to mainstream news - is that Khamenei, which is the Imam of the Shias, and in charge of the Shias - is that he is going to select an interim president, that will serve for 50 days until an election can be had to select another president. And of course, everywhere is a selection, and Iran is no exception.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003835">00:38:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But, let me tell you about this alleged helicopter crash. Now, during the time of the alleged crash, they said the weather was bad, therefore they couldn&#x27;t actually locate the helicopter. They tried to locate the helicopter, allegedly by air, and then when they were unsuccessful due to fog and bad weather - which there was some bad weather - then they had tried to locate it by ground and sent some ambulances to where they believe the crash occurred. Now, this was so haphazard - whoever was running this show, clearly, it&#x27;s their first day. Because first they could find them, and then they couldn&#x27;t find them, and then so-and-so was on board, and then they&#x27;re not on board, and we&#x27;re not sure who&#x27;s on board, and who&#x27;s on first what&#x27;s on second. And it was this game they played for several days over the weekend - or a couple of days over the weekend, I should say. And finally they made a decision that they found the plane, and that the president had passed away, within the last several hours. It&#x27;s been within the last 24 hours that they made this decision.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003954">00:39:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the president of Iran is not dead - neither are his staff. They were located this morning in Belize. And I am sure they are enjoying the weather and the beaches there - it&#x27;s beautiful there if you haven&#x27;t been to Belize - and awaiting further instructions. They&#x27;ll probably get a new life and all that comes with it, just like they did with Hitler, and other folks.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004020">00:40:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But there is a reason behind this all happening now. So, we have also talked about the fact that Khamenei - and Iran - has been heavily controlled by the Order of the Dragon. As a matter of fact, the head of the Order of the Green Dragon is actually Khamenei. So, he&#x27;s been kind of put in charge over a lot of the affairs - on behalf of the Rothschild&#x27;s Order of the Dragon and Chinese Order of the Dragon - for quite some time now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004054">00:40:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, we did talk about the fact that the real Khamenei is dead; we&#x27;ve talked about it several times. But Iran is no different than the U.S., where we just walk heads of state around with a mask on, and call it a day. He has tripped up several times, with other heads of state in the region, not being able to confirm events that have happened in the past, between heads of state privately - like, whether it be a fishing trip, or some other type of event - that did not happen in the news, that took place privately. Which is no surprise. Not all masked men know all the answers to all the questions. And the president also was on board with this plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004150">00:41:50</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, for the last couple of years, Iran and China have built a very strong relationship due to the fact that there was a plan - as you know - to transfer the world&#x27;s power center over to China (or to BRICS or whatever they called it) and crash and burn the United States. So, under this plan, China had full control - or the Li family of China, the Order of the Dragon, the Golden Dragon - had full control over the country of Iran. And all the sanctions you see, and the fight between Israel and Iran, is just one hand fighting with the other hand, to achieve an ultimate outcome of control over the Middle East.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004233">00:42:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, China has been going through a lot of problems lately. They do not have the money to complete this plan successfully - they are basically full-on bankrupt. And therefore there was a little deal made within the last several days. And the deal that was made, was that China would receive $5.5 trillion for the Order of the Dragon to give up control over Iran. And this is what the operatives came up with. So, first it was supposed to be the president, which, done. The next allocated payment is allegedly due on Friday to China - to give up full control. So, if this had actually happened, or does actually happen - which it won&#x27;t, because these people are crazy - then China would receive $5.5 trillion, and that would get them out of debt, and get them back into at least a stable state, and then Khamenei would be the next to die, and there would be another person put in control as the Imam of the Shias.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004400">00:44:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, the parties putting this forward is a group known as - and we&#x27;ve talked about them before - the Pallavicini family, or whatever is left of them. The guy that&#x27;s currently running it is fairly young - I don&#x27;t even know if this guy&#x27;s 40 years old, if so then he&#x27;s right about 40 - and for the families, that&#x27;s a pretty young age. Which means that somebody got all excited with themselves, being a member of this family, and decided it&#x27;s time for them to now take over and step up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004433">00:44:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So here&#x27;s the deal that they made - and this is really bad. So, they did get a hold of (with China) - they ordered the Order of the Black Dragon to find the old Mei Wah system keys to Omega. Now, she had been given - by probably Satan himself, or somebody down there, Lilith or somebody - these master keys, which would then allow her to control a lot of different systems. And, as Omega pretty much has faded away, it gave very limited control and limited access to things, in order for them - the Pallavicini family - to then try to take back control of all world systems. But they didn&#x27;t know that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004532">00:45:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, over the course of the last several days, they have made $75.42 trillion in promises to various countries - that&#x27;s a lot of money around the world. Now that would include Russia, South Africa, and we&#x27;ll talk about why here in just a few moments. The only country that was not slated to get any money is the United States. However, $56 billion was promised to Langley 5, U.S. operatives, and some other SSP people - including the Q-Crew and the Trump operatives - to allow the United States to burn to the ground.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh my gosh!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004627">00:46:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh yes. Now, if you do happen to follow the Q-Crew, you&#x27;ll notice that they mentioned - 24 hours before it happened - they put out their &quot;Iran is out, Egypt is in,&quot; with some weird coded messages, like they normally do. And then this happens the following day. Which tells me that the Q-Crew, and the Trump operatives, and Team Trump, agreed to take the money.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Wow! There&#x27;s your White Hats! [Chuckle.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004659">00:46:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, awfully white, yes they are! Not so much so. Maybe like the color of caca brown or something, is what I&#x27;m thinking. And so, they were all proud of themselves that this happened over there. And of course, in defense of Israel and all of this. But, allowing the U.S. to just burn into the ground, so that it could be rebuilt up - of course with themselves at the helm. And their egos are so large, they believe that they are the chosen ones, remember? So they would love to be in charge of the United States. You know, the management crew of the United States. Because we all know governments don&#x27;t actually run countries - it&#x27;s always been behind the scenes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004749">00:47:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, the deal that was made on a higher level - between the Pallavicini family and the Order of the Dragon - was the Pallavicini family, in exchange for the Mei Wah codes, and of course them executing on a long overdue plan - which was put forth by Marduk - that they would be 65% owners of planet Earth... and, I know, lofty goals for a weekend! &quot;What are you doing on Saturday?&quot; &quot;Well I&#x27;m trying to take 65% control of planet Earth, and you know hey, by the way...&quot; Yeah. And 35% control would go to the Order of the Dragon, so they were not excluded. Which is why China probably got some money, there was I&#x27;m sure there was money promised to the UK, and a few other places, while they go through this global restructuring.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004846">00:48:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, that is a check the Pallavicini family will never be able to cash - in this lifetime or the next one. They will never fulfill that promise of $75.42 trillion, or euro, whichever country they&#x27;re dispersing money to. I know that because they&#x27;ll never get enough financial control to be able to issue anything. Ever.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004910">00:49:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, let&#x27;s talk about &quot;the Plan&quot; - you know, what they were planning on doing - because this is important for the entire world to hear on how flawed of a model this actually is. So, Marduk developed a plan to take over the world - which Marduk already ran the world - but this is for the little humans, to maintain control. And on the surface, it actually sounds like somewhat of a good idea, because it&#x27;s a more... there wouldn&#x27;t be one power center of Earth, there would be seven. And I&#x27;ve talked about this before. So, there would be seven Bank for International Settlements around the world, there would be seven World Trade Organizations, IMF, United Nations, so there would be seven different locations in the world where these organizations would exist, of course under one umbrella. Which would have been then controlled 65% by the Pallavicini families et al, and 35% by the Order of the Dragon.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005026">00:50:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, originally, it was going to be all the Order of the Dragon. Because it&#x27;s more than just a financial separation. It would be also military control, intelligence control, of the planet. Now do they have the ability to execute on this plan? Well, no. Because they believe that since Marduk implemented this plan - or gave the orders years ago for this plan to happen - that he would have installed some kind of backup system to make it happen. But that is not the case. So, for the last couple of days, they&#x27;ve been running around with Marduk&#x27;s old keys that he left behind. They&#x27;ve been running around with Mei Wah keys, and trying to access every single system they could possibly access. Which is good for us, because, all of these things needed to go. Anything that hadn&#x27;t been activated in a long time - because the people or the non-people, have not been here - is now all coming to the surface, and we&#x27;re seeing this stuff, so we can clear it out of the way. So it works out good for us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005143">00:51:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But the locations in the world that were going to control various parts of the world were of course, namely China - China would control from India on east, and it would be like the entire Asian section. Russia would be in charge of all of Europe - Eastern and Western Europe. These are the promises. The entire African continent would be controlled by South Africa. And the entire South American continent would be controlled by Brazil. Now as far as the United States is concerned, the entire North American continent would belong to the United States. In order to achieve this task, based on the fact that all commodities are traded in U.S. dollars, and these types of things, there would have to be a huge crash that would take place first, in order to implement different currencies.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005240">00:52:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So in the Middle East, they have promised varying countries varying degrees of control. In the beginning it was actually going to be the Gulf - it&#x27;s the GCC, with Saudi Arabia at the helm. Then, it was promised to Iraq, when they started issuing the new Iraqi dinar, and the Revaluation, to control all of the Middle East. And now it appears that that place is going to be Iran. If you do not know, the former Shah of Iran was actually a Pallavicini. So yeah, there&#x27;s actually some chatter about that - maybe they just want to install a new Shah. Kind of take the religion out of it, or maybe install Satan as their whatever, Who knows? But yes that is the chatter now, at the moment. So they haven&#x27;t really found anyone to control the Middle East, but they prefer it to be Iran, so that&#x27;s why you&#x27;re seeing all this turmoil there now. And then of course, the United Kingdom over the Commonwealth Nations, as they currently are - or they think they are, and the Monarchy system. Of which then Chucky would die of cancer, or whatever he is ailing from these days, and then William would be installed as the new head of the region.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005412">00:54:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Even though he doesn&#x27;t want it? Because we&#x27;ve talked about that before - he doesn&#x27;t want to have anything to do with that.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: It doesn&#x27;t matter what he wants. It matters what they want. They would like to have that. Either that, or they will just kill him and replace him with a masked person - they have no shame. So, seven different currencies would then be the base currencies for the world, and those base currencies would then control the entire planet Earth, backed by a centralized currency, namely either the IMF SDR, or they would choose gold if they had any access to it, or one of these types of things. This was the plan that has been around for at least - that I am aware of - seven decades. This was where they were planning on going.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005504">00:55:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, that is actually the reason why we saw what we saw in Iran, which was the beginning of the execution on the plan. Now as far as the Q-Crew and the Trump-Humpers and all those people, they believe that they are going to be the controlling party over the North American faction of the plan. That is what was offered to them. That they would be the managers - not the owners, of course because that&#x27;s already been divided up. But they would make a lot of money, as power brokers, for that region - the North American continent of planet Earth. Pretty lofty goals there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005544">00:55:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But, you said they don&#x27;t have the money to be able to do this. So what was the game plan? They have to know they don&#x27;t have the funds to fulfill this plan.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005552">00:55:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, the best I can tell is, they managed to weasel out of the Order of the Dragon Marduk&#x27;s master keys - which the Order of the Dragon already knew didn&#x27;t work, but of course they didn&#x27;t tell them that when they were negotiating for their 35%. And then, of course, they managed to go find the Mei Wah old keys, which both of them had to do with Omega control, although Marduk had some limited - they believed - control over Alpha as well. But remember, his only access was through the Parents, and the two blonde twins we call Cassandra. It wasn&#x27;t him, it was them - and they&#x27;re gone now. So those keys were never going to work for Alpha anyway.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005639">00:56:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But like I said, limited knowledge is dangerous, and this is of no surprise to me. So they have been running around - I have literally been up since 10 minutes till one last night. I slept for a couple of hours, but ... because they have been going like gangbusters, and it started yesterday or last night. Now the reason why they started last night - and I know you are in a total state of shock - but there is a Full Moon coming up in three days! Three days before, they always start something new. I have no idea if the Flower Moon means anything to these people, who knows? But they believe that the world becomes ripe for global domination sometime within a Full Moon, and that would be the end of a system, and then therefore the installation of a new system. They&#x27;re even talking about a banking crash, and stock market crashes around the world in order to effectuate a change.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005741">00:57:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, I understand wanting to divide the Financial System into seven sectors based on continents and all of that. Because it&#x27;s a number that they could still control. Seven currencies to control the entire world, and then of course you would have managers of each country like we have now in each sub-sector of the seven sectors. And it&#x27;s the same thing that was promised to whatever-the-heck is playing the part of Putin these days, and he&#x27;s going to be the hero of all of Europe, and he&#x27;s great with that. And this is actually - I remember Marduk having this conversation with Putin, way back in 2013/2014. That&#x27;s how long I have personally been aware of this plan. And he was going to be the savior of all of Europe, I distinctly remember this. We were having an argument over Rus land, and they agreed to dump me off in Germany and have me run a part of the Western Sector over there. And I&#x27;m like, I don&#x27;t even want to run anything, I&#x27;m confused as to what - but you have to throw your hat in the ring to see what they would say. But still, they would want me controlled.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005906">00:59:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So anyway, I&#x27;m aware of the plan. I&#x27;m aware that Marduk never put out a plan he did not have the final key to. And just because these people think that they have his key, doesn&#x27;t mean they have his plan as well. So, again, another flawed model. We might see some more disruptions over the next couple of days, as they go through all of their keys and discover that none of them work. And, eternally grateful for that, Pallavicini family - thank you so much for helping me find the last few things I couldn&#x27;t find out there. So, you&#x27;re saving me a ton of time in making sure that humanity takes over the world themselves, and you just are out. So, short meetings, or not short - it was quite lengthy over a couple days. But I still managed to do my job. They didn&#x27;t think I&#x27;d be able to have meetings with people, and work at the same time. Again, you are wrong. I can do many things all at the same time, and still manage to make sure that you will fail.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010021">01:00:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So when is the next payment, Kim? I don&#x27;t know how much money it would be worth - from the Pallavicini family, when is that? Is there a next payment that&#x27;s due some time soon? To keep this plan of theirs running?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010036">01:00:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right! The new payment date for $75.42 trillion is on Friday! (Sunny: This Friday, okay.) Yes. Coincidentally, as you know, if you are Islamic or Muslim, then you know that Friday is a non-working day. Saturday is a non-working day. Friday night to Saturday in their world, that&#x27;s kind of like, [for] most Christian people, Sunday - no work on Sunday. Theirs is Saturday. So, I don&#x27;t - I&#x27;m sure that is why they picked that day. I am sure of it. Is it some special day in the Muslim world? I don&#x27;t know. I don&#x27;t think so. I think the next special day is sometime in June. But, nonetheless, this is kind of what&#x27;s been going on over the weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010132">01:01:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: On our side of it, we have made a lot of progress. Because we&#x27;ve actually managed to take Tier One bank operating systems and merge those operating systems with the Global Repository operating systems, over the weekend. So, this is a positive move - while we were waiting for them to make their next one, we decided to continue our move forward. So what that means is, is that customer accounts that are in banks, worldwide, are now falling underneath the Repository. So we&#x27;ve been working for the last 24 hours on Tier Two, Tier Three, Tier Four banks, making sure that we have the same exact operating systems.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010223">01:02:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So when we transfer money out of the Repository now, it&#x27;s not a transfer from the Repository per se - it&#x27;s from the Repository in the sub-sector of the bank in which the account is actually located. So, if you bank for example at Wells Fargo, it will show your project name - company name XYZ, Inc. - and then it will show &quot;Global Repository, Wells Fargo Account.&quot; So we are now making our master accounts in different banks around the world, for ease of transfer. It&#x27;s taken our time of transfer down from like 20 to 40 minutes-ish, you know, sometimes it&#x27;s gone up to an hour when they&#x27;ve been pushing to block us. But now we&#x27;re starting to hit the customer section. We still have a few little problems in the customer section that we&#x27;re sorting out, because it has more to do with Internet and compliance and other things. But, it&#x27;s taking it down to approximately 10 minutes to make it all the way through the system. Which is huge! Which tells me that we are doing well.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010341">01:03:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And, like I said, I see things progressing faster and faster. And this is good, because it appears that everything else is going to come along at the same time. Hence, the meetings with the C.A.R.E. people, and stuff like that this weekend to get our ducks in a row, so that we would be able to move forward quickly. Because these people are doing a bang-up job on helping us. So, if you happen to run into any members of the Pallavicini family, you need to thank them. Thank them for their service to humanity! I&#x27;m just kidding - they&#x27;re horrible people. But, anyway...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010428">01:04:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, one of the first programs they got a hold of - and I might as well tell you about it - one of the first programs they got a hold of was this program that could manipulate Dark matter, Dark energy, these types of things. But it could also alter the fabric of reality. So, some of the things that people - and they targeted specific people, I believe last night - some symptoms and stuff that they were experiencing were pretty bad. It hit like every nerve in their body and amplified it, so like even the wind would hurt. Oh yeah, they&#x27;re lovely folks. So we now have that, they don&#x27;t have any access to that anymore. It&#x27;s kind of turned off, and that kind of thing. But I&#x27;d sure - I&#x27;ve got a Key Intelligence and Military System too folks, and I actually have footage of them in the Key Intelligence and Military System, to where I can actually identify them all now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010540">01:05:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Oh, okay. So, what is the general mood out there right now, Kim? Because you keep taking away their systems... Are they frustrated? Are they hopeful that this other plan with the Pallavicini family...</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010555">01:05:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They&#x27;re going the distance, Sunny! They are going the distance. They are working really, really hard in this final battle. They don&#x27;t consider it a battle, they consider it they have new shoes and they&#x27;re going to take them out for a spin. But, honestly, no. I don&#x27;t think it&#x27;s going to go real well for them, but they&#x27;ll probably exhaust themselves within the next couple of days. 24 or 48 hours. But until then - or until there&#x27;s nothing left. But we&#x27;ll see.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010637">01:06:37</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They&#x27;ve tried so far hacking Control and Command, which didn&#x27;t go well for them. They tried hacking the master back door - well it&#x27;s not back door - the master base platform system for all international financial transfers worldwide. There is also a network out there where, you know, we have Internet and we pay for Internet services, but there is a peer-to-peer thing that&#x27;s appeared - it begins with a G, I think it&#x27;s named Grape [Grass], or something like that - where people have been selling their bandwidth that they have not used to a second user. I&#x27;m not sure in totality how it works, but there was some money in there; they tried to get a hold of that. Mainly for them, they&#x27;ve been attacking anything that has any kind of what they believe money in it, en masse - I mean, $75 trillion is a large bill. So, oh yeah. And they&#x27;ve got four and a half days to do it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010745">01:07:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Wow!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010747">01:07:47</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah. So by Friday, you can probably stick a fork in these people. But they will stay alive as long as they are still locating additional things that need to go away. Additional control systems. Once they&#x27;ve located the last control system, they will all be dead. Sorry to say, but that&#x27;s what&#x27;s going to happen, along with their Deep State Order of the Dragon partners. Sometimes you just have to leave the carrot out there long enough - and it took us a couple of days to locate everybody involved in this fantastic plan. But remember - no Marduk, no final key, no plan, no change of currencies. No. But, you know, God bless the operatives, too, that took the $56 billion in payouts.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010845">01:08:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What horrible people! Honest to God. Like, so egotistical. I can&#x27;t even fathom that whole thing. I mean like, &quot;Yeah, crash the whole country. It&#x27;s fine as long as we get to rule it when it comes back.&quot; On whatever level it comes back. I mean, who are these people?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010901">01:09:01</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, the thing that irritates me the most is there are a lot of good people in the U.S. that are true patriots. They truly love their country, that kind of thing. There are patriots all over the world that love their respective countries. But here in the U.S., they&#x27;ve got quite a crew of people that are really counting on turning the country around, you know, making it all happen. Some of these folks that took this money get on alternative media, and they talk like they&#x27;re patriots and Trump is coming back, and all that kind of stuff. And the Q-Crew: &quot;Be patriots! Be patriots! We told you this was going to happen in Iran.&quot; But in reality, you&#x27;re just bad people. You&#x27;re ducking. You&#x27;re ducking kidding me. Right? You&#x27;re Duckers. You have become Duckers! Duck Dynasty people Duckers. That&#x27;s who you are. And just the misleading of the people. Giving them hope where there is no hope. And meanwhile, behind everybody&#x27;s back, you&#x27;re sitting there agreeing to burn the United States to the ground - in short order. By next month, that&#x27;s their plan! And I don&#x27;t know why June 13th is a special day for these people, but it really is. Don&#x27;t they call it Juneteenth or something now?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011033">01:10:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I think that&#x27;s the 16th.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011036">01:10:36</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, the 16th, okay. Well, I don&#x27;t know why they like June 13th so much, but they do. Remember, if you&#x27;ve been following me for a long time, it used to be the day that they thought that I would concede, would be June 13th. And therefore I would go through like two weeks of hell week, you know, like you have in fraternities, and that kind of stuff. Because it was just everything that could go wrong would go wrong, for two weeks. Now I haven&#x27;t had that in the last year or so - maybe they&#x27;re incapable at this point? But I mean, everything would just go wrong. And it really didn&#x27;t make a difference, maybe they gave up. It&#x27;s been since, I think they started the &quot;Two Weeks For Me&quot; program back in 2012. So, probably after 10 years of doing it, maybe they just gave up.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011132">01:11:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: They probably don&#x27;t even know why June 13th! [Laughing.] They read it somewhere. They don&#x27;t even know, it might be related to you. They&#x27;re like &quot;Oh, let&#x27;s pick this date - why not?&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Probably not! But do you remember - I think you were here at that time - when they were having this whole conversation once around that time. And they put their flags down. Remember everybody said, &quot;Put your flags down! Put your flags down!&quot; And they panicked? It was because they found out that the date that people saw in Looking Glass, was actually June 13th 2012, that I would have conceded.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Whoops! (Kim: Whoopsie!) We forgot to look at the year!! Oh, my goodness!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011213">01:12:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, well, and it&#x27;s become apparent too, over the last couple of days, that... remember, I&#x27;ve talked a lot about the fact that if I drop a dollar that means they lost? Well, they actually, when you get down to the level of people that are still existing and breathing and walking this planet right now, they told them that - according to project Looking Glass - that I never would. This is the second lie about me. Because just like they lied about June 13th, they are also lying about the &#x27;drop a dollar&#x27;. Because they knew I would eventually do it - they just didn&#x27;t want them to stop running like chickens with their heads cut off - is what they look like to me. So that&#x27;s the second lie. And we will prove that that is the case. And the clock is ticking.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011305">01:13:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But this is actually proven to be a bonus for us, because it just takes out more people that could do us harm in the future. Especially as it relates to infrastructure and development in the Middle East area. These people would never let that happen. Their buddies and their pals, who are working with them on this plan - the Orsinis - would be in control of the United States. So the Anti-Silent Circle, or whatever you call them, are still on the warpath. And I know people are going to say that &quot;Well, I thought they were gone?&quot; Well, yeah. Now we&#x27;re dealing with a bunch of 30- to 40-year olds. Which would be abnormal for families to have someone of that age in control. Most of these people are at least 2 to 3 decades older, by the time you get into a seat of control.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011404">01:14:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So they are just going down the line. And you know, the male ego is a tough thing. And I&#x27;m sorry to say, it&#x27;s not that I&#x27;m against men - I love men - don&#x27;t get me wrong. But it&#x27;s an ego. And it&#x27;s not even male ego because I see just as many females with the same issue, I should say. But the ego is a terrible thing. And these people grow up with a silver spoon in their mouth, being promised great power as they grow up, and that&#x27;s what they think they&#x27;re going to do. So, yep - I highly doubt that that is going to be the case.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011440">01:14:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I know. It&#x27;s like they can&#x27;t see any other outcome, it&#x27;s like you said, it&#x27;s ingrained in their brains. This is how they were brought up. What&#x27;s their alternative, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011452">01:14:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, well God bless them, because they need it. May God bless them the way they&#x27;ve blessed others. And I hope the Iranian president is enjoying his Belize vacation. If you guys don&#x27;t know, Belize is one of the most beautiful places in the world for diving.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011512">01:15:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I&#x27;ve dove in Belize before, yeah, it&#x27;s beautiful.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Have you? Wow! It&#x27;s beautiful, isn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yes, very beautiful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011523">01:15:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So maybe they&#x27;ll do a little diving or something. Any other suggestions you&#x27;ve got for the Iranian president in Belize? What you could do - things to do in Belize, Sunny? Since you went there diving?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011535">01:15:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: It was a long time ago. But it&#x27;s just so frustrating that they just keep lying to the public, over and over again. I mean, they&#x27;ve always done it - we&#x27;re just more aware of the lies now. But it&#x27;s so... it makes me so mad that they keep doing this. And then there&#x27;s people that just believe whatever is on their TV. The moment I saw that helicopter crash, I&#x27;m like &quot;He wasn&#x27;t in that, no way!&quot; Give me a break, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011603">01:16:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know. But at least you now have that - your eyes are wide open. And so are most of the people that are watching this. Your eyes are wide open - you want to know what really is going on. So now you know. But it&#x27;s kind of like any other relationship you would have - whether it&#x27;s a friendship, or even a family member, or a love relationship. If that person is continuously lying to you, are you going to continue to listen? Are you going to stay in that relationship? Or are you going to walk away?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011635">01:16:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I think it&#x27;s time for people - and I know it&#x27;s hard, right? But it&#x27;s time for people to just decide to walk away. And they will once there is something else that actually doesn&#x27;t lie. That actually follows through on everything they say they&#x27;re going to do. And your word is the only thing that these people can&#x27;t take away from you. And they&#x27;ve given theirs up, a hundred times over, in my book. From watching everything they&#x27;re doing. So I am sure they are having a hackarama while I&#x27;m here doing the news. And I&#x27;m actually 100% sure they are. That&#x27;s what they&#x27;re doing right now. So I might have a little bit of a mess to clean up, but that&#x27;s okay. God bless them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011722">01:17:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I know. Well, I guess we&#x27;ll leave you to it! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I know! [Laughing.] We are going to do one of those swap things, you know, like all those movies like &quot;Freaky Friday&quot; and all that? We&#x27;re going to do one of those for a weekend, once in a while. And I&#x27;ll go hang out with your kids, and we&#x27;ll go to the park, and walk in nature and you can do this all weekend.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011746">01:17:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I need detailed instructions, though, on what to do! Because I&#x27;d be like &quot;What on earth I don&#x27;t want to touch anything! I&#x27;m going to mess up!&quot; [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011752">01:17:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: [Laughing.] I&#x27;d probably be doing the same thing with your kids! I&#x27;d probably be like &quot;Okay, Kim - keep the kids alive, Sunny&#x27;s going to kill you if you make a mistake!&quot; (Sunny: &quot;What do I do! It&#x27;s been awhile!&quot;) I&#x27;ll probably try to feed them things they&#x27;ll never eat - they&#x27;ll probably be like &quot;My mom doesn&#x27;t make me eat that!&quot; [Sunny: Oh my God, that&#x27;d be funny!] They&#x27;ll probably run away from me! No, I&#x27;m just kidding. My daughter will vouch for me. I have a reference. You&#x27;re okay. [Sunny: Well, that&#x27;s good!]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011827">01:18:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All right, Sunny. Well, that&#x27;s the World Situation Report for today. Hopefully, we&#x27;ll have some more news as this progresses over the next 48 hours. And all good things are happening on our side of it. Not concerned about it at all. It&#x27;s just another lie. And hopefully, they won&#x27;t kill anybody in the process. They seem to be very focused on quantum AI systems. So, that&#x27;s good.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011852">01:18:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: All right. Well, we&#x27;ll see you back here on Wednesday then!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011856">01:18:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sounds great!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011859">01:18:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011958">01:19:58</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=-iVrAWWPpWI&amp;t=2130s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
