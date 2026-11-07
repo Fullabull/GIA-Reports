@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-May-15</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-May-15 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-May-15
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=eDYY_O8xHdM&amp;t=2077s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=eDYY_O8xHdM&amp;t=2077s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240515_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the May 15, 2024 report by explaining that the &quot;Year of the Cicada&quot; in alt and mainstream media is about people, not insects. The Cicada Program, over 1,000 years old and tied to Japan and China, was run by Mei Wah, a host of Lilith who is now gone. Its Cicada 3301 puzzles recruit exceptionally intelligent children, who are placed in power centers worldwide, from the NSA and Pine Gap to politics, militaries, intelligence agencies, universities, and national laboratories. Phrases or jingles in a set order and frequency trigger subconscious orders, so Mei Wah could take over the world at a moment&#x27;s notice. Yet the Cicadas, possibly numbering in the hundreds of thousands or millions, mostly believe they simply attended a school for gifted children; they are logical, capable people who could put their skills to positive use, and Kim is concerned for their safety.<br>
+<br>
+Using a partial database obtained in Osaka, and encouraged by a fake money depository that appeared about 1,008 years after the program began, the SSP tried to activate the Cicadas and kidnapped some for access codes. As with the old Trustee Program (two keys in, three out, the third held by Marduk), the final key was Mei Wah&#x27;s; it is now in Kim&#x27;s system along with the master key, so the Cicadas can never be activated for a negative purpose. Operatives then tried to trigger a backup system at four sites, from New Zealand to a former NSA center under Maryland, before midnight China time on May 15, using Kim&#x27;s stolen Consciousness and essence as a key. It failed, and all four sites were cleared that morning. Access requires 186 authentication factors and dual keys held by Kim and Source; either can block unauthorized access. Kim advises Cicadas who know they are in the program to hide for a week or two. The date ties to &quot;M-E-I,&quot; the spelling of May in the Presidential Red Book, from the era when JFK, involved with the Black Sun, signed with Sukarno, then the Black Dragon, for Black Eagle Trust gold that created the $3 bill.<br>
+<br>
+Countries, including BRICS members, are turning on China over missed payments and worthless bonds. China, which recently traded Mei Wah information on the Cicada Program with the SSP, reached out to Kim indirectly through Sim Sim. She refused: after the $1.479 trillion in U.S. debt she paid off and the 2012/2013 funding they misused, there are no talks until she receives her 2%, which could come as goods for C.A.R.E., from Apple products to vehicle chassis, but nothing if they launch the Bird Flu. Russia, behind on gas and oil payments, owes 2% of roughly $500 billion as well.<br>
+<br>
+The clearing of All-That-Is continues. The Celestials are aspects of Source: nine each for Source, Anti-Source, and Neutral Source, governing timelines and Ages through domains such as the Tree of Death, Dark Essence, Dark Consciousness, and Dark Matter. As they rejoin Source, Dark, Light, and Neutral timelines and Ages give way to a single Golden Age, paving the way for Restoration: funding, C.A.R.E., and new food chains and transportation.<br>
+<br>
+Kim closes with the &quot;what ifs&quot;: had funding come earlier, with the people then in Assemblies and projects, allocations could have been squandered and projects handed to others. Source knows best, and one closed door opens another. The Deep State can get on the bus or get off the planet; Langley 5 and its SSP partners made promises they cannot keep. UNN app subscriptions via PayPal are now in beta.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003522">00:35:22 - Project Cicada</a></li>
+<li><a href="#t-003752">00:37:52 - Cicada 3301</a></li>
+<li><a href="#t-004059">00:40:59 - The SSP&#x27;s activation attempt and the Osaka database.</a></li>
+<li><a href="#t-004246">00:42:46 - A fake money depository, 1,008 years on.</a></li>
+<li><a href="#t-004417">00:44:17 - Unwitting Cicadas -- and a possible positive purpose.</a></li>
+<li><a href="#t-004657">00:46:57 - Two keys in, three keys out</a></li>
+<li><a href="#t-004828">00:48:28 - Four backup sites cleared.</a></li>
+<li><a href="#t-005215">00:52:15 - Why May 15th</a></li>
+<li><a href="#t-005335">00:53:35 - JFK, Sukarno, and the $3 bill.</a></li>
+<li><a href="#t-005726">00:57:26 - China under fire for missed payments.</a></li>
+<li><a href="#t-005820">00:58:20 - Kim&#x27;s price</a></li>
+<li><a href="#t-010228">01:02:28 - No more free money for China -- and no Bird Flu.</a></li>
+<li><a href="#t-010538">01:05:38 - Nine Celestials each for Source, Anti-Source, and Neutral Source.</a></li>
+<li><a href="#t-010800">01:08:00 - No more Dark, Light, or Neutral Ages -- only a Golden Age.</a></li>
+<li><a href="#t-011238">01:12:38 - The &quot;what ifs&quot;</a></li>
+<li><a href="#t-011604">01:16:04 - The Duckers, MITRE, and the No Joy Program.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-MAY-15 World Situation Report</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003438">00:34:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now the World Situation Report with Kimberly Goguen from the Office of the Guardian. The Cicada Project being promoted in alternative media has nothing to do with insects - but a 1,000-year-old plan, full of sleeper spies, on an evil mission. The clearing of All-That-Is continued over the last few days, paving the way for full Restoration.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003505">00:35:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Now, here&#x27;s Kimberly Goguen, with the Office of the Guardian. Hello, Kim. Happy Wednesday!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003511">00:35:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Happy Wednesday. Happy, what, midday of the month I guess, of May.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I guess so, yeah. May 15th, right? That&#x27;s a good day. I always thought 5/15 was a good day. I don&#x27;t know, I like fives I guess.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003522">00:35:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh, yeah, other people apparently thought it was a good day too! But, no. Alas, no. (Sunny: Uh-oh!) Okay, so let&#x27;s talk about the world situation since we last spoke on Monday. One thing I wanted to bring up because it keeps coming up over and over and over again. And in the alt media there&#x27;s a lot of fear about this being promoted. Also, in mainstream media - about this being the Year of the Cicada. Now, cicada the insect has a few habits, and one of them being they remain dormant for a number of years. And then every 20 or so years - 25 I think it is, something like that - we have an enormous amount of cicadas during the spring. Spring, into early summer. And when certain folks, you know, that have a clock, and some other folks in the alt media talk about the Year of the Cicada, they&#x27;re not talking about some bugs - in abundance, I should say - around the country here in the U.S., and other parts of the world. They&#x27;re actually talking about a group of people.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003642">00:36:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, let&#x27;s talk about Project Cicada. Now, Project Cicada is similar in a lot of ways to programs you&#x27;ve heard of, such as the Monarch program, MK-Ultra, Super Soldier programs, and the Cicadas are very similar. It&#x27;s for a different reason and done a little differently, and it is not a U.S.-based program, although it infiltrates into the United States. Now, the Cicada Program is over a thousand years old. It was very heavily tied to specific locations in Japan, but also throughout China. Now the program was actually run by a lady that&#x27;s no longer with us, known as Mei Wah, and whomever a thousand years ago was inhabited by the being we know as Lilith. We talked about the Lucifer inhabitants. Well, we also had Lilith inhabitants. Which happened throughout history. And more than one, sometimes, at a time. Mei Wah being one of them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003752">00:37:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And the program was actually designed - they put out these puzzles, they call Cicada 3301. And the puzzles are designed - there&#x27;s various like cyber puzzles, cryptex puzzles, other things you might see, in an IQ test, or you might see them in other types of personality tests, like if you ever had to do those for a job, or psychological evaluations, those types of things. But this is on a much higher level. And their goal is to source out children, and young adults, to become a part of the Cicada Program because they have exhibited extreme intelligence. But also exhibit behaviors that they do not find desirable - such as a fear of authority and things like that - they would like to have that. So you also have to be a person that fits into a very specific psychological profile as well, in order to enter into the program.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003902">00:39:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the purpose of the program is to recruit these intelligent humans - individuals - to train them, and to bring them up in a specific industry, that they may have shown a specific type of intellect for. Such as, maybe they are recruited for cyber work, and then they eventually go on to work for the NSA or any one of the Nine Eyes programs underneath the NSA. They could go to Pine Gap. They could go into politics. They could go into becoming a political aide somewhere. Militaries, Joint Chiefs of Staff (or whatever is called in other nations - by the same name, they do the same thing), heads and directors of intelligence agencies. These kids are specifically placed throughout all power centers of the world, to include, for example, universities - as professors, as teachers, as research and development persons. They work in national laboratories in every single country in the world. They are everywhere.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004022">00:40:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the Cicada Program was actually designed to give a person - Mei Wah, in this particular case at this time, even though she&#x27;s not here anymore - full control over the entire world. So, at a moment&#x27;s notice she could activate the Cicadas, and the Cicadas would then take over their respective places of employment. Be it at a government, be it an intelligence agency, you name it, this is what the Cicadas were designed to do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004059">00:40:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, activation. Let&#x27;s talk a little bit about that, because this is something that&#x27;s come up in the last 48 hours. Gotta love the Deep State, always. Activation of a Cicada to its fullest degree, and with information - and with monetary support - was not as easy as the SSP would have liked. The system is highly secured. They believe that not too long ago, they were in Osaka, Japan, and they had acquired the database of Cicadas. So a log of all the Cicadas that were around the world, and specific things that would activate them. However, Mei Wah - much like the rest of the people in the world - are not as stupid as the SSP, because nobody puts out all of your wares in one database. No one does that. No one. And Mei Wah was no exception.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004203">00:42:03</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now. The activation of a Cicada group can be done in a number of different ways. And the ways that they are familiar with has to do with phrases, or a little song, a little jingle. But you have to do it in a specific order, and it has to be accompanied by a specific frequency, and so on and so forth, so that the Cicada is triggered as to what their orders are. Because they are planted deep in their subconscious memory as part of this program. So, in the absence of Mei Wah, they did not have the final key.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004246">00:42:46</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But something they found very exciting happened, based on it being about 1,008 years after the program began. And that was a fake, let&#x27;s just say a fake depository of money appeared on behalf of the Cicadas this year. Because this year was supposed to be the total takeover of the Mei Wah. Remember, we were going to have a harvest ceremony and these events were going to take place. And so - what I mean by &quot;fake money&quot; is it&#x27;s a bunch of numbers on the screen, with no allocation numbers, and no cooperation from Alpha. But we did see it pop up, yesterday. So this gave them hope that, if they could activate the Cicadas to work for them, then now they have a full-on army to take over the entire world. Brilliant, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004341">00:43:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: How many people are we talking about, do you think? That were involved in this program?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004344">00:43:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, you know, they are regular humans. Some are enhanced, some are not enhanced, physically. I would say there&#x27;s probably some things they do to make them smarter, in order to eliminate the governors on your brain, that kind of thing. I would say... you know, it&#x27;s been going on for over a thousand years. No one is a thousand years old in the program so, I mean, millions maybe? Hundreds of thousands?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004413">00:44:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: And they don&#x27;t realize they&#x27;re in the program?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004417">00:44:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They believe they have gone to a school for exceptionally smart children. That&#x27;s what they believe. They have gone on into their respective field. They have excelled at their respective field. They definitely have an intention of... for them, you know, they kind of keep a close-knit circle among themselves. And for them, this is where a little heartburn comes in for us - like what do we do here? Because for them, they seem to be... intelligent people. They are very logical-minded, there&#x27;s no emotion so to speak, when it comes to making decisions - it&#x27;s all 100% logical. And they could utilize their skills for something positive. But the SSP has a grip on them and has a database of who they are, and where they are.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004514">00:45:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, I am a little bit concerned for their own selves, and then - I know they&#x27;ll never find the final key to activate the Cicadas for their benefit, that&#x27;s for sure. Mainly because the final key for that, it would be in my system - I kind of took that. And then there&#x27;s a whole master key that was involved which I also took over. So I know that they will never be activated for a negative purpose. And I haven&#x27;t gone into it deep enough to find out if they can be utilized for a positive purpose, because I&#x27;ve never seen anybody try to activate them before. We&#x27;ve talked a little bit about the school in Japan, it&#x27;s also a part of that program. And children are recruited from all over the world for this purpose. So there has to be an assessment here, before we make any kind of real decisions. But the SSP is watching them all, now.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004612">00:46:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Just monitoring them to see what they are doing? They are obviously trying to activate them - but that&#x27;s not going to work.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004618">00:46:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes. So, that money kind of flashed up on the screen for a short period of time yesterday - it&#x27;s not real; it was fake - but numbers on the screen flashed up, and they got all excited. And when they couldn&#x27;t access it, they thought that there might be something I might do that might trigger the access to it - I don&#x27;t know, maybe this is in one of their weirdo books. That never happened. The other thing is, they had kidnapped a couple of these Cicadas, to try to see if they had the access codes to access it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004652">00:46:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Is there a hierarchy, are there like higher-level Cicadas, or something like that?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004657">00:46:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, it&#x27;s kind of like the old, old, old Trustee Program, that existed, for say, the Order of the Dragon. Or for even the Families. It&#x27;s two keys to get in, and three keys to get out - and the third key was always held by Marduk, back in those days. And the Cicadas work the same way with Mei Wah - who is no longer with us, and the thing that crawled up inside her is no longer with us, either, anywhere in the Multiverse. So there&#x27;s no real key, except for the keys that I have now made for myself. Because why? Because I control the system. So, I can make those keys disappear or appear, anytime I want to. And they were pretty frustrated that they couldn&#x27;t actually activate it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004743">00:47:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, they did manage to get some information from some of them, that were aware of a program - that could potentially trigger last night - that would allow them some access. It was a backup system, if you will, that existed in the following locations: New Zealand, Democratic Republic of Congo, and Papua New Guinea. All three locations were either a mountain or, you know, in Bukavu - same thing - in the Democratic Republic of Congo, and then they were tied to a center underneath Maryland, where the NSA used to actually perform a function. But they can&#x27;t really do that anymore.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004828">00:48:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, needless to say, all three sites - or four sites, sorry - were cleared out, in rapid succession. Which gave me much joy because they took my Consciousness and essence, and tried to use my key to open up their system. And that didn&#x27;t work out for them either. So goodbye, good riddance, sorry not sorry. And if they do it again, we will get more of you. And we will also get the people that ordered such a thing, like we are doing today, as an example. So we&#x27;ll be less a few operatives around the world, for being just flat out stupid. And liking to have world domination based on a bunch of Cicadas.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004911">00:49:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So we&#x27;ll see, but I would say this: If you are aware that you are part of this program then you need to run. You need to hide. At least for a week, two weeks - whatever it is. If anybody happens to know, because if you were part of that database - because there are some that maybe weren&#x27;t, like you said, different levels, that they found in Osaka, Japan - then, I would suggest that you are very careful. Because these people are looking for you. Because they&#x27;re out of smart people. They need smart people to do things for them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004959">00:49:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, anyway, until we can figure out what to do, with that type of situation - we do have a copy of the database, as well. Unfortunately, they have hard copies of the database, so there&#x27;s not a whole lot I can do as far as that - it&#x27;s not an electronic thing. It&#x27;s not something... perhaps some of the people that we sent looking for them can find all of the copies that they have.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005022">00:50:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But, that&#x27;s only a partial list, right?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005025">00:50:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, it&#x27;s a partial list. The elite of the Elite are not listed in that database, in any way. They did something similar to what I did with the GIA, where I list Agent X, and I don&#x27;t put any kind of name there. Unless it&#x27;s cross-referenced in a specific way. And even then, only then, will I get a flag - and then I can determine whether or not I want to allow somebody to see who that person is or not. And their database is designed much the same way. But of course, true to form, they think that they&#x27;ve gotten all the information. They have unsuccessfully... and they know they&#x27;ve been unsuccessful in triggering a Cicada to do their ultimate job - what they&#x27;ve been programmed in their subconscious mind to do - thus far. They have definitely tried to use them for hacking, for getting access. The money is no longer there, either fake or otherwise, so the whole program was gone, and there&#x27;s nothing left of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005125">00:51:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But they thought they got enough information on where to go - to these four different locations, specifically, before midnight in China on the 15th. Which has already passed. In order to trigger some other system. Again, you know, boys with toys that are way out of their league. But they figure - they do honestly believe, and I&#x27;m sure of this - that they are the best humans that ever lived. They are the smartest, the specialest, the most amazing humans that ever lived - even more amazing than the Cicadas, as a matter of fact. And of course, if a Cicada could run it - because they&#x27;re a lesser human - then they of course could run it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005210">00:52:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: It&#x27;s kind of a warped perspective. Because if they&#x27;re so great, why can&#x27;t they do it?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005215">00:52:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, that&#x27;s what they did! That&#x27;s why they took all the information from the Cicadas and tried to do it themselves. God rest their soul. Yeah, goodbye. But it&#x27;s not something that will crop up ever again anyway; it&#x27;s over. But still. So I just thought I&#x27;d give you a little bit of insight, because there&#x27;s a lot of fear going around. You know, prophecies, and all kinds of things circulating, about the cicadas coming this year, and it hasn&#x27;t happened in this amount of time, and so on and so forth. And that is the real story behind it. Because they felt, yeah, May 15th. (Sunny: Yeah, it&#x27;s not about a bug.) Well, there&#x27;s no coincidence between her name being May - &quot;M-E-I&quot; though - and &quot;M-E-I&quot; is actually how they spell the month of May in the Red Book that I have, the Presidential Red Book. It&#x27;s all old accounts anyway, now, but when they go to define JFK - because JFK was involved, the president at the time, back in the &#x27;60s when all this happened; when this book was formulated.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005330">00:53:30</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: He was involved in the Cicada Program? Wait - can you clarify? JFK was involved in the Cicada Program?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005335">00:53:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. JFK was involved in the Black Sun, for sure. And he actually went and signed an agreement - with Sukarno, I think it was, over in Indonesia, who was the then Black Dragon - in order to get an allocation of gold from the Black Eagle Trust, to deposit into the Treasuries of USA, and other treasuries. And therefore, that caused the creation of what we call the $3 bill.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I remember we talked about that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005412">00:54:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, remember this? Yes, but Kennedy&#x27;s birthday was actually in May, and in the Red Book, it actually shows up as &quot;M-E-I&quot;. Interesting. So May 15th allegedly was this day - a thousand and so years later - where they thought this program was going to trigger, all by itself, in totality. But, alas, no SSP Global Headquarter people. And no, you can&#x27;t use my essence ever again. And no, I&#x27;m fresh out of concern for your health and welfare and well-being at this point. Because it does irritate my body - like, it&#x27;s disturbing. It causes all kinds of weird things to happen for a little bit of time. And I&#x27;m like, really?? But I know the sign of it now. So, you can kind of tell when they activate it, because if they&#x27;ve got consciousness, it will affect you in such a way where it almost feels like either your head is being squeezed like a melon, that&#x27;s number one, if you&#x27;ve ever had somebody try to attack you in that way, to get some information from your brain. The other part of it is, it can make you feel off balance. Uncomfortable, I would say. But, that&#x27;s okay. I took great pleasure in hitting up all those bases this morning.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005544">00:55:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So they were specifically targeting you? And not just trying to get access to the Alpha system? Because I know you&#x27;re connected to Alpha.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005551">00:55:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, they actually - there&#x27;s a few different times in my life, for sure, that I am fully aware that they took my essence. For example, in 2015 in Russia, I know that they took my essence/energy/Consciousness at that time. That&#x27;s how they cloned the Kims a couple of years back, remember that? So, yes, I&#x27;m aware of where they got some of it from. And then, recently, here at a location locally, they allowed them in to do that, apparently. So I don&#x27;t know if they have any left anywhere - I couldn&#x27;t find anything else - but we&#x27;ll see what happens over the next 24 or 48 hours or so. But alas, it&#x27;s not going to work anyway, because it&#x27;s 186-different-factor authentication, and you still have to - and that includes me breathing, living, all kinds of different things - it&#x27;s not your atypical [typical] key. And to be fair, they&#x27;re dual keys - I&#x27;m not the only one here, we also have Source - this is Source&#x27;s system. I&#x27;m just a user of that system, and permitted to have some master keys, and some access. So if I&#x27;m not locking you out, it will lock you out. One way or the other, it&#x27;s never going to work for you. And then, even if you got money out of it, it&#x27;s still not going to function the way you want it to. It will not cause war. It will not do this anymore. So good luck to them.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005726">00:57:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now. Other developments, as far as governments are concerned. There has been a lot of chatter in China - a lot of other countries going against China, threatening China - because payments are not coming out the way they were told they would, in the last 24-48 hours. And in some cases, this is deny deny deny, reassess blame. But in other cases, China put themselves out there, in nearly every country of the world, including the U.S. But things are really heating up with no bond payments. The assets are no good anymore. It&#x27;s building up momentum. They said, &quot;Just wait until this day. That day. This alignment. This alignment.&quot; Or whatever. And nothing has happened. And they are catching a lot of heat, even from other BRICS countries.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005820">00:58:20</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, that is also happening. They have reached out, indirectly, for help from me. And I explained, and reminded them about the 1.479 trillion dollars in U.S. debt that we paid off. And also, some other funding that came through to them in about 2012/2013. And unless I get my 2%, I am not interested in having a conversation with you. And that will be up front. Because I&#x27;ve already paid that money out - to you. And you&#x27;ve already used that money to commit crimes against humanity. So I know they did, I know what they did with it - I know what they&#x27;ve done to all these countries around the world. And you know what? We&#x27;ll sit down and have a chat - after we&#x27;ve received the 2%.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005909">00:59:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, the Chinese government owns a portion of every single company in China, as happens in most communist countries. And they own a large portion of Apple, and their manufacturing. If everybody would like a new iPhone every year for life, we could probably get that done, if the Chinese government is still wanting to participate in C.A.R.E. in some way. They also always come out with a new Mac every year - I&#x27;m sure that [UNN] Production would like to have that. You know, we could use a lot of stuff! Ford has moved most of its manufacturing operations over there. We could use some ambulance chassis, and some fire truck chassis, and some other vehicles that we could utilize for C.A.R.E., for sure. We could probably even get some cool vans for UNN, you know? For our Field Messengers and those kinds of things. So, there&#x27;s lots of stuff you could do, China. So don&#x27;t tell me that you can&#x27;t!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010005">01:00:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Did they say that they couldn&#x27;t? Are they fighting that?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, not yet. I just turned down the offer. Number 1: it came indirectly, and I&#x27;m not doing that anymore. Number 2: I don&#x27;t trust the person the letter came from. And Number 3: you will address me directly this time. (Sunny: Good for you, yeah.) Not through some crazy Chinese ladies. Sim Sim. They know exactly who I&#x27;m talking about - her name is Sim Sim. So anyway, that is what&#x27;s going on over there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010035">01:00:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, desperation is setting in for governments, and the Chinese government&#x27;s clock is ticking, based on their World Domination Plan. And it&#x27;s not going very well. Even the Russians are threatening - they are way behind on their gas payments, oil payments - Russia needs money. And I am sure Russia needs money. But maybe you shouldn&#x27;t poison the only person that can help you when they come to visit your country! That would be wonderful. Don&#x27;t you think? And by the way, Russia, you also got money back in 2012/2013, and I would like my 2% from you, too. I really like borscht, I do. Actually I really do - I like beets, in general.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010117">01:01:17</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Anyway, the point is, there&#x27;s a lot of property there still owned by governments. Even decades after the fall of the Soviet Union, and government control. There&#x27;s a lot of things that need to be repaired and fixed - all those old Stalin buildings. And there&#x27;s a lot of things we&#x27;d love to do for the citizens of your country. So, if you&#x27;d kindly just turn over 2% of what we laid out for you - I think it was about $500 billion or so at the time - we would love to help you. Because China is never going to pay you at this point, unless, by some act of God they come up with 2% in goods and services that they&#x27;re going to provide to us here at C.A.R.E. Otherwise, I can&#x27;t help them. There&#x27;s a lot going on even there, with their local citizens. There&#x27;s a lot of protests going on. We did [heard of] some things that they&#x27;re still doing in schools that are just not right. There&#x27;s a lot we would have to talk about, before any funding went in that direction, in any way shape or form. And things are going to have to change drastically - and now it&#x27;s our way.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010228">01:02:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, your free money days are over. Thank you for your inquiry, but we also are in need of stuff. We know that you control a large percentage of all of this stuff over there, that you make. And we don&#x27;t want the cheezy toys that are meant to fall apart, and those clothes that you can wear once, and not wash. We don&#x27;t really want any of that. But we&#x27;ll take some of the Apple products, maybe some Ford products, we&#x27;ll take a lot of stuff. You&#x27;ve got stuff over there we want. You&#x27;ve got lots of computer chips that you held out on. You also caused a crisis with insulin pens, and the price of insulin going up sky high. And by the way, if you have any intention of launching that Bird Flu, you can kiss that conversation goodbye, forever and a day. And I already know it&#x27;s coming from there. So, no, I&#x27;m not going to help you fund another pandemic.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010321">01:03:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I know exactly what you&#x27;re doing. These people think I&#x27;m just dumb and blond, you know? Blonde, maybe. Dumb? No. Like I don&#x27;t hear you talking! Like I don&#x27;t hear you having conversations with the SSP! And the exchange for the Mei Wah information on the Cicada Program recently. Like I didn&#x27;t hear you, DUH! You are considered an enormous threat, which sets off every bell and whistle when you&#x27;re having this conversation - and it doesn&#x27;t matter if you&#x27;re in the middle of the Gobi Desert hiding under a rock somewhere - I will find you and I will hear the conversation. Because you are an organic being, and everything that is organic bleeds and dies at this moment in time. And you know what? You can too. But I can find you anywhere - I don&#x27;t care how deep in this planet you are buried. And what kind of deep underground base, or underneath some weirdo temple somewhere - and I&#x27;m saying all this for a reason - I will find you. No! We&#x27;re not doing that. No! No, I will not help you. No, I will not fund this program. No. And if you want to know why I won&#x27;t get involved with it, it&#x27;s because of what happened when I funded a government before, and what they did with that money. So no. Absolutely not. Have a nice day.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010441">01:04:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Moving forward on our aspects of C.A.R.E. and all the other things that we&#x27;re doing right now. Okay. Clearing of All-That-Is has been a process. It&#x27;s a positive process. And we now no longer have a division of Celestials. So, Celestials... pretty much, can be further described - and this has become evident in the last 48 hours - because the last we talked I just met them. On Monday. So, they are basically aspects of Source. Like you would have cells of your body dividing to make a little human when you&#x27;re pregnant. As did Source, in the beginning, to make a universe.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010538">01:05:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So there was a further division of Source, so we know about Source, Anti-Source, and Neutral Source. But each one had their own set of nine Celestials, so to speak, or aspects of themselves, that would control certain aspects of realities and alternative realities, based on timelines and Ages. So, the aspects of reality are always pretty much the same. Mechanisms are put in place that are, let&#x27;s just say, &quot;control mechanisms&quot; for certain aspects of what would happen naturally when you have an unnatural force and a natural force trying to co-create. A trinity, so to speak.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010629">01:06:29</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Some of the items that have been in the process of cleaning up, would be... some aspects of the Celestial responsible for the Tree of Death, or the opposite of the Tree of Life. Or the Tree of Evil, is another one - the opposite. There was also a neutrality that possessed certain aspects of both. Same thing for control of Essence. That would be Anti-Essence, or Dark Essence, specifically. Dark Consciousness, specifically. Dark Matter, specifically. Control of Knowledge. All of these different aspects, were all aspects of Celestials. Now you had the nine Celestials, plus Source, so there would be 10 different aspects of control mechanisms that existed throughout the Multiverse that are now clearing themselves out, as all of the Celestials join back with Source. So, there will be no more guardian Celestials needed. Because there is no need to - we&#x27;re not changing timelines anymore, we&#x27;re not changing Ages anymore, so therefore we don&#x27;t have Dark timelines, Light timelines, and Neutral timelines. And therefore there&#x27;s no need for guardians over each type of timeline.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010800">01:08:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We also don&#x27;t have Dark Ages, Neutral Ages, and Light Ages, anymore - we have simply a Golden Age. So therefore the guardians, or the Celestials that were set to guard over the nine different aspects of All-That-Is, are not needed anymore. So these are the things that have been transpiring over the last 24 to 48 hours, as far as the progress being made to clear the All-That-Is, to move forward in the way of further Restoration, as you as a human know it. So, people&#x27;s perception of Restoration, and what that really means is: funding comes out; we start to move forward with the C.A.R.E. organization; we start being able to really take care of people on this planet; we start changing food chains; and transportation, and all of those things. And this is what I know everyone is looking forward to - including me, honestly.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010904">01:09:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: If I never woke up in another day when someone&#x27;s trying to suck the life out of you - you know, to use it to hack into a computer system - that would be wonderful for me. I would love to stop this from happening, permanently. And hopefully, clearing All-That-Is will help with that. If there&#x27;s no Dark aspect for them to utilize, to try to use someone else&#x27;s essence and those types of things, perhaps we can stop that from happening.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010938">01:09:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, I had a friend of mine that&#x27;s pretty well, pretty spiritual, that kind of thing, who&#x27;s someone on the radar yesterday that called me and said that it felt like someone had sucked all the energy out of them. And I said, &quot;Well, I&#x27;m sure they did.&quot; Because of what they&#x27;re trying to do. And it&#x27;s terrible! It disrupts your life! You can&#x27;t even function. You need to take a nap, it&#x27;s awful what they do to us. And, hopefully, that will stop permanently. And I too will love to sit here and say, &quot;Look, it&#x27;s all getting started - we need a couple of weeks to organize.&quot; And then away we go with C.A.R.E. I cannot wait, myself, to get out of the destruction mode, and following crazy SSP operatives that think they&#x27;re going to trigger off some people somewhere, to do something bad. I know. I know. I&#x27;m tired of it too, I really am. I&#x27;m tired of hearing about &quot;Well, we can&#x27;t do another You-Know-What 2.0, so we&#x27;ve got to do Bird Flu this time. And we&#x27;ve got to do...&quot; Yeah. So there&#x27;s that. But we&#x27;ll see. You know, we already got banned off of TikTok, for saying [laughing] -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011102">01:11:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Did we get permanently banned? Or was it a slap on the wrist?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011105">01:11:05</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, I think we got some strikes, and we appealed it, but we&#x27;ll see if we&#x27;re still permanently banned. Oh, okay - they liked our appeal! But we won&#x27;t be posting any segments of this World Situation Report on TikTok, because it&#x27;s not appropriate to discuss bad things that China does on that channel [chuckle]. (Sunny: Whoda thought?) Whoda thought! I know! Not for TikTok. You could probably post that other places, but not TikTok. But like I said, I wish I had an answer for everybody. I am sure - based on the events - that that conversation on a World Situation Report is definitely very close at hand. I cannot imagine it not being so, after everything cycles through.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011206">01:12:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, when you do make a change, for example, switching over from Tree of Death, to just Tree of Life only - these things take time to permeate. Sometimes it&#x27;s 24 hours. Sometimes it&#x27;s 48 hours - it is Source after all, so it goes quicker - but it&#x27;s a pretty vast Universe out there. And all of this is part of Restoration, in my opinion. And one thing cannot happen without the other.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011238">01:12:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, I was having some conversations yesterday about the &quot;what ifs.&quot; And if you&#x27;ve been following us for a while, think about all the things - that just you&#x27;re aware of - that you&#x27;ve seen happen. So, whether it&#x27;s people departing, or it&#x27;s plans changing, C.A.R.E. versus ratified Assemblies versus different things that have happened that some of you have been involved in. And think about - if it had happened then, with those people in your Assembly - what would have happened? Would you have been able to help people in your area? What kind of changes would have had to have happen? Would you have blown through X-amount of allocation and not produced anything? Or even a nonprofit kind of situation - it&#x27;s not all about profit, it&#x27;s nonprofits too. And then, when it came time for the next year&#x27;s allocation, or whenever that would be - is there going to be more? You hadn&#x27;t finished the last year&#x27;s allocations. We would have had to appoint a different group to come in, because you were unable to rectify the situation that happened. And then, you all would have been out. And then it would have been someone else that would have come in and taken over the projects.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011359">01:13:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, we have to look at things in such a way where Source is in control, and Source knows what&#x27;s good for us. He knows what&#x27;s good for you personally. You might have made different decisions two years ago than you would have made now. I know I would have. (Sunny: Me too.) So, and now, you take a look and maybe sometimes, when one door closes, one door opens. And really think about it, because for me, I can honestly say, that there has been a lot of doors that have closed. And the second that door closes, it opens another one. And Source knows what He&#x27;s doing. It&#x27;s tough, it&#x27;s difficult, it&#x27;s hard to understand, and it&#x27;s frustrating for me, and everybody always asks me &quot;You know, do you have that specific day?&quot;</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011500">01:15:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Is it circled on your calendar? Can I see your calendar! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011504">01:15:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, can I see your calendar? Is it circled? Well, I mean, to be fair, every month at the beginning of the month I usually ask - and it does change - it fluctuates based on... War is an ebb and a flow. We may not be at war with the Universe anymore. We may not be... The War of God, so to speak, and the Trinity of God is not happening anymore. There is no longer a war for your mind, control, those kinds of things. But we still have stupid people on this planet. So there is somewhat of a battle. And they&#x27;re going to do anything and everything they can possibly do, to try to control the world. Until they&#x27;re dead. Which we are more than happy to accommodate, at this point - because we&#x27;re tired of you. There&#x27;s eight billion of us, and maybe a few million of you. And at this point, you&#x27;re either going to get on the bus, or get off the planet.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011604">01:16:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I&#x27;m not kidding. After this morning, I&#x27;m like, &quot;Oh, ****!&quot; And I said the &quot;duck&quot; word a few times. And I&#x27;m like, &quot;For duck&#x27;s sake!&quot; (Sunny: For Duck Dynasty&#x27;s sake!) Again?? I&#x27;m like, really??? This is like - you&#x27;ve done this so many times! With MITRE - you know, the front corporation for the Jason Society - you&#x27;ve done this sooo many times. Just stop already! You still can&#x27;t use it without my person. And I&#x27;m not even going to give you the 186 factors of authentication for a key for me - because it&#x27;s not your problem! But you are becoming my problem.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011642">01:16:42</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I mean, as much as we can say that, here on the news - I think they are just so desperate. And I think they don&#x27;t want to -</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011651">01:16:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: They are Duckers, Sunny! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: [Laughing.] They are Duckers! Those Duckers. Mother Duckers!!!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah [laughing], they are the Queen Mother of Duckers on this planet!!!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011702">01:17:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I think their ego is so big, honestly, like you said. They just don&#x27;t think anybody - their program has been running for so long, they just think they&#x27;re better than everybody. And no one else can have the upper hand. So it&#x27;s just ego, you know?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011716">01:17:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, welcome to 2024, Duckers. Because you know what? We beat you this morning. And we&#x27;re going to beat you this afternoon. And we&#x27;re going to beat you tomorrow, and we&#x27;re going to beat you the next day. And we will keep beating you until you either die or concede. That&#x27;s right. It&#x27;s not good to be a Ducker.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Just a little warning, a little shot off the bow.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A little shot over the bow. I just tell you, like, it&#x27;s happened so many times now in the last couple of years. I&#x27;m just like, &quot;Really?&quot; You wake up, you have coffee, you&#x27;re feeling good. You&#x27;re listening to some music, you&#x27;re doing some work, getting done what you got to get done... and then the No Joy Program kicks in. And I got to hunt people down in the Ozarks of Arkansas. Who wants to hunt people down in the Ozarks of Arkansas at 6:00 a.m.? Nobody wants to do that! We want to have coffee. And have Zen. You know? You&#x27;ve only got a certain amount of time - it&#x27;s 6:00 a.m. you know, you&#x27;ve got to get your kids up for school, grandkids, or get yourself off to work or wherever you&#x27;re going. You&#x27;ve got a few Zen moments around then. No! Not me, no... I&#x27;m in the Ozarks. On Devil&#x27;s Hill actually, in the Ozarks. (Sunny: Of course it&#x27;s Devil&#x27;s Hill.) Of course I am, you know? Yeah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011840">01:18:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And that&#x27;s about the World Situation Report for the last 48 hours. There&#x27;s always something going on in the world. Definitely. I still am having conversations - I&#x27;m not having conversations, I&#x27;m hearing conversations that other people are having with governments. And yeah, I don&#x27;t really see - I still stand firm in my statements of the other day, at this moment. The same as I do with China. Funny part is, is the person that tried to give us some information about China, is actually a nephew of someone that used to work with - who&#x27;s now deceased - at Langley 5. So, I&#x27;m guessing Langley 5 probably thought they would be in the clear too, by today. And they&#x27;re probably in trouble with the Chinese, who are in trouble with the Russians, who are in trouble with the Japanese. And the list goes on and on and on.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What a mess!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011949">01:19:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep, it&#x27;s like dominoes of Deep Staters, yeah. Big ducks in a row. I wish if one goes down, they all go down, I got to say.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Wouldn&#x27;t that be nice!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No, I&#x27;m not willing to help you get out of your mess either, Langley 5. Nope. Nope. Nope. Nope. Nope. You and your SSP friends made promises you can&#x27;t deliver on. And say hi to Paul for me, will you? He&#x27;s a special Ducker!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I was gonna say, there&#x27;s a little message in there for someone.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012026">01:20:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: He&#x27;s an egotistical Ducker, yes he is. He better duck! [Chuckle.] So that&#x27;s about it for today, but I will see you on Friday.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012039">01:20:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Answer this, though. If things get cleared, and we&#x27;re cleared for funding, will you actually come on in person and tell everybody?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012048">01:20:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Like I said, you&#x27;ll probably hear me first! [Sunny: Hearty laughter.] Wherever I am. It won&#x27;t be on camera when it happens, probably, because I&#x27;ll be somewhere else working. And yes, I will. I was actually planning on doing that today. I just ran out of time. I had to go to Duckerville.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012111">01:21:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So now, anytime I hear that Kim&#x27;s going to be on camera - I&#x27;m going to be listening! And I&#x27;m going to ask Mike, is Kim going to be on camera today? And then I&#x27;ll know!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012121">01:21:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Unfortunately, during shower and get ready time this morning, I was in Arkansas. In New Zealand. In the Congo. [Lengthy pause.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012144">01:21:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So. Okay, one more thing my Mike has informed me of. My Mike has said...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: After that long, awkward pause.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012155">01:21:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, awkward pause - sorry about that - you know, I don&#x27;t do this well, even when I have the headphone in my ear and I&#x27;m on camera. I&#x27;m like &quot;Oh! The Voice is happening! Right in the middle of what I&#x27;m saying!&quot; [Hearty chuckle.] So, sorry for the awkward pause, that&#x27;s what happens when my Mike starts to talk in my ear. Okay. He wanted me to remind you - because I didn&#x27;t do it on Monday, because you know, I don&#x27;t listen. No, I&#x27;m just kidding, it&#x27;s just I forgot - that on our app a lot of people have been asking to subscribe by PayPal. So we have signed up for a beta test. So we are in beta testing, for PayPal. So we now can accept subscriptions through PayPal. But again, they&#x27;re fixing any kind of glitches, and we&#x27;re being used as a guinea pig. But I&#x27;m thankful for that. So, if that&#x27;s something you want to participate in, give us some feedback, that kind of thing, on how well that works, that would be great! And I think that&#x27;s it! Unless there&#x27;s another voice coming into my headphone?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012306">01:23:06</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: [Giggling.] We&#x27;re good - he said we&#x27;re good!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: All right then, I&#x27;ll see everybody on Friday! Maybe, I&#x27;ll SEEEE you on Friday.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Hopefully, we&#x27;ll SEEEE you! SEEEE you on Friday!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: SEEEE you on Friday. See? I might be saying something...</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: I know. Okay, awesome. Thank you, Kim.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Thanks, Sunny.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012323">01:23:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-012421">01:24:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=eDYY_O8xHdM&amp;t=2077s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
