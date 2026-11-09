@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>GIA Report 2024-May-10</title>
+    <link href="/GIA-Reports/docs/css/ReportLiveGIA.css" rel="stylesheet">
+    <link rel="icon" href="/GIA-Reports/favicon.ico?v=20260227">
+
+    <!-- GIA++ YouTube Dock (template-only) -->
+    <style>
+        .watch-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 11px 0 6px 0;
+        }
+
+        .watch-link a, .watch-link-btn {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .yt-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 10051;
+            background: rgba(1,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .yt-notice-box {
+            max-width: 761px;
+            width: 100%;
+            background: #112;
+            border: 2px solid #333;
+            border-radius: 11px;
+            padding: 15px;
+        }
+
+        .yt-notice-title {
+            font-size: 19px;
+            margin-bottom: 11px;
+        }
+
+        .yt-notice-body {
+            line-height: 2.4;
+            font-size: 15px;
+        }
+
+        .yt-notice-actions {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 13px;
+        }
+
+        .yt-notice-actions button {
+            padding: 7px 10px;
+        }
+
+        .yt-notice-check {
+            margin-left: auto;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* ---- Fixed dock ---- */
+        .video-dock {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            z-index: 10001;
+            background: #1f0f0f;
+            border-bottom: 2px solid #333;
+        }
+
+        .video-dock-inner {
+            max-width: 1101px;
+            margin: 0 auto;
+        }
+
+        .video-dock-bar {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            padding: 9px 10px;
+        }
+
+        .video-dock-bar button {
+            padding: 5px 8px;
+        }
+
+        .video-dock-nowplaying {
+            margin-left: auto;
+            opacity: 0.9;               /* was 1.9 (invalid) */
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Player area: container owns sizing + aspect ratio */
+        .video-dock-player {
+            padding: 9px 10px 10px 10px;
+
+            width: 100%;
+            max-width: 960px;           /* default; your v* classes override this */
+            margin: 0 auto;
+
+            aspect-ratio: 16 / 9;
+            background: #000;           /* hides any letterboxing cleanly */
+        }
+
+        /* Iframe always fills the player box */
+        .video-dock-player iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;                  /* border: 1; was invalid */
+        }
+
+        /* Video sizing classes (controlled by Video- / Video+) */
+        /* Apply these to .video-dock-player (NOT the iframe) */
+        .video-dock-player.vmicro { max-width: 160px; }
+        .video-dock-player.vtiny  { max-width: 240px; }  /* default */
+        .video-dock-player.vmini  { max-width: 360px; }
+        .video-dock-player.vsmall { max-width: 540px; }
+        .video-dock-player.vmed   { max-width: 760px; }
+        .video-dock-player.vlarge { max-width: 980px; }
+        .video-dock-player.vhuge  { max-width: 1200px; }
+
+        .yt-inline-note {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 2.35;
+            opacity: 0.9;
+        }
+
+        .yt-powered {
+            margin-top: 7px;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* NOTE: Removed hardcoded #content padding-top values (421px/57px).
+           We now calculate offsets dynamically in JS (updateDockOffset). */
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        body.video-collapsed .video-dock-player {
+            display: none;
+        }
+        body.video-collapsed #audioDockPlayer {
+            display: none;
+        }
+        body.audio-dock-active #increaseVideo,
+        body.audio-dock-active #decreaseVideo {
+            display: none !important;
+        }
+        body.video-collapsed #increaseVideo,
+        body.video-collapsed #decreaseVideo {
+            display: none !important;
+        }
+
+        /* audio active: show play/pause and time */
+        body.audio-dock-active #audioBarPlayPause {
+            display: inline-block !important;
+        }
+        body.audio-dock-active #nowPlayingText {
+            display: inline-block;
+        }
+
+        #audioBarPlayPause2 {
+            background: #3b82f6;
+            color: white;
+            min-width: 44px;
+        }
+
+        #audioBarPlayPause2:hover {
+            background: #1d4ed8;
+        }
+
+        /* collapsed + audio: hide UNN, show controls on desktop */
+        body.video-collapsed.audio-dock-active #videoOpen {
+            display: none !important;
+        }
+
+        body.audio-dock-active:not(.video-collapsed) #audioBarRightControls {
+            display: none !important;
+        }
+
+        body.video-collapsed.audio-dock-active #audioBarControls {
+          display: inline-flex !important;
+          flex: 1;
+          justify-content: center;
+        }
+
+        /* collapsed + audio + mobile: hide controls, keep just play/pause and time */
+        @media (max-width: 480px) {
+            body.video-collapsed.audio-dock-active #audioBarControls {
+                display: none !important;
+            }
+
+            /* Body YouTube embeds: 35% is too small on phones. */
+            .transcript .yt-wrap.small-image {
+                width: 90% !important;
+            }
+        }
+
+        [hidden] { display: none !important; }
+
+        :root { --hdr-offset: 71px; --hdr-last: 70px; }
+        /* 20260225 When jumping to a timestamp (#...), keep it below the fixed header/dock */
+        body.has-video-dock .transcript :target { scroll-margin-top: calc(var(--hdr-offset) + 24px); }
+    </style>
+</head>
+<body>
+
+<header id="normalHeader">
+    <div class="parent">
+        <div class="left">
+            <div>
+                <button class="header-btn" onclick="window.location.href='index.html'">Home&nbsp;&nbsp;</button>
+                <button class="header-btn" onclick="toggleColors()">Colors</button>
+            </div>
+
+            <!-- 2nd row: image controls (flush-left under Back/Colors) -->
+            <div>
+                <button class="header-btn" id="decreaseImage">Img&nbsp;-</button>
+                <button class="header-btn" id="increaseImage">Img+</button>
+                <button class="header-btn" id="printButton">Print</button>
+            </div>
+        </div>
+
+        <div class="center">
+            <h4>2024-May-10 World Situation Report</h4>
+        </div>
+
+        <div class="right">
+            <div class="font-size-controls">
+                <button class="header-btn" id="increaseFont">&nbsp;Font+</button>
+                <button class="header-btn" id="decreaseFont">&nbsp;Font&nbsp;-</button>
+                <button class="header-btn" id="resetFont">Reset&nbsp;</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="content" id="content" oncontextmenu="return true;">
+
+    <h3 style="text-align: center;">
+        Global Intelligence Agency (GIA)
+        <br>World Situation Report
+        <br>2024-May-10
+    </h3>
+
+    <h5 class="text-center">From the Office of the Guardian</h5>
+
+    <div class="watch-row">
+
+        <a href="#" class="watch-link-btn" id="listenLink">Listen</a>
+
+        <a href="https://youtube.com/watch?v=WJON9O0U_WM&amp;t=2089s"
+           class="watch-link-btn"
+           id="watchLink"
+           data-video-url="https://youtube.com/watch?v=WJON9O0U_WM&amp;t=2089s"
+           target="_blank"
+           rel="noopener"
+           hidden>
+            Watch
+        </a>
+
+        
+
+        <a href="#"
+           class="watch-link-btn"
+           id="translateLink"
+           target="_blank"
+           rel="noopener"
+           title="Translate this report with Google Translate">
+            Translate
+        </a>
+
+    </div>
+
+    <div id="audio-player" class="audio-block" hidden style="margin: 10px 0 0 0; text-align: center;">
+  <audio controls preload="none" style="width: min(960px, 100%);">
+    <source id="audioSource" data-r2="20240510_WSR-Report.m4a" src="" type="audio/mp4">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+
+    <hr>
+
+    <h3>Summary</h3>
+
+    <div class="summary">
+        Kim opens the May 10, 2024 report with the Invisible Glass Ceiling: the Deep State system that keeps everyday people from getting past a certain point in business, however good their invention. C.A.R.E. must unwind it to restore society&#x27;s systems, a job as important as releasing money for projects. It runs on the Non-Compete Plan, rewritten for each global power center (the upcoming version would have put China in place of the United States), which controls every industry through raw-material control. Operatives seize every mine for a rare-earth mineral their products need, then charge a competitor $10,000 for a dollar&#x27;s worth. Sanctioned Russian producers of a specialty nickel still sell on the black market to member companies only, so outside parts makers lose their contracts. A controlled ingredient could turn a skin-cancer-preventing soap into a $40 bar. Other tools: burned crops, water shut off to farmers, demands for 10% of profits, bought or stolen technology, and infrastructure; Halliburton has built about 90% of the world&#x27;s ports since the &#x27;70s, and a port built without it goes from $100 million to $10 billion.<br>
+<br>
+Kim&#x27;s advice: confirm every material can be sourced and at what end cost, judge whether the product could become a target, and budget for security. Operatives who built the system in the &#x27;70s and &#x27;80s can now help take it apart, and C.A.R.E. will provide security staffed by people experienced in these tactics.<br>
+<br>
+In the pharma world, AstraZeneca and Pfizer are ending COVID-19 vaccine production. The companies never got their payouts, the planned second wave of lockdowns never came, and Non-Compete Program members are rebelling for lack of payment while insurers start going bankrupt. The Deep State&#x27;s 10% membership fee for black-market goods (&quot;Amazon for bad people&quot;), siphoned through shared accounting and payroll systems, has been cut off. With no pandemic during the Eclipse either, the CDC, FDA, and World Health Organization are floating a bird flu pandemic to appease Big Pharma and to hold the operatives who carry out the economic assassination of competitors. Kim says they lack the capacity: a worldwide shutdown would cut off what they still siphon from airlines, Lockheed Martin, and Boeing.<br>
+<br>
+Operationally, back-end operating systems are going black, including 1G through 9G and cell-tower systems, and about 100 people are gone from Global Headquarters in 48 hours. Transfers run three or four an hour, and every block exposes what is left: the corporate back end that siphoned the 10%; bank fee lines tied to the Black Eagle position, head of the Order of the Black Sun, that provided access to view and ultimately interfere with transfers through the Transmission Control Protocol section; and alien &quot;standing orders,&quot; including replicator systems that take a dollar for every dollar Kim&#x27;s side receives. Agreements between Source, Anti-Source, and Neutral Source formed a Trinity Source covering AI systems and the creation of matter. The underlying programs are now going away, affecting computers through a tri-key factor. Kim closes with security first, and more transfers minutes away.
+    </div>
+    <br>
+
+    <hr>
+
+    <h3>Table of Contents</h3>
+    <div class="toc">
+    <ul>
+        <li><a href="#t-003602">00:36:02 - The Invisible Glass Ceiling.</a></li>
+<li><a href="#t-003725">00:37:25 - The Non-Compete Plan -- next stop, China.</a></li>
+<li><a href="#t-003922">00:39:22 - Rare-earth lockout</a></li>
+<li><a href="#t-004225">00:42:25 - Sanctioned Russian nickel, still sold on the black market.</a></li>
+<li><a href="#t-004438">00:44:38 - The $40 bar of soap.</a></li>
+<li><a href="#t-004816">00:48:16 - Burned crops and shut-off water.</a></li>
+<li><a href="#t-005010">00:50:10 - Before you build</a></li>
+<li><a href="#t-005138">00:51:38 - Why the old operatives matter.</a></li>
+<li><a href="#t-005252">00:52:52 - Halliburton and the $10 billion port.</a></li>
+<li><a href="#t-005449">00:54:49 - Big Pharma&#x27;s missing payouts.</a></li>
+<li><a href="#t-005555">00:55:55 - The 10% fee -- Amazon for bad people.</a></li>
+<li><a href="#t-005644">00:56:44 - Bird flu rumors -- can they pull it off?</a></li>
+<li><a href="#t-010139">01:01:39 - Back-end systems going black, 1G through 9G.</a></li>
+<li><a href="#t-010435">01:04:35 - Pinch points</a></li>
+<li><a href="#t-010610">01:06:10 - Alien &quot;standing orders&quot; holding up transfers.</a></li>
+<li><a href="#t-010759">01:07:59 - Trinity Source and the tri-key factor.</a></li>
+<li><a href="#t-011012">01:10:12 - Security for your projects -- C.A.R.E. steps in.</a></li>
+    </ul>
+    </div>
+
+    <hr>
+
+    
+
+    <h3>Transcript</h3>
+    <div class="transcript">
+        <div class="line">2024-MAY-10 World Situation Report</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003448">00:34:48</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Teaser.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">And now the World Situation Report, with Kimberly Goguen from the Office of the Guardian. The invisible glass ceiling is real. How the Deep State created control systems of all industries, worldwide. And what you need to know. The CDC, FDA, and World Health Organization have been circulating internal memos about the possibility of creating a bird flu pandemic. Will they succeed? And a status update on ongoing operations against the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003526">00:35:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Now, here&#x27;s Kimberly Goguen, with the Office of the Guardian. Hey, Kim!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Hello, Sunny. Happy Friday!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Happy Friday! We made it!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003535">00:35:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I almost didn&#x27;t make it! [Laughing.] I know. I was running so late! Mainly just because I&#x27;ve been really busy this morning. And part of it, or most of it, has to do with ongoing operations, statuses, and of course... well, we&#x27;ll talk about that towards the end. But anyway everything&#x27;s going pretty well. I&#x27;m happy about the results so far.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003602">00:36:02</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. One thing I want to talk about, which I feel is really, really important to understand, moving forward. So, again, C.A.R.E., the C.A.R.E. Organization, is responsible - and that means multiple people, it&#x27;s not just one person - will be responsible for completing a restoration of all systems of society in which we live. So the way we get our food, the way we get our water, the way we house ourselves, travel - everything has to be revamped and revised. And as a part of that, it&#x27;s important to understand what I call the Invisible Glass Ceiling. Because this will come up, and will be a problem, and is going to be a system unto itself - that we need to unwind. Now, the Invisible Glass Ceiling - and by &quot;glass ceiling&quot;, I mean it refers to us average everyday humans, and why we cannot make it past a certain point in business - even if we create an amazing product, or we create an amazing service, or a medical innovation, or whatever it is.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003725">00:37:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And it&#x27;s more than just where they hunt down scientists, and all of the stories that we&#x27;ve heard, and we know are true. But I really cannot stress enough - and I&#x27;ve talked about it a little bit - about the Non-Compete Plan that has been written and revised and rewritten to fit every different global power center. So the one that was supposed to be upcoming has a lot to do with China, and China becoming the world&#x27;s power center versus the United States. And this is a plan that has been in place for a long time with the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003811">00:38:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, industry control is more than just, for example, preventing you from getting a license; preventing you from making a certain amount of money; being approached by the Cabal. There was always a centralized point that was created in order to firstly create the system, but then in addition to that we have specific raw material control systems that were also put in place.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003844">00:38:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So say, for example, there is a medical technology - let&#x27;s just use medical technology, because this extends far beyond that, into asphalt, into roads, into car parts, into all different kinds of things - anything under the sun that you can imagine that requires any kind of raw or manufactured raw materials, meaning they have converted them into anything that goes into everything that&#x27;s in your house. So, everything you own, every consumer product, has some part to play in this industrial control system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-003922">00:39:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So they have created - let&#x27;s just say the Deep State has created a medical technology that is meant to placate your symptoms, because they like that. They&#x27;re not big for cures, they would like to keep you on some kind of medication or something at all times. So, this medical technology that they&#x27;ve created requires, let&#x27;s just say, a specific rare-earth mineral in order to function. Now. Perhaps there are several technologies that they have created in different industries that require the same raw material to manufacture. And it would be impossible to create another one without that specific raw material. So, what they do then is they send out groups of operatives, and their job is to go over and take over every single place in the world, and every mining operation in the world, that would be responsible for mining this particular rare-earth mineral.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004033">00:40:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So let&#x27;s just say you, Sunny, come along several years later and you create a similar type technology, but that might actually work better - might actually provide a cure. Maybe you are creating a competing product in any one of the industries in which they use this rare-earth mineral. So here&#x27;s what&#x27;s going to happen to you. Now, they get these raw materials for pretty close to free. Therefore, it&#x27;s a very highly profitable machine for them, number one. Number two, it&#x27;s serving its function by placating symptoms, and not ever having a cure. So that&#x27;s important to understand, whereas yours may actually cure, over time, let&#x27;s just say. And, they get them for, you know, a fairly good cost, therefore the cost of their device is, let&#x27;s just say it&#x27;s $1,000. In the medical world today there&#x27;s hardly anything - you can&#x27;t even get aspirin 7 days in a row in the hospital for $1,000. But let&#x27;s just say the cost, for this for all intents and purposes for this example, is $1,000.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004145">00:41:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, you have tested yours - it&#x27;s patented, it&#x27;s proven, it&#x27;s all of these things. But because you need the same rare-earth mineral to produce your machine, the cost for you - what costs them say, maybe a dollar, for this amount of rare-earth mineral - will cost you $10,000. Therefore, you&#x27;re now priced out of the market, because if you have to pay $10,000 for this small amount to make one machine - and their machine is $1,000 - you could never put yours into the marketplace. You couldn&#x27;t compete!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004225">00:42:25</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, they&#x27;ve done this with every single type of material, from lumber or wood (whatever you call it) down to... Another way this is done - this is another perfect example, most recently. So, Russia produces a specific type of nickel. And this specific type of nickel has specifications that allow it to be used for specialty parts, say in oil drilling, or vehicles, or these types of things. Now, in Russia, this currently is the only place in the world that is mining this specific nickel. And, they have sanctioned recently - within the last several months, I think it&#x27;s been about a year now - all of the nickel manufacturing parties in Russia. So, all of the companies that produce this specific nickel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004321">00:43:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And now, because they are all part of the black-market operation, or what I call the &quot;Non-Compete Program&quot;, they still are selling their nickel - but on the black market, and only to their companies that require this specific nickel to manufacture, say car parts, or whatever it is. So there&#x27;s no harm, no foul on their end of it - they might even get it cheaper, actually, under these circumstances - which is fine by the companies because they&#x27;re still making just as much money. Technically, they&#x27;re using black-market routes - so they don&#x27;t have to pay customs and imports or anything like that of course - and their companies are still producing these parts. But what it does to you, the car-part maker - I&#x27;m just using car parts as an example - what it does to you the car-part maker is you can no longer produce that part that you had, say, a contract with Mercedes, or Ford, or whomever it is to produce for. So therefore, you now lose all your contracts because you can&#x27;t make the parts anymore - taking you out of the business - and then therefore they now have the contracts. It&#x27;s very sneaky, isn&#x27;t it?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Yeah it is. Very deceitful.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004438">00:44:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And it goes beyond that. Say you make - there&#x27;s a young high-school student that recently came out with, won all these awards and everything, because he created a soap that actually prevents skin cancer. Now I guarantee you, if he were to ever go into the manufacturing of this soap on a high level - and it wasn&#x27;t through say, Pfizer, or one of these places - I guarantee you there was probably an ingredient in there that they own. Whatever that ingredient is. If it&#x27;s not synthetically made, it&#x27;s probably organic. And for all I know, it could be even in some kind of an essential oil, or a plant extract, or something like that, that would actually do this. And there&#x27;s many of them out there that do.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004527">00:45:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So it would be impossible - yes he did something very amazing - but he&#x27;ll never actually profit from it; he&#x27;ll never actually get anywhere with it. And will 3M, say, ever manufacture it? Even though they may have bought the technology, gave him $100,000 or something, patted him on the back, some awards, and sent him on his way. But if he ever went to try to manufacture it himself - even if he had the investment, and he wasn&#x27;t locked out of the financial system, for trying to get a loan or something on his patent - then he would be locked out in other ways. So that soap bar, which probably cost him a few dollars USD to make, now goes up to $40 a bar of soap. And you can&#x27;t afford $40 for a bar of soap, and there you go, there ends that. You&#x27;re priced out of the market; you&#x27;re not going to sell anything. I mean, unless it&#x27;s an anti-aging thing, no one spends 40 dollars to prevent skin cancer. They think, &quot;I&#x27;ll put my sunscreen on for $5, that I get at Walgreens.&quot; And that&#x27;ll be the end of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004645">00:46:45</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So this is important to understand at this moment in time. Because a lot of you are working on your projects. A lot of you are working on Restoration. A lot of you are working on, like we had someone on recently that talked about a different way of doing farming, and not using those products, and how expensive it can be. And they know that too. And he&#x27;s lucky enough to have a farm that&#x27;s been running for generations and he can afford to make a little bit less on his crops. But that doesn&#x27;t mean everybody can.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004721">00:47:21</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But I want you to understand this, when you create something, and you invent something, you need to also look at, &quot;Can I source all of this stuff?&quot; Now, if mine is a cure for a disease, say, or prevents EMF radiation - or something that they&#x27;re desperately trying to get into you - I guarantee you that once you come out with this specific product in the market, then you are going to be running up against all of these people who specifically are in place to ensure that you are not successful. So, sourcing raw materials, sourcing all your ingredients for whatever it is you&#x27;re making, your device, those types of things is equally as important as the execution and manufacturing of your widget, whatever it is. Your cure.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004816">00:48:16</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Even if it&#x27;s a natural thing - if they could patent plants, they would have patented plants a long time ago. If they could stop you from getting your ingredients, they would have a long time ago. And then there is of course crop sabotage, so if say, yours is an all-natural thing, and you can derive it from plants - someone will come in and burn your house to the ground and burn all your crops overnight, and you won&#x27;t even know what happened. And this will happen continuously. So, the taking down of the Deep State and their systems, while cooperatively working with other people - like your economic hitmen and those types of folks, to undo each one of these systems, put them back into a proper system for sourcing - is just as important as releasing money for projects. Because you&#x27;ll never get anywhere. It&#x27;s intended - this is the Invisible Glass Ceiling that makes sure that you will never get anywhere in this world, and actually get all of your wonderful things out to the people. And I know that&#x27;s kind of disheartening, but it&#x27;s a truth that you need to face, and you need to understand.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004927">00:49:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Next. If you&#x27;re growing agriculture, the other thing they&#x27;ll do is shut your water off. They just did this recently to all the Mexican farmers in a specific area of Mexico. It&#x27;s been done several times. It&#x27;s also been done in certain farming areas here in the United States recently. So, take a look at the amount of control that they have - just by ordering their people around - who apparently are willing to work for free!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-004956">00:49:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So Kim, what&#x27;s the answer to that then? Is it just what you and your team are doing to take these systems down? Is it just to be patient and wait? Because obviously we&#x27;re going to come up against this stuff.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005010">00:50:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: No. Just make sure, as you&#x27;re going forward right now - first of all, number one - can you source the raw materials? What is the end cost for you to source these materials? Is my widget - or whatever you plan on building or growing, whatever it is - is it something that could be targeted later on? Once I start to manufacture at this &quot;low price&quot; and then they find out that I&#x27;m sending out a medical device that actually cures something, are they going to raise the price? Now, you&#x27;ll probably be visited; that&#x27;s what will probably happen first. They&#x27;ll visit you and say, &quot;Look, we need 10% of all your profits or we&#x27;re going to do this to you.&quot;</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;s horrible.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005100">00:51:00</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And that&#x27;s if it&#x27;s a non-competing item. So they don&#x27;t have an equal and opposite item. They will also try to buy your technology from you - I&#x27;ve had this happen to me multiple times. I&#x27;ve also had notes and notebooks and different things that I&#x27;ve experimented with stolen from me. So, I know these things are going to happen to you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005122">00:51:22</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: The solution here is, number one, make sure you can source all your materials. Determine whether or not what you&#x27;re doing could possibly be a target for the Deep State - is it something they want, is it something they want to take? Do they want to suppress my technology? Just be aware of this.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005138">00:51:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And I know you hate this part - some people really hate this part - but now do you see the opportunity we have here for operatives? Because there&#x27;s a lot of guys that are still alive, that actually worked as a part of this system, and helped create this system back in the &#x27;70s and &#x27;80s. They&#x27;re still around, they know how this works, they know how it was set up. They know every single person that was involved - that they had to take over or push out of the way - in order to make this happen.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005214">00:52:14</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, this is another opportunity for these people to work for something that&#x27;s positive, that will help you out. I&#x27;m not saying that... Everybody says, &quot;Oh! Why would you want to bring these people into your system?!&quot; Well, here&#x27;s another reason why. Unless... I guarantee you, that there are parts of this - and I&#x27;m kind of treading lightly on this, because we don&#x27;t want to tip our enemy off to some of the other things that we&#x27;re doing you know as well at the moment - but I&#x27;m just giving you a general idea on things that you need to take into account, when you&#x27;re trying to build a new system.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005252">00:52:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Another thing that they do. Let&#x27;s say you have a material, and you are in a country where you need a port. And, as you may or may not know, about 90% of the ports in the world since the &#x27;70s have been built by a little tiny company called Halliburton. Halliburton is run by, or was run by, Dick Cheney. Now it&#x27;s run by whomever. It&#x27;s closely related to IBM - that&#x27;s not a surprise there. And if you want a port in your country, you will give the contract to this company one way or another. Now, you try to do it on your own. Now the price of your steel is going to go up - now your port goes from a hundred-million-dollar port, to about 10 billion dollars. Therefore you never get a port. The same thing will happen with your train; the same thing that happens when you want to buy a plane to move cargo, that type of thing. Your licensing, everything will get messed up. Anytime you try to introduce something like this, somewhere, you&#x27;re going to get tripped up. All your infrastructure - unless the system is fixed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005404">00:54:04</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, will these people that are a part of the system continue to operate, basically for free? Well, that remains to be seen. Right now, they&#x27;re fighting tooth and nail to the very end. They are helping us at the moment, because they are using anything possible that they could even remotely access - for any reason whatsoever - to block us. So we&#x27;ve been running transfers, three or four an hour, for the last few days. And this has actually been quite helpful in us getting any remaining operating systems that we might have missed.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005449">00:54:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now. Next. Oh dear... So there&#x27;s been a lot of shake-ups going on in the pharma world. You&#x27;re hearing about AstraZeneca no longer producing COVID-19 vaccines, Pfizer is not going to be producing COVID-19 vaccines anymore, they&#x27;re going to turn their focuses elsewhere, and ... they are unhappy about the fact that they have not gotten their payouts - and then remember, we were supposed to have a second wave of this. We get locked down and then we get out again. And, that didn&#x27;t quite work out. And so there&#x27;s a little bit of a rebellion going on amongst the Non-Compete Program people of the Deep State for lack of payment. No surprise here. Insurance companies are also not paying the way they used to, they&#x27;re starting to go bankrupt. And things are getting pretty touchy out there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005555">00:55:55</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now, remember as well, the Deep State - even though they are Deep-State corporations - they also take 10% of all the profitability off of all of their personal... it&#x27;s kind of like a membership program to black market products. You know, black market goods, and raw materials, and that kind of thing. It&#x27;s your membership fee. Like Amazon, but for bad people. (Sunny: Dark people!) So not only are they still having to pay their 10%, but they&#x27;re not getting anything for it. Now, there were actually operating systems that managed the siphoning of the 10% off of everything. These are accounting softwares, everybody uses the same payroll companies, that type of thing. And so the money goes out the back door and goes to the Deep State.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005644">00:56:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Now that&#x27;s not a possibility anymore - cutting off another revenue stream for them - which is positive for us. But when this did not happen, and we did not have what they were expecting... they have decided - the CDC, the FDA, and the World Health Organization have decided to start circulating rumors about coming out with a new bird flu pandemic. Now this is mainly to appease Big Pharma and other companies that were allegedly going to profit off of the COVID pandemic. Second reason is that they are losing control of the people that would have participated in the economic assassination of any competitors. These are operatives too - maybe some of them work with the Raymond Reddington crew, we don&#x27;t know. But what we are seeing is a definite decline in support.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005733">00:57:33</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, they launched this opportunity a few days ago, in an effort to appease them. But not only that, if you recall, right before the Eclipse they actually announced that companies like Airbnb and other major corporations that would be involved - or I should say, hindered by - another pandemic, which was supposed to happen during the Eclipse. Now everybody is yelling and screaming because nothing happened during the Eclipse and there was no lockdown, and there was no payouts to lock down. None of that stuff happened, and so they had to come up with something else. And this is the latest and greatest rumor.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005839">00:58:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Do they have the capacity to create a worldwide bird flu pandemic? No. This is just to push them off to another day ending in &#x27;Y&#x27;, and the best I can tell, that day ending in &#x27;Y&#x27;, is either Monday or Tuesday of next week. And then I guess they&#x27;re going to try to create the cat flu pandemic, or some other kind of pandemic, I&#x27;m not sure at this point. But that&#x27;s where it&#x27;s at right now. So, do I see that as a possibility? A worldwide shutdown? Honestly, without the 10%... without - you know, they were the only stores that were open, you remember that... after a while, they reopened. I do not think they can afford that - and if they did, it would cut their nose off to spite their face because any dribbles of income they have that they&#x27;re siphoning off of airlines and Lockheed Martin and Boeing - it would go away immediately.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005940">00:59:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: So, I wish them all the best in trying to achieve that task, but then again, you know, it&#x27;s another one of those situations where they just keep telling everybody that they&#x27;re going to get something on an alignment, and then nothing happens. Which is proving positive for us in a lot of ways.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-005957">00:59:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Well, it does make sense as to why we&#x27;re seeing different things in the headlines about bird flu. I had a bad feeling about that the moment I saw it. I&#x27;m like, oh really? Something else!?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. Really. Something else. I don&#x27;t know what it&#x27;ll be next, but they&#x27;re going to... Well, they need to put another spin on it. How do you explain to a bunch of corporate owners that really don&#x27;t know a whole lot - some of them probably do - but a lot of them really don&#x27;t know a whole lot about... they think that that just naturally happened. How many times can you cry wolf? Apparently, if you&#x27;re Deep State, you can cry wolf an awful lot. You can claim that you&#x27;re in control an awful lot - or you&#x27;re going to be in control by a day ending in &#x27;Y&#x27; - an awful lot. And everybody just believes you.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010053">01:00:53</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Amazing.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. But, they have very little left, and time is running short, and there are people hunting them down as well on the other side. And that&#x27;s going very well, as far as I know. There&#x27;s a lot of people that are trying to buy their freedom in some way, shape, or form - with promises that they probably have no intention on delivering on either. But that&#x27;s up to the Raymond Reddingtons of the world to determine - whether they mean it or they didn&#x27;t. And you get a contract, you get a contract. [If] you get a paying contract, are you going to believe these people? Most of the time it hasn&#x27;t worked out the way they thought it would.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010139">01:01:39</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Okay. Now, other ongoing operations. As promised, we have set forth in motion many back-end operations that are continuously going black, one after the other. These are operating systems that are still operating, but the back-end of it is not visible so it&#x27;s not programmable, it&#x27;s not accessible - therefore their ability to get into some of these back systems is gone. Now some of those things include, but are not limited to: 1G versions 1 through 9; 2G versions 1 through 9; 3G versions 1 through 9... 4, 5, 6, 7, 8, and 9. Now, 8 and 9 and 7 were not really accessible by them at all anyway, by humans. But it was utilized in other ways against us.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010241">01:02:41</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There are operating systems, as far as towers - cellphone towers, and stuff like that - are concerned. There have been some attempts to utilize technologies they did not have access to, but were left here by Others; I know that. They were in Tallahassee last night. They were in Boca Raton this morning. So, there is no shortage of running around that hamster wheel.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010318">01:03:18</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: We are less a lot of people at Global Headquarters.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010323">01:03:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: How many, would you say?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010326">01:03:26</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know... various locations.. they don&#x27;t send too many people... but probably in the last 48 hours, maybe 100. 100 and some change. Because they don&#x27;t send too many people there.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010340">01:03:40</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: [Laughing.] Just in case it doesn&#x27;t turn out in their favor?!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010343">01:03:43</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yeah, and they&#x27;re kind of all scattered, and making sure they&#x27;re not all in the same place. And I really wish they would have a convention, and just make it easy. Let it happen. Don&#x27;t you guys have a Bilderberg meeting type thing, or Bohemian Grove thing you do every year? Probably around some solstice or something? Come on guys, gather together! Sing, &quot;Why Can&#x27;t We Be Friends,&quot; I don&#x27;t know, just do something.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010415">01:04:15</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But it&#x27;s going very, very well, on our side of it. The more transfers we attempt and send out, the more they try to block us. They pull out all the stops, and then we find everything they&#x27;ve got.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010428">01:04:28</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So, how are they viewing - because it sounds like we&#x27;ve taken a lot of stuff away from them - so how are they viewing these transactions?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010435">01:04:35</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, and that was the thing that was kind of perplexing. So, we have done our best to try to get as many operating systems as we could. And when I say, &quot;There was an operating system for everything&quot; - there was an operating system for everything. And one of the things they were using - and it was a reminder for me to remind you about the pinch points - was the corporate back-end system, where they siphoned their 10% out, their fee.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010509">01:05:09</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: There were other fees for banks, there were other lines into different things, that were tied to the Black Eagle position. So, they were able to utilize some of these things to get into - to at least view, and then eventually, when we ran into like, the Transmission Control Protocol section, alter it enough so that our stuff would get lost, or it would never make it to the customer portal. Still a little bit more than I thought, honestly. But this is millions of years against us and lots of alien help, so it&#x27;s not like they arrived at these conclusions themselves.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010554">01:05:54</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Do you still feel like it&#x27;s alien tech holding back the transfers?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010556">01:05:56</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Oh yeah. They did not create this stuff.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010559">01:05:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: But they&#x27;re not doing anything that would stop it? I mean, I know they&#x27;re trying to do stuff. But, is that actually what&#x27;s stopping the transfers, do you think? Or it&#x27;s just stuff that they don&#x27;t even have control over?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010610">01:06:10</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Well, we&#x27;ve had a combination of things happen in the last couple of days, because we&#x27;re probably about 50 into it or so, maybe more. It takes probably about 45 minutes to an hour to run a full cycle, and see what happens. In some cases, we have run into something called a &quot;standing order.&quot; So it would be alien technology that has a standing order, that was not placed there by humans, but by Others to... it&#x27;s not so much specifically monetary, it could be energetic-wise, energy control. Replicator systems where if we get a dollar they get a dollar, that kind of thing. So we&#x27;ve seen a lot more of that.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010657">01:06:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: A few times we have seen a few things that are alien technology as well. But perhaps - by covenant or agreement - these people had some limited access to, that they were able to use. Again, when we get hung up we&#x27;re still getting hung up at the very bottom. It&#x27;s not like it&#x27;s - like they caused a port 490 error today at the customer portal level. Those of you techie people out there, you&#x27;ll know what that is. So we fixed it.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010732">01:07:32</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: And hopefully, we are not too far away from being able to do that. We will continue throughout the day. I am sure all of you, wherever you are in the world watching me, will hear me scream (Sunny: Me too!) It has been a battle beyond battles to get to these points.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010759">01:07:59</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, we did have also a few things left regarding the Trinity. This is another one. To kind of explain to you sort of how this works; so we talked about us changing timelines, us changing Ages, us going into Crystalline Time, Earth getting cleaner, Earth getting Lighter, and all of these processes that are happening throughout the Multiverse. Well. Again, there were some agreements that had to do with not only AI systems, but also had to do with the creation of matter itself that were between Source, Anti-Source, and Neutral Source. Which created a Trinity Source. So some of those base-root programs of creation are going away, which also affects us in computers too, because there was a tri-key factor, and with no other key on the other end.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010857">01:08:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: You know, if you have a dual-key system, maybe you have to enter your key code, and your spouse has to enter their key code - or the other half, or whatever - to open the house safe. It&#x27;s kind of like that. So without anything going to the other side - their brood - to try to make it even in a war, then it triggers some other type of response there. So, it&#x27;s been those types of things, like I said, they are still running around hacking and God bless them, they&#x27;re still running around trying to make promises of payments, and gateways opening, and blah blah blah.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010938">01:09:38</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But it&#x27;s all a lie. Everybody will figure out at some point in time it&#x27;s all a lie. And quite frankly, when we are successful, and you hear - if you&#x27;re sleeping maybe and you hear some lady screaming, it&#x27;s probably me - because I finally made it!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-010957">01:09:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Throughout the Multiverse is gonna hear it!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: That&#x27;s right. I don&#x27;t even need to put out word to anybody - operatives or otherwise - that we&#x27;re open for business, because you&#x27;ll all hear me! [Hearty laughter.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011012">01:10:12</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: But yeah, so everything&#x27;s going very well. We&#x27;re going according to plan, as far as the operations are concerned. We are developing a system for the Invisible Glass Ceiling situation. I suggest you also take these things into consideration, with what you&#x27;re planning on manufacturing, and account for proper security, should that need to be the case for whatever it is you&#x27;re producing. Let&#x27;s put it that way - I think you&#x27;re all going to need it - that&#x27;s my personal opinion.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011049">01:10:49</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Is that something that C.A.R.E. would provide? Kim, didn&#x27;t we talk about that a little bit before? About C.A.R.E. taking on some of those responsibilities for the projects?</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011057">01:10:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yes, yes. And that&#x27;s something we will provide. We need people for that, right? So our people for that would be the ones that are experienced in doing this themselves to other people. Because they&#x27;ll know every way they think - every which way they could have caused this situation to arise - they know exactly what to look for when it comes to protecting you and your project. But what I&#x27;m saying is, when you&#x27;re putting together your business plan, you need to account for this in every single project that you&#x27;re doing. Just think about what they&#x27;re going to look for. And realize that this is going to be a factor for everyone. And yes, we expect to see that on just about everything coming out of C.A.R.E. for awhile. Because, I don&#x27;t see another way around it. I mean, I can run around and try to fix it, but I&#x27;m certainly not going to do that all by myself. There&#x27;s a lot of people involved, that have been living on 10% of everything, for their &quot;protection and services&quot;, and black market goods, and free oil, free gas, free stuff. So.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011213">01:12:13</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Our stuff, speaking of stuff, our &quot;stuff offer&quot; is still out there; we&#x27;re still willing to take some stuff.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011227">01:12:27</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: No one&#x27;s reached out, as of yet?</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Nah. They&#x27;re still listening to these Global Headquarters people. I think they like this - they like being lied to, cheated, stolen from, you know, all the good stuff. (Sunny: Apparently...) And waiting. They&#x27;re good waiters. You would think there would be no shortage of waiters at restaurants, because they&#x27;re waiters, they wait. That&#x27;s what they do. So. How many are going to jump when everything is available? I don&#x27;t know.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: That&#x27;ll be interesting.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Until then, we are watching hamsters and waiters.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: What a world, what a world!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: What a world, what a world.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011311">01:13:11</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: So interesting. All right. Well, it&#x27;s good to hear that transfers are happening a lot, I think people like to hear that - that we&#x27;re testing, and we&#x27;re finding more of their stuff... yes.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011323">01:13:23</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Running, testing, find, clean. Run again. Find. Clean. Run again. Until we&#x27;re done. But safety is going to be first. Security is going to be first. That is going to be our number one priority, to keep all of you safe. And to keep the things that you&#x27;re creating safe. And also to distribute them safely. So these are all things that you need to take into consideration. Also, customs fees. How do you get around customs fees? There&#x27;s a black market for that, by the way.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Of course!</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011357">01:13:57</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Yep. You&#x27;re just not invited to the club. And even 10% isn&#x27;t going to get you invited to the club, unless you know the club owners. Or, you know the other people that transport lots of things that are, let&#x27;s just say, not things we might agree with. But they can get anything in and out of anywhere. So, there&#x27;s positives, negatives - I&#x27;m not saying we&#x27;re going to all sit around the campfire, and sing songs and eat S&#x27;mores anytime in the near future, but there&#x27;s definitely business to be had. And lots of it. So we&#x27;re looking forward to moving forward, and that being said, we&#x27;re about a few minutes away here from doing more transfers.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011444">01:14:44</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: All right! Well, hop to it! [Laughing.]</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: I&#x27;m going to!</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Sunny: Thanks, Kim! We&#x27;ll see you next week.</div>
+<div class="blank">&nbsp;</div>
+<div class="line">Kim: Sounds good, Sunny.</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011452">01:14:52</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[Epilogue.]</div>
+<div class="blank">&nbsp;</div>
+<br>
+<div class="timestamp" id="t-011551">01:15:51</div>
+<br>
+<div class="blank">&nbsp;</div>
+<div class="line">[End of report.]</div>
+<div class="blank">&nbsp;</div>
+    </div>
+
+</div>
+
+<!-- First-click notice (shown once) -->
+<div id="ytNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">YouTube embedded player</div>
+
+        <div class="yt-notice-body">
+            This page uses YouTube's official embedded player so you can watch or listen while reading. The video streams directly from YouTube and counts as a normal view under YouTube's standard system. All playback features are provided by YouTube's standard player.<br><br>
+            The video remains the property of its creator and is not stored on this website.<br><br>
+            If you prefer, you can <a id="ytNoticeInlineLink" href="https://youtube.com/watch?v=WJON9O0U_WM&amp;t=2089s" target="_blank" rel="noopener">open the video on YouTube</a>.
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="ytNoticeContinue">Continue</button>
+            <button type="button" id="ytNoticeCancel">Cancel</button>
+
+            <label class="yt-notice-check">
+                <input type="checkbox" id="ytNoticeDontShow">
+                Don't show again
+            </label>
+        </div>
+    </div>
+</div>
+
+
+<!-- First-click Translate notice -->
+<div id="translateNotice" class="yt-notice" hidden>
+    <div class="yt-notice-box">
+        <div class="yt-notice-title">Translate this report</div>
+
+        <div class="yt-notice-body">
+            Google Translate will create an automatic translated view of this report. The original English report remains unchanged.<br><br>
+            Translations are automatic, so names, phrases, or specialized terms may sometimes be rendered differently.<br><br>
+            Choose your default translation language. This choice will be remembered on this device, and you can still change languages later using Google's toolbar.<br><br>
+
+            <label for="translateLanguage"><strong>Default language:</strong></label>
+            <select id="translateLanguage" style="margin-left:8px; padding:5px;">
+                <option value="es">Spanish</option>
+                <option value="hy">Armenian</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
+                <option value="it">Italian</option>
+                <option value="nl">Dutch</option>
+                <option value="pl">Polish</option>
+                <option value="uk">Ukrainian</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="zh-TW">Chinese (Traditional)</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+            </select>
+        </div>
+
+        <div class="yt-notice-actions">
+            <button type="button" id="translateNoticeContinue">Continue</button>
+            <button type="button" id="translateNoticeCancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed dock (expanded/collapsed) -->
+<div id="videoDock" class="video-dock" hidden>
+    <div class="video-dock-inner">
+
+        <div class="video-dock-bar">
+            <button class="header-btn" type="button" id="videoCollapse">Collapse</button>
+            <button class="header-btn" type="button" id="videoExpand" hidden>Expand</button>
+            <button class="header-btn" type="button" id="videoClose">Close</button>
+            <button class="header-btn" id="decreaseVideo">Video&nbsp;-</button>
+            <button class="header-btn" id="increaseVideo">Video+</button>
+
+            <a id="videoOpen" href="https://www.youtube.com/@UnitedNetworkNews2024" target="_blank" rel="noopener">UNN</a>
+
+            <div id="audioBarControls" hidden style="display:none; align-items:center; gap:6px; margin-left:auto; margin-right:auto;">
+                <button type="button" class="header-btn" id="audioBarPlayPause2" onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">⏸</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10);">Slower</button>
+                <span id="audioBarRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10);">Faster</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10</button>
+                <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30</button>
+            </div>
+
+            <div id="audioBarRightControls" style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <!-- <button class="header-btn" type="button" id="audioBarPlayPause" hidden onclick="var a=document.getElementById('audioDockElement'); if(a.paused){a.play();this.textContent='⏸';}else{a.pause();this.textContent='▶';}">▶</button> -->
+                <span class="video-dock-nowplaying" id="nowPlayingText"></span>
+            </div>
+
+        </div>
+
+        <!-- player container controls size now -->
+        <div class="video-dock-player vtiny">
+
+            <iframe id="videoFrame"
+                    src=""
+                    title="YouTube player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+
+            <div class="yt-inline-note">
+                <span id="ytPowered" title="This page uses YouTube's official embedded player so you can watch or listen while reading. The video remains the property of its owner.">Powered by YouTube embed</span>
+            </div>
+        </div>
+        <div id="audioDockPlayer" hidden style="padding: 9px 10px 10px 10px; max-width: 960px; margin: 0 auto; text-align: center;">
+          <div style="margin-bottom: 8px;">
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-30);">-30s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime=Math.max(0,a.currentTime-10);">-10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.max(0.2,Math.round((a.playbackRate-0.2)*10)/10); syncAudioRateDisplays();">Slower</button>
+              <span id="audioRate" style="font-size:13px; min-width:3em; display:inline-block; text-align:center;">1.0x</span>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.playbackRate=Math.min(3.0,Math.round((a.playbackRate+0.2)*10)/10); syncAudioRateDisplays();">Faster</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=10;">+10s</button>
+              <button type="button" class="header-btn" onclick="var a=document.getElementById('audioDockElement'); a.currentTime+=30;">+30s</button>
+          </div>
+          <audio id="audioDockElement" controls preload="none" style="width: min(960px, 100%);">
+             <source id="audioDockSource" src="" type="audio/mpeg">
+              Your browser does not support the audio element.
+          </audio>
+      </div>
+
+    </div>
+</div>
+<footer class="site-footer" style="text-align:center; margin-top:40px;">
+  <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+</footer>
+
+<script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
+
+<script>
+function $(id) {
+    return document.getElementById(id);
+}
+
+function syncAudioRateDisplays() {
+    var audio = document.getElementById("audioDockElement");
+    if (!audio) return;
+
+    var text = audio.playbackRate.toFixed(1) + "x";
+    var expandedRate = document.getElementById("audioRate");
+    var collapsedRate = document.getElementById("audioBarRate");
+
+    if (expandedRate) expandedRate.textContent = text;
+    if (collapsedRate) collapsedRate.textContent = text;
+}
+</script>
+
+<!-- GIA++ YouTube Dock JS (template-only) -->
+<script>
+function updatePoweredLabel() {
+        const box = document.querySelector("#videoDock .video-dock-player");
+        const label = document.querySelector("#videoDock #ytPowered");
+        if (!box || !label) return;
+
+        if (box.classList.contains("vmicro")) {
+                    label.textContent = "Powered by YouTube";
+                } else {
+                            label.textContent = "Powered by YouTube embed";
+                        }
+}
+
+/* NEW: measure actual dock/header heights and set offsets dynamically */
+function updateDockOffset() {
+    var dock = document.getElementById("videoDock");
+    var header = document.getElementById("normalHeader");
+    var content = document.getElementById("content");
+
+    if (!header || !content) return;
+
+    /* No dock visible: restore defaults */
+    if (!dock || dock.hidden) {
+        header.style.top = "0px";
+        content.style.paddingTop = "";
+
+        // NEW 20260225: only normal header is in play
+        var headerH0 = (!header.hidden) ? (header.offsetHeight || 0) : 0;
+        document.documentElement.style.setProperty("--hdr-offset", headerH0 + "px");
+        return;
+    }
+
+    /* Dock visible: push header down (if header is visible) and pad content */
+    var dockH = dock.offsetHeight || 0;
+    var headerVisible = !header.hidden;
+    var headerH = headerVisible ? (header.offsetHeight || 0) : 0;
+    // NEW 20260225: total fixed coverage at top = dock + visible header
+    document.documentElement.style.setProperty("--hdr-offset", (dockH + headerH) + "px");
+
+    if (headerVisible) {
+        header.style.top = dockH + "px";
+    }
+
+    /* Clear both dock + visible header, plus a little breathing room */
+    content.style.paddingTop = (dockH + headerH + 10) + "px";
+}
+
+function adjustVideoSize(direction) {
+    var box = document.querySelector("#videoDock .video-dock-player");
+    if (!box) return;
+
+    const videoSizes = ["vmicro", "vtiny", "vmini", "vsmall", "vmed", "vlarge", "vhuge"];
+
+    // Find current size class on the CONTAINER (not the iframe)
+    var currentSize = videoSizes.find(size => box.classList.contains(size));
+
+    // Default if none present
+    if (!currentSize) {
+        currentSize = "vtiny";
+        box.classList.add(currentSize);
+    }
+
+    var idx = videoSizes.indexOf(currentSize);
+
+    if (direction === "increase" && idx < videoSizes.length - 1) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx + 1]);
+    } else if (direction === "decrease" && idx > 0) {
+        box.classList.remove(currentSize);
+        box.classList.add(videoSizes[idx - 1]);
+    }
+    updatePoweredLabel();
+    updateDockOffset();
+}
+
+on("increaseVideo", "click", () => adjustVideoSize("increase"));
+on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
+
+(function () {
+    var LS_NOTICE = "gia_embed_notice_seen";
+    var LS_COLLAPSE = "gia_video_collapsed";
+    var currentUrl = "";
+
+    function show(el) { if (el) el.hidden = false; }
+    function hide(el) { if (el) el.hidden = true; }
+
+    function extractVideoId(url) {
+        if (!url) return "";
+        var m = url.match(/[?&]v=([^&]+)/);
+        return m ? m[1] : "";
+    }
+
+    function toEmbedUrl(videoId, rawUrl) {
+        if (!videoId) return "";
+
+        var embedUrl = "https://www.youtube.com/embed/" + videoId + "?autoplay=2&rel=0";
+
+        try {
+            var parsed = new URL(rawUrl);
+            var t = parsed.searchParams.get("t");
+
+            if (t) {
+                var seconds = parseInt(t, 10);
+                if (!isNaN(seconds) && seconds > 0) {
+                    embedUrl += "&start=" + seconds;
+                }
+            }
+        } catch (ex) {}
+
+        return embedUrl;
+    }
+
+
+    function setNowPlayingDockBar(url) {
+      var t = $("nowPlayingText");
+      if (!t) return;
+      t.textContent = url ? ("Now playing: " + url) : "";
+    }
+
+    function openDock(url) {
+        var dock = $("videoDock");
+        var frame = $("videoFrame");
+        var openA = $("videoOpen");
+
+        var vid = extractVideoId(url);
+        if (!vid) return false; /* not a watch URL */
+
+        if (openA) openA.href = url;
+        if (frame) frame.src = toEmbedUrl(vid, url);
+
+        show(dock);
+
+        // If your actual outer container is videoDock, ignore this line or map IDs consistently.
+        document.body.classList.add("has-video-dock");
+        document.body.classList.remove("audio-dock-active");
+
+        var collapsed = (localStorage.getItem(LS_COLLAPSE) === "2");
+        if (collapsed) {
+            document.body.classList.add("video-collapsed");
+            show($("videoExpand"));
+            hide($("videoCollapse"));
+        } else {
+            document.body.classList.remove("video-collapsed");
+            hide($("videoExpand"));
+            show($("videoCollapse"));
+        }
+
+        currentUrl = url;
+        setNowPlayingDockBar(url);
+        updatePoweredLabel();
+        updateDockOffset();
+        return true;
+    }
+
+    function closeDock() {
+
+        var frame = $("videoFrame");
+        var dock = $("videoDock");
+
+        var audioDockPlayer = $("audioDockPlayer");
+        var audioDockElement = $("audioDockElement");
+        var audioDockSource = $("audioDockSource");
+        var videoBox = document.querySelector("#videoDock .video-dock-player");
+        var nowPlayingText = $("nowPlayingText");
+
+        var audioIsOpen = !!(audioDockPlayer && !audioDockPlayer.hidden);
+        var ppBtn = document.getElementById('audioBarPlayPause');
+        if (ppBtn) ppBtn.textContent = '▶';
+
+        if (frame) frame.src = "";
+
+        if (audioIsOpen) {
+            try {
+                audioDockElement.pause();
+                audioDockElement.currentTime = 0;
+            } catch (ex) {}
+
+            if (audioDockSource) audioDockSource.src = "";
+            if (audioDockElement) audioDockElement.load();
+            audioDockPlayer.hidden = true;
+        }
+
+        if (videoBox) videoBox.hidden = false;
+
+        hide(dock);
+
+        document.body.classList.remove("has-video-dock");
+        document.body.classList.remove("video-collapsed");
+        document.body.classList.remove("audio-dock-active");
+
+        localStorage.removeItem(LS_COLLAPSE);
+
+        currentUrl = "";
+        setNowPlayingDockBar("");
+        if (nowPlayingText) nowPlayingText.textContent = "";
+
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+
+        updateDockOffset();
+    }
+
+    function collapseDock() {
+        syncAudioRateDisplays();
+        document.body.classList.add("video-collapsed");
+        localStorage.setItem(LS_COLLAPSE, "2");
+        show($("videoExpand"));
+        hide($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function expandDock() {
+        document.body.classList.remove("video-collapsed");
+        localStorage.removeItem(LS_COLLAPSE);
+        hide($("videoExpand"));
+        show($("videoCollapse"));
+        updateDockOffset();
+    }
+
+    function showNotice(onContinue, url) {
+        var notice = $("ytNotice");
+        var btnContinue = $("ytNoticeContinue");
+        var btnCancel = $("ytNoticeCancel");
+        var chk = $("ytNoticeDontShow");
+        var inlineLink = $("ytNoticeInlineLink");
+
+        /* If the notice UI isn't present for some reason, just continue */
+        if (!notice || !btnContinue || !btnCancel || !chk) {
+            onContinue();
+            return;
+        }
+
+        /* Keep the inline link pointed at the current video URL */
+        if (inlineLink && url) inlineLink.href = url;
+
+        show(notice);
+
+        function cleanup() {
+            hide(notice);
+            btnContinue.onclick = null;
+            btnCancel.onclick = null;
+        }
+
+        btnContinue.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+            onContinue();
+        };
+
+        btnCancel.onclick = function () {
+            if (chk.checked) localStorage.setItem(LS_NOTICE, "2");
+            cleanup();
+        };
+    }
+
+    var watchLink = $("watchLink");
+    var videoClose = $("videoClose");
+    var videoCollapse = $("videoCollapse");
+    var videoExpand = $("videoExpand");
+    var watchOpen = $("watchOpen");
+
+    if (!watchLink) return;
+
+    document.querySelectorAll(".video-part-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const url = link.getAttribute("data-video-url");
+            if (!url) return;
+
+            var seen = (localStorage.getItem(LS_NOTICE) === "2");
+
+            var go = function () {
+                if (openDock(url)) {
+                    window.scrollTo({ top: 1, behavior: "smooth" });
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            if (seen) {
+                go();
+            } else {
+                showNotice(go, url);
+            }
+        });
+    });
+
+    var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+    if (url && url.indexOf("watch?v=") !== -1) {
+        watchLink.hidden = false;
+    }
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+
+
+    if (document.querySelector(".video-part-link")) {
+        watchLink.hidden = true;
+    }
+
+    watchLink.addEventListener("click", function (e) {
+        var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+
+        /* If not a specific watch URL, use normal navigation */
+        if (!extractVideoId(url)) return;
+
+        e.preventDefault();
+
+        var seen = (localStorage.getItem(LS_NOTICE) === "2");
+        var go = function () {
+            if (openDock(url)) {
+                window.scrollTo({ top: 1, behavior: "smooth" });
+            } else {
+                window.location.href = url;
+            }
+        };
+
+        if (seen) {
+            go();
+        } else {
+            showNotice(go, url);
+        }
+    });
+
+    if (videoClose) videoClose.addEventListener("click", function () { closeDock(); });
+    if (videoCollapse) videoCollapse.addEventListener("click", function () { collapseDock(); });
+    if (videoExpand) videoExpand.addEventListener("click", function () { expandDock(); });
+
+    window.addEventListener("resize", function () {
+        updateDockOffset();
+    });
+})();
+</script>
+<script>
+    window.addEventListener("message", function (event) {
+
+            // Only care about messages from YouTube
+            if (!event.origin.includes("youtube")) return;
+
+            console.log("YouTube message:", {
+                        origin: event.origin,
+                        data: event.data
+                    });
+
+    });
+</script>
+<script>
+    (function () {
+          var watchLink = $("watchLink");
+          var listenBtn = $("listenLink");
+          var audioBox = $("audio-player");
+
+          var dock = $("videoDock");
+          var videoBox = document.querySelector("#videoDock .video-dock-player");
+          var videoFrame = $("videoFrame");
+          var videoOpen = $("videoOpen");
+          var nowPlayingText = $("nowPlayingText");
+
+          var audioDockPlayer = $("audioDockPlayer");
+          var audioDockElement = $("audioDockElement");
+          var audioDockSource = $("audioDockSource");
+
+          if (audioDockElement) {
+              audioDockElement.addEventListener("ratechange", syncAudioRateDisplays);
+          }
+
+          function isWatchUrl(url) {
+                  return !!url && url.indexOf("watch?v=") !== -1;
+          }
+
+          // this is not currently used but is available if needed for audio
+          // it will parse a youtube url and get the &t=nnnns value, and
+          // use this value for skipping forward with the audio player.
+          function getStartSeconds(url) {
+                  try {
+                            var parsed = new URL(url);
+                            var t = parsed.searchParams.get("t");
+
+                            if (t) {
+                                      var seconds = parseInt(t, 10);
+                                      if (!isNaN(seconds) && seconds > 0) return seconds;
+                                    }
+                          } catch (ex) {}
+
+                  return 0;
+          }
+
+          function getInlineAudioSource() {
+                  if (!audioBox) return "";
+                  var srcEl = audioBox.querySelector("source");
+                  if (srcEl && srcEl.src) return srcEl.src;
+
+                  var audioEl = audioBox.querySelector("audio");
+                  if (audioEl && audioEl.src) return audioEl.src;
+
+                  return "";
+          }
+
+          function formatTime(s) {
+              s = Math.floor(s);
+              var h = Math.floor(s / 3600);
+              var m = Math.floor((s % 3600) / 60);
+              var sec = s % 60;
+              return h + ":" + (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+          }
+
+          function openAudioDock() {
+              var src = getInlineAudioSource();
+              if (!src || !dock || !audioDockPlayer || !audioDockElement || !audioDockSource) return;
+
+              if (videoFrame) videoFrame.src = "";
+              if (videoBox) videoBox.hidden = true;
+              document.body.classList.remove("video-collapsed");
+
+              if (audioBox) { var inlineAudio = audioBox.querySelector('audio'); if (inlineAudio) inlineAudio.pause(); }
+              audioDockSource.src = src;
+              audioDockElement.load();
+              syncAudioRateDisplays();
+              audioDockElement.addEventListener("loadedmetadata", function playOnce() {
+                  audioDockElement.removeEventListener("loadedmetadata", playOnce);
+                  audioDockElement.play();
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '⏸';
+              });
+
+              audioDockElement.addEventListener("timeupdate", function () {
+                  var np = document.getElementById("nowPlayingText");
+                  if (!np) return;
+                  var cur = audioDockElement.currentTime;
+                  var dur = audioDockElement.duration || 0;
+                  np.textContent = formatTime(cur) + (dur ? " / " + formatTime(dur) : "");
+              });
+
+              audioDockPlayer.hidden = false;
+              dock.hidden = false;
+
+              document.body.classList.add("has-video-dock");
+              document.body.classList.remove("video-collapsed");
+              document.body.classList.add("audio-dock-active");
+
+              var expandBtn = $("videoExpand");
+              var collapseBtn = $("videoCollapse");
+
+              if (expandBtn) expandBtn.hidden = true;
+              if (collapseBtn) collapseBtn.hidden = false;
+
+              if (nowPlayingText) nowPlayingText.textContent = "Now playing: audio";
+
+              if (audioBox) audioBox.hidden = true;
+
+              updateDockOffset();
+          }
+
+          function closeAudioDockIfOpen() {
+                  if (!audioDockPlayer || audioDockPlayer.hidden) return;
+
+                  try {
+                              audioDockElement.pause();
+                              audioDockElement.currentTime = 0;
+                            } catch (ex) {}
+
+                  audioDockSource.src = "";
+                  audioDockElement.load();
+
+                  audioDockPlayer.hidden = true;
+
+                  var ppBtn = document.getElementById('audioBarPlayPause');
+                  if (ppBtn) ppBtn.textContent = '▶';
+
+                  var ppBtn2 = document.getElementById("audioBarPlayPause2");
+                  if (ppBtn2) ppBtn2.textContent = "▶";
+
+                  if (nowPlayingText) nowPlayingText.textContent = "";
+
+                  document.body.classList.remove("audio-dock-active");
+
+                  if (!videoFrame || !videoFrame.src) {
+                              if (dock) dock.hidden = true;
+                              document.body.classList.remove("has-video-dock");
+                              document.body.classList.remove("video-collapsed");
+                            } else {
+                                        if (videoBox) videoBox.hidden = false;
+                                      }
+
+                  updateDockOffset();
+          }
+
+          if (watchLink) {
+                  var url = watchLink.getAttribute("data-video-url") || watchLink.href;
+                  if (!isWatchUrl(url)) {
+                            watchLink.hidden = true;
+                          }
+                }
+
+          if (listenBtn) {
+                  listenBtn.addEventListener("click", function (e) {
+                            e.preventDefault();
+                            openAudioDock();
+                          });
+                }
+
+    })();
+</script>
+<script>
+(function() {
+    var TOKEN = "Never%20understood%20a%20single%20word%20he%20said.";
+    var R2_BASE = "https://gia-audio-gateway.eaisolutions.workers.dev/";
+    var src = document.getElementById('audioSource');
+    if (src) {
+        var r2file = src.getAttribute('data-r2');
+        if (r2file) {
+            src.setAttribute('src', R2_BASE + r2file + '?token=' + TOKEN);
+        }
+    }
+})();
+</script>
+<script>
+(function() {
+    var link = document.getElementById("translateLink");
+    if (!link) return;
+
+    /*
+       v2 deliberately uses a new notice key. That guarantees readers who
+       encountered the earlier test version will see this finished notice once.
+    */
+    var LS_TRANSLATE_NOTICE = "giaTranslateNoticeSeen_v2";
+    var LS_TRANSLATE_LANGUAGE = "giaTranslateLanguage";
+
+    var notice = document.getElementById("translateNotice");
+    var btnContinue = document.getElementById("translateNoticeContinue");
+    var btnCancel = document.getElementById("translateNoticeCancel");
+    var languageSelect = document.getElementById("translateLanguage");
+
+    function normalizeLanguage(language) {
+        language = (language || "").replace("_", "-");
+        var lower = language.toLowerCase();
+
+        if (lower === "zh-cn" || lower === "zh-sg") return "zh-CN";
+        if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo") return "zh-TW";
+
+        language = lower.split("-")[0];
+
+        /* English source page: Spanish is our default translation language. */
+        if (!language || language === "en") return "es";
+
+        return language;
+    }
+
+    function getDefaultLanguage() {
+        var saved = localStorage.getItem(LS_TRANSLATE_LANGUAGE);
+        if (saved) return normalizeLanguage(saved);
+
+        /*
+           For now we intentionally default to Spanish. The first-click dialog
+           lets the reader choose and save something else.
+        */
+        return "es";
+    }
+
+    function buildTranslateUrl(language) {
+        return "https://fullabull-github-io.translate.goog" +
+            window.location.pathname +
+            "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
+            "&_x_tr_hl=" + encodeURIComponent(language);
+    }
+
+    function setLinkLanguage(language) {
+        link.href = buildTranslateUrl(language);
+    }
+
+    var language = getDefaultLanguage();
+    setLinkLanguage(language);
+
+    if (languageSelect) {
+        languageSelect.value = language;
+
+        /* If a previously saved language is not in our short list, keep Spanish
+           selected here; Google's translated-page toolbar still offers all languages. */
+        if (!languageSelect.value) languageSelect.value = "es";
+    }
+
+    link.addEventListener("click", function(e) {
+        var seen = (localStorage.getItem(LS_TRANSLATE_NOTICE) === "1");
+
+        if (seen) {
+            language = getDefaultLanguage();
+            setLinkLanguage(language);
+            return;
+        }
+
+        e.preventDefault();
+
+        if (!notice || !btnContinue || !btnCancel || !languageSelect) {
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+            return;
+        }
+
+        languageSelect.value = getDefaultLanguage();
+        if (!languageSelect.value) languageSelect.value = "es";
+        notice.hidden = false;
+
+        btnContinue.onclick = function() {
+            language = normalizeLanguage(languageSelect.value || "es");
+            localStorage.setItem(LS_TRANSLATE_LANGUAGE, language);
+            localStorage.setItem(LS_TRANSLATE_NOTICE, "1");
+
+            setLinkLanguage(language);
+            notice.hidden = true;
+            window.open(buildTranslateUrl(language), "_blank", "noopener");
+        };
+
+        btnCancel.onclick = function() {
+            notice.hidden = true;
+        };
+    });
+})();
+</script>
+
+</body>
+</html>
