@@ -398,7 +398,7 @@
 <div class="line">Now, there&#x27;s a few little flaws in their plan, but let&#x27;s talk about - I think we&#x27;ve got a map of the area that they&#x27;re targeting, I guess, with these drones.</div>
 <div class="blank">&nbsp;</div>
 <div class="blank">&nbsp;</div>
-<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="https://fullabull.github.io/GIA-Reports/docs/image/Whiteboard-20241216-GIA-01.PNG" alt="Whiteboard-20241216-GIA-01" class="small-image toggle-image"></div>
+<div class="image-wrapper"><button class="toggle-btn header-btn">Hide</button><img loading="lazy" src="/GIA-Reports/docs/image/Whiteboard-20241216-GIA-01.PNG" alt="Whiteboard-20241216-GIA-01" class="small-image toggle-image"></div>
 <div class="blank">&nbsp;</div>
 <div class="blank">&nbsp;</div>
 <div class="line">09:44</div>
@@ -680,7 +680,27 @@
 </div>
 <footer class="site-footer" style="text-align:center; margin-top:40px;">
   <small>© 2026 Technology Solutions of WA. All rights reserved.</small>
+  <br><small id="spokeTag" style="opacity:0.6;"></small>
 </footer>
+<script>
+/*
+   Spoke stamp: each mirror serves its own /GIA-Reports/docs/spoke.json.
+   The repo copy says "github"; Render's build command overwrites it with "render".
+   Shows which mirror actually answered, even behind a shared domain.
+   If the file is missing or the fetch fails, the footer line stays empty.
+*/
+(function () {
+    var tag = document.getElementById("spokeTag");
+    if (!tag || !window.fetch) return;
+    var LABELS = { github: "GitHub Pages", render: "Render" };
+    fetch("/GIA-Reports/docs/spoke.json", { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+            if (j && j.spoke) tag.textContent = "Served by: " + (LABELS[j.spoke] || j.spoke);
+        })
+        .catch(function () {});
+})();
+</script>
 
 <script src="/GIA-Reports/docs/scripts/ReportLiveGIA.js" type="text/javascript"></script>
 
@@ -1247,8 +1267,23 @@ on("decreaseVideo", "click", () => adjustVideoSize("decrease"));
         return "es";
     }
 
+    /*
+       Google's translate proxy host is built from whatever site is serving
+       this page, so GitHub Pages, Render, or any mirror translates its own copy.
+       Google's encoding rule: "-" becomes "--", then "." becomes "-",
+       then ".translate.goog" is appended.
+         fullabull.github.io            -> fullabull-github-io.translate.goog
+         situation-report.onrender.com  -> situation--report-onrender-com.translate.goog
+       If we are already inside the proxy, keep its host as-is.
+    */
+    function translateProxyHost() {
+        var host = window.location.hostname;
+        if (/\.translate\.goog$/i.test(host)) return host;
+        return host.replace(/-/g, "--").replace(/\./g, "-") + ".translate.goog";
+    }
+
     function buildTranslateUrl(language) {
-        return "https://fullabull-github-io.translate.goog" +
+        return "https://" + translateProxyHost() +
             window.location.pathname +
             "?_x_tr_sl=en&_x_tr_tl=" + encodeURIComponent(language) +
             "&_x_tr_hl=" + encodeURIComponent(language);
